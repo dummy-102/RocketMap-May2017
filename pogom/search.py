@@ -267,7 +267,7 @@ def captcha(args, pause_bit):
         if args.captcha_key and captcha_balance(args.captcha_key) <= args.captcha_balance_limit:
             pause_bit.set()
             log.info('Searching paused due to 2captcha balance is under limit!')
-        time.sleep(30)
+        time.sleep(args.captcha_balance_interval)
 
 
 def worker_status_db_thread(threads_status, name, db_updates_queue):

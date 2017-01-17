@@ -101,6 +101,9 @@ def get_args():
     parser.add_argument('-cbl', '--captcha-balance-limit',
                         help='Pause scanning when 2captcha balance reaches below this limit (default 0.01)',
                         type=float, default=0.01)
+    parser.add_argument('-cbi', '--captcha-balance-interval',
+                        help='Interval to check 2Captcha balance in secs (default 300)'
+                        type=int, default=300)
     parser.add_argument('-ed', '--encounter-delay',
                         help='Time delay between encounter pokemon in scan threads.',
                         type=float, default=1)
