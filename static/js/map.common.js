@@ -973,6 +973,18 @@ var StoreOptions = {
     'zoomLevel': {
         default: 16,
         type: StoreTypes.Number
+    },
+    'showMedal': {
+        default: true,
+        type: StoreTypes.Boolean
+    },
+    'showMedalRattata': {
+        default: true,
+        type: StoreTypes.Boolean
+    },
+    'showMedalMagikarp': {
+        default: true,
+        type: StoreTypes.Boolean
     }
 }
 
