@@ -422,6 +422,7 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
             </div>
             `
     }
+
     if (gender != null) {
         details += `
             <div>
@@ -663,7 +664,7 @@ function getIv(atk, def, stm) {
 
 function ifMedalPkm(item) {
     if (item['height'] && item['weight']) {
-        if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && item['height'].toFixed(2) <= 0.22) || 
+        if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && item['height'].toFixed(2) <= 0.22) ||
             (Store.get('showMedalMagikarp')) && item['pokemon_id'] === 129 && item['weight'].toFixed(2) >= 12.62) {
             return 1
         }
