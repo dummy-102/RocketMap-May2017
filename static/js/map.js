@@ -662,15 +662,29 @@ function getIv(atk, def, stm) {
     return false
 }
 
-function ifMedalPkm(item) {
-    if (item['height'] && item['weight']) {
-        if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && item['height'].toFixed(2) <= 0.22) ||
-            (Store.get('showMedalMagikarp')) && item['pokemon_id'] === 129 && item['weight'].toFixed(2) >= 12.62) {
-            return 1
-        }
-    }
+function sizeRatio(height, weight, baseHeight, baseWeight) {
+    var heightRatio = height / baseHeight
+    var weightRatio = weight / baseWeight
+
+    return heightRatio + weightRatio
 }
 
+function isMedalPokemon(item) {
+    if (item['height'] == null && item['weight'] == null) {
+        return false
+    }
+
+    var baseHeight = (item['pokemon_id'] === 19) ? 0.30 : 0.90
+    var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
+    var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
+
+    if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && ratio < 1.5) ||
+            (Store.get('showMedalMagikarp')) && item['pokemon_id'] === 129 && ratio > 2.5) {
+        return true
+    }
+
+    return false
+}
 
 function lpad(str, len, padstr) {
     return Array(Math.max(len - String(str).length + 1, 0)).join(padstr) + str
@@ -767,7 +781,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
     }
 
     if (Store.get('showMedal')) {
-        if (ifMedalPkm(item)) {
+        if (isMedalPokemon(item)) {
             if (!skipNotification) {
                 if (Store.get('playSound')) {
                     audio.play()
@@ -2339,12 +2353,7 @@ $(function () {
 
     $('#medal-switch').change(function () {
         var wrapper = $('#medal-wrapper')
-        if (this.checked) {
-            wrapper.show()
-        } else {
-            wrapper.hide()
-        }
-
+        wrapper.toggle(this.checked)
         Store.set('showMedal', this.checked)
         updateMap()
     })

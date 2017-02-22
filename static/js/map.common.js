@@ -975,7 +975,7 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'showMedal': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'showMedalRattata': {
