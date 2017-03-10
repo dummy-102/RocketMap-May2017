@@ -5,10 +5,15 @@
 *.sass-cache
 *.orig
 *.json
+.Python
+bin/
+include/
+lib/
 config/*
 !config/config.ini.example
 static/dist/
 node_modules/
+pip-selfcheck.json
 venv/
 core
 src/

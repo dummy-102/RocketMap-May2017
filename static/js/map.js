@@ -382,7 +382,7 @@ function initSidebar() {
     $('#spawnpoints-switch').prop('checked', Store.get('showSpawnpoints'))
     $('#ranges-switch').prop('checked', Store.get('showRanges'))
     $('#sound-switch').prop('checked', Store.get('playSound'))
-    $('#geofene-switch').prop('checked', Store.get('showGeofences'))
+    $('#geofences-switch').prop('checked', Store.get('showGeofences'))
     var searchBox = new google.maps.places.Autocomplete(document.getElementById('next-location'))
     $('#next-location').css('background-color', $('#geoloc-switch').prop('checked') ? '#e0e0e0' : '#ffffff')
 
@@ -2374,7 +2374,7 @@ $(function () {
         }
     })
 
-    $('#geofence-switch').change(function() {
+    $('#geofences-switch').change(function() {
         Store.set('showGeofences', this.checked)
         console.log("Stored is " + Store.get('showGeofences'))
         console.log("Update map")
