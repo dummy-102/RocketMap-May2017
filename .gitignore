@@ -20,10 +20,9 @@ src/
 _build
 _build_html
 beehive.*
-static/pixel_icons/*.png
-static/icons-sprite.png		
-static/icons-large-sprite.png		
+static/pixel_icons/*.png	
 static/icons/*.png
+static/*sprite.png
 *.csv
 *.bat
 *.sh
