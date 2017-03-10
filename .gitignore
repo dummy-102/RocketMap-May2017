@@ -22,7 +22,7 @@ _build_html
 beehive.*
 static/pixel_icons/*.png	
 static/icons/*.png
-static/*sprite.png
+static/icons*.png
 *.csv
 *.bat
 *.sh
