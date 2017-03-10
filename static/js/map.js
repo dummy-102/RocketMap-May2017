@@ -47,7 +47,6 @@ var storeZoom = true
 var scanPath
 var moves
 
-var polygons = []
 var geofenceCoordinates = {  // Testing geofence coordinates
     1 : [  // Bermuda Triangle
         {lat: 25.774, lng: -80.190},
@@ -63,9 +62,8 @@ var geofenceCoordinates = {  // Testing geofence coordinates
         {lat: 40.801206, lng: -73.958520}
     ]
 }
-
-var geofence
-var geofenceSet = false
+var geofences = []
+var geofencesSet = false
 
 var oSwLat
 var oSwLng
@@ -1413,34 +1411,36 @@ function updateSpawnPoints() {
 
 function updateGeofences(){
     console.log("Toggle is " + Store.get('showGeofences'))
-    console.log("Polygon on map is " + geofenceSet)
-    if (!Store.get('showGeofences') && geofenceSet === true) {
+    console.log("Polygon on map is " + geofencesSet)
+    if (!Store.get('showGeofences') && geofencesSet === true) {
         console.log("Deleting geofences from map")
-        geofence.setMap(null)
-        geofenceSet = false
+        for (i = 1; i < 3; i++) {
+            geofences[i].setMap(null)
+        }
+        geofences = []
+        geofencesSet = false
         return false
-    } else if(Store.get('showGeofences') && geofenceSet === false) {
+    } else if(Store.get('showGeofences') && geofencesSet === false) {
         console.log("Setting geofences")
         var i
+        console.log("Geofence cords are " + geofenceCoordinates)
         for (i = 1; i < 3; i++) {
             console.log("Created temporary geofence")
             console.log("Create geofence")
-            polygons.push(geofenceCoordinates[i])
+            var colour = '#'+Math.floor(Math.random()*16777215).toString(16);
+            geofences[i] = new google.maps.Polygon({
+                paths: geofenceCoordinates[i],
+                strokeColor: colour,
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: colour,
+                fillOpacity: 0.35
+            });
+            console.log("Geofence polygon is " + geofences)
+            geofences[i].setMap(map)
             console.log("Created geofence " + i)
         }
-
-        geofence = new google.maps.Polygon({
-            paths: polygons,
-            strokeColor: '#FF0000',
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
-            fillColor: '#FF0000',
-            fillOpacity: 0.35
-        });
-        console.log("Geofence cords are " + geofenceCoordinates)
-        console.log("Geofence polygon is " + geofence)
-        geofence.setMap(map)
-        geofenceSet = true
+        geofencesSet = true
     } else {
         console.log("Nothing to do for updateGeofences()")
     }
