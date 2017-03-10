@@ -11,7 +11,7 @@ import time
 import geopy
 import math
 from peewee import InsertQuery, \
-    Check, CompositeKey, ForeignKeyField, \
+    Check, CompositeKey, PrimaryKeyField, ForeignKeyField, \
     SmallIntegerField, IntegerField, CharField, DoubleField, BooleanField, \
     DateTimeField, fn, DeleteQuery, FloatField, SQL, TextField, JOIN, \
     OperationalError
@@ -32,6 +32,9 @@ from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, \
     get_move_name, get_move_damage, get_move_energy, get_move_type
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
+from .geofence import parse_geofences
+
+
 log = logging.getLogger(__name__)
 
 args = get_args()
@@ -1670,6 +1673,15 @@ class Token(flaskDb.Model):
         return tokens
 
 
+# Geofence DB Model
+class Geofences(BaseModel):
+    geofence = PrimaryKeyField()
+    name = CharField(max_length=50)
+    coordinates_id = SmallIntegerField()
+    latitude = DoubleField()
+    longitude = DoubleField()
+
+
 def hex_bounds(center, steps=None, radius=None):
     # Make a box that is (70m * step_limit * 2) + 70m away from the
     # center point.  Rationale is that you need to travel.
@@ -2220,6 +2232,35 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
              len(gym_members))
 
 
+def write_geofences(geofence_file, db_update_queue):
+    geofence_data = parse_geofences(geofence_file)
+    geofences = []
+
+    key = 0
+    for key in range(1, len(geofence_data) + 1):
+        coords = 0
+        for coords in range(0, len(geofence_data[key]['polygon'])):
+            geofence_dict = {
+                'id': key,
+                'name': geofence_data[key]['name'],
+                'coordinates_id': coords,
+                'latitude': geofence_data[key]['coordinates'][coords]['lat'],
+                'longitude': geofence_data[key]['coordinates'][coords]['lon']
+            }
+            log.info('Parsed geofence dict for database: ', geofence_dict)
+            geofences.append(geofence_dict)
+
+    # Remove old geofences
+    with flaskDb.database.transaction():
+        if geofences:
+            DeleteQuery(Geofences).where(True).execute()
+
+    db_update_queue.put((Geofences, geofences))
+    log.info('Upserted geofences: %d', len(geofences))
+
+    return True
+
+
 def db_updater(args, q, db):
     # The forever loop.
     while True:
@@ -2356,7 +2397,7 @@ def create_tables(db):
     db.create_tables([Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
                       GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
                       SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-                      Token, LocationAltitude], safe=True)
+                      Token, LocationAltitude, Geofences], safe=True)
     db.close()
 
 
@@ -2366,7 +2407,7 @@ def drop_tables(db):
                     GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
                     WorkerStatus, SpawnPoint, ScanSpawnPoint,
                     SpawnpointDetectionData, LocationAltitude,
-                    Token, Versions], safe=True)
+                    Token, Versions, Geofences], safe=True)
     db.close()
 
 

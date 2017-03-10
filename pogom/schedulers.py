@@ -61,7 +61,7 @@ from operator import itemgetter
 from datetime import datetime, timedelta
 from .transform import get_new_coords
 from .models import (hex_bounds, Pokemon, SpawnPoint, ScannedLocation,
-                     ScanSpawnPoint)
+                     ScanSpawnPoint, write_geofences)
 from .utils import now, cur_sec, cellid, date_secs, equi_rect_distance
 from .altitude import get_altitude
 
@@ -606,6 +606,9 @@ class SpeedScan(HexSearch):
             for i in range(ring + (ring + 1 < self.step_limit)):
                 loc = get_new_coords(loc, xdist, WEST)
                 results.append((loc[0], loc[1], 0))
+
+        if self.args.geofence_file is not None:
+            write_geofences(self.args.geofence_file, self.dbq)
 
         generated_locations = []
         for step, location in enumerate(results):

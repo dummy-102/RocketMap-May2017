@@ -47,6 +47,26 @@ var storeZoom = true
 var scanPath
 var moves
 
+var polygons = []
+var geofenceCoordinates = {  // Testing geofence coordinates
+    1 : [  // Bermuda Triangle
+        {lat: 25.774, lng: -80.190},
+        {lat: 18.466, lng: -66.118},
+        {lat: 32.321, lng: -64.757},
+        {lat: 25.774, lng: -80.190}
+    ],
+    2 : [  // Central Park, NY
+        {lat: 40.801206, lng: -73.958520},
+        {lat: 40.767827, lng: -73.982835},
+        {lat: 40.763798, lng: -73.972808},
+        {lat: 40.797343, lng: -73.948385},
+        {lat: 40.801206, lng: -73.958520}
+    ]
+}
+
+var geofence
+var geofenceSet = false
+
 var oSwLat
 var oSwLng
 var oNeLat
@@ -362,6 +382,7 @@ function initSidebar() {
     $('#spawnpoints-switch').prop('checked', Store.get('showSpawnpoints'))
     $('#ranges-switch').prop('checked', Store.get('showRanges'))
     $('#sound-switch').prop('checked', Store.get('playSound'))
+    $('#geofene-switch').prop('checked', Store.get('showGeofences'))
     var searchBox = new google.maps.places.Autocomplete(document.getElementById('next-location'))
     $('#next-location').css('background-color', $('#geoloc-switch').prop('checked') ? '#e0e0e0' : '#ffffff')
 
@@ -1389,7 +1410,44 @@ function updateSpawnPoints() {
     })
 }
 
+
+function updateGeofences(){
+    console.log("Toggle is " + Store.get('showGeofences'))
+    console.log("Polygon on map is " + geofenceSet)
+    if (!Store.get('showGeofences') && geofenceSet === true) {
+        console.log("Deleting geofences from map")
+        geofence.setMap(null)
+        geofenceSet = false
+        return false
+    } else if(Store.get('showGeofences') && geofenceSet === false) {
+        console.log("Setting geofences")
+        var i
+        for (i = 1; i < 3; i++) {
+            console.log("Created temporary geofence")
+            console.log("Create geofence")
+            polygons.push(geofenceCoordinates[i])
+            console.log("Created geofence " + i)
+        }
+
+        geofence = new google.maps.Polygon({
+            paths: polygons,
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#FF0000',
+            fillOpacity: 0.35
+        });
+        console.log("Geofence cords are " + geofenceCoordinates)
+        console.log("Geofence polygon is " + geofence)
+        geofence.setMap(map)
+        geofenceSet = true
+    } else {
+        console.log("Nothing to do for updateGeofences()")
+    }
+}
+
 function updateMap() {
+    console.log("Updating map...")
     loadRawData().done(function (result) {
         $.each(result.pokemons, processPokemons)
         $.each(result.pokestops, processPokestops)
@@ -1408,6 +1466,7 @@ function updateMap() {
         updateScanned()
         updateSpawnPoints()
         updatePokestops()
+        updateGeofences()
 
         if ($('#stats').hasClass('visible')) {
             countMarkers(map)
@@ -1727,19 +1786,19 @@ function showGymDetails(id) { // eslint-disable-line no-unused-vars
 
         if (result.team_id === 0) {
             gymLevelStr = `
-                <center>
-                    <b>Uncontested - 1 Free Slot</b>
+                <center class="team-${result.team_id}-text">
+                    <b class="team-${result.team_id}-text">Uncontested - 1 Free Slot</b>
                 </center>`
         } else {
             gymLevelStr = `<div>
-                <b>Level ${gymLevel}${freeSlotsStr}</b>
+                <b class="team-${result.team_id}-text">Level ${gymLevel}${freeSlotsStr}</b>
             </div>`
         }
         var pokemonHtml = ''
         var headerHtml = `
-            <center>
+            <center class="team-${result.team_id}-text">
                 <div>
-                    <b>${result.name || ''}</b>
+                    <b class="team-${result.team_id}-text">${result.name || ''}</b>
                 </div>
                 <img height="100px" style="padding: 5px;" src="static/forts/${gymTypes[result.team_id]}_large.png">
                 <div class="prestige-bar team-${result.team_id}">
@@ -1769,17 +1828,17 @@ function showGymDetails(id) { // eslint-disable-line no-unused-vars
                         <td width="30px">
                             <i class="pokemon-sprite n${pokemon.pokemon_id}"></i>
                         </td>
-                        <td>
+                        <td class="team-${result.team_id}-text">
                             <div style="line-height:1em;">${pokemon.pokemon_name}</div>
                             <div class="cp">CP ${pokemon.pokemon_cp}</div>
                         </td>
-                        <td width="190" align="center">
+                        <td width="190" class="team-${result.team_id}-text" align="center">
                             <div class="trainer-level">${pokemon.trainer_level}</div>
                             <div style="line-height: 1em;">${pokemon.trainer_name}</div>
                         </td>
                         <td width="10">
                             <!--<a href="#" onclick="toggleGymPokemonDetails(this)">-->
-                                <i class="fa fa-angle-double-down"></i>
+                                <i class="team-${result.team_id}-text fa fa-angle-double-down"></i>
                             <!--</a>-->
                         </td>
                     </tr>
@@ -1847,10 +1906,10 @@ function showGymDetails(id) { // eslint-disable-line no-unused-vars
             pokemonHtml = ''
         } else {
             pokemonHtml = `
-                <center>
+                <center class="team-${result.team_id}-text">
                     Gym Leader:<br>
                     <i class="pokemon-large-sprite n${result.guard_pokemon_id}"></i><br>
-                    <b>${result.guard_pokemon_name}</b>
+                    <b class="team-${result.team_id}-text">${result.guard_pokemon_name}</b>
 
                     <p style="font-size: .75em; margin: 5px;">
                         No additional gym information is available for this gym. Make sure you are collecting <a href="https://pgm.readthedocs.io/en/develop/extras/gyminfo.html">detailed gym info.</a>
@@ -2313,6 +2372,13 @@ $(function () {
         } else {
             Store.set('geoLocate', this.checked)
         }
+    })
+
+    $('#geofence-switch').change(function() {
+        Store.set('showGeofences', this.checked)
+        console.log("Stored is " + Store.get('showGeofences'))
+        console.log("Update map")
+        updateMap()
     })
 
     $('#lock-marker-switch').change(function () {

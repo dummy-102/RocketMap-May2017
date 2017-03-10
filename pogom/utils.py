@@ -118,6 +118,9 @@ def get_args():
                         action='store_true', default=False)
     parser.add_argument('-st', '--step-limit', help='Steps.', type=int,
                         default=12)
+    parser.add_argument('-gf', '--geofence-file',
+                        help='Geofence file (currently only for -speed and ' +
+                        'HexSearch)')
     parser.add_argument('-sd', '--scan-delay',
                         help='Time delay between requests in scan threads.',
                         type=float, default=10)
