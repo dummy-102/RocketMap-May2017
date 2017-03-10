@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import pprint
 import itertools
 import calendar
 import sys
@@ -1675,7 +1676,8 @@ class Token(flaskDb.Model):
 
 # Geofence DB Model
 class Geofences(BaseModel):
-    geofence = PrimaryKeyField()
+    id = PrimaryKeyField()
+    geofence_id = SmallIntegerField()
     name = CharField(max_length=50)
     coordinates_id = SmallIntegerField()
     latitude = DoubleField()
@@ -2234,21 +2236,25 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
 
 def write_geofences(geofence_file, db_update_queue):
     geofence_data = parse_geofences(geofence_file)
-    geofences = []
+    log.debug('Received data: \n\r{}'.format(
+        pprint.PrettyPrinter(indent=4).pformat(geofence_data)))
+    geofences = {}
 
     key = 0
+    id = 0
     for key in range(1, len(geofence_data) + 1):
         coords = 0
         for coords in range(0, len(geofence_data[key]['polygon'])):
-            geofence_dict = {
-                'id': key,
+            id = id + 1
+            geofences[id] = {
+                'geofence_id': key,
                 'name': geofence_data[key]['name'],
                 'coordinates_id': coords,
-                'latitude': geofence_data[key]['coordinates'][coords]['lat'],
-                'longitude': geofence_data[key]['coordinates'][coords]['lon']
+                'latitude': geofence_data[key]['polygon'][coords]['lat'],
+                'longitude': geofence_data[key]['polygon'][coords]['lon']
             }
-            log.info('Parsed geofence dict for database: ', geofence_dict)
-            geofences.append(geofence_dict)
+            log.debug('Parsed geofence dict entry: \n\r{}'.format(
+                pprint.PrettyPrinter(indent=4).pformat(geofences)))
 
     # Remove old geofences
     with flaskDb.database.transaction():
@@ -2256,6 +2262,8 @@ def write_geofences(geofence_file, db_update_queue):
             DeleteQuery(Geofences).where(True).execute()
 
     db_update_queue.put((Geofences, geofences))
+    log.debug('Parsed geofence dict: \n\r{}'.format(
+        pprint.PrettyPrinter(indent=4).pformat(geofences)))
     log.info('Upserted geofences: %d', len(geofences))
 
     return True
@@ -2343,6 +2351,8 @@ def clean_db_loop(args):
 
 
 def bulk_upsert(cls, data, db):
+    log.debug('Bulk upsert data: \n\r{}'.format(
+        pprint.PrettyPrinter(indent=4).pformat(data)))
     num_rows = len(data.values())
     i = 0
 
