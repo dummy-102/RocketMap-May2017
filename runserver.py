@@ -328,7 +328,7 @@ def main():
         search_thread.start()
 
     if args.geofence_file is not None:
-        write_geofences(args.geofence_file, dbq)
+        write_geofences(args.geofence_file, db_updates_queue)
 
     if args.cors:
         CORS(app)
