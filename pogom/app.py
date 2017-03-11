@@ -17,7 +17,7 @@ from bisect import bisect_left
 
 from . import config
 from .models import (Pokemon, Gym, Pokestop, ScannedLocation,
-                     MainWorker, WorkerStatus, Token)
+                     MainWorker, WorkerStatus, Token, Geofences)
 from .utils import now, dottedQuadToNum, get_blacklist
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -200,6 +200,7 @@ class Pogom(Flask):
         lastpokemon = request.args.get('lastpokemon')
         lastslocs = request.args.get('lastslocs')
         lastspawns = request.args.get('lastspawns')
+        lastgeofences = request.args.get('lastgeofences')
 
         if request.args.get('luredonly', 'true') == 'true':
             luredonly = True
@@ -221,6 +222,9 @@ class Pogom(Flask):
 
         if request.args.get('spawnpoints', 'false') == 'true':
             d['lastspawns'] = request.args.get('spawnpoints', 'false')
+
+        if request.args.get('geofences', 'true') == 'true':
+            d['lastgeofences'] = request.args.get('geofences', 'true')
 
         # If old coords are not equal to current coords we have moved/zoomed!
         if (oSwLng < swLng and oSwLat < swLat and
@@ -349,6 +353,9 @@ class Pogom(Flask):
                             swLat, swLng, neLat, neLng,
                             oSwLat=oSwLat, oSwLng=oSwLng,
                             oNeLat=oNeLat, oNeLng=oNeLng))
+
+        if request.args.get('geofences', 'true') == 'true':
+            d['geofences'] = Geofences.get_geofences()
 
         if request.args.get('status', 'false') == 'true':
             args = get_args()

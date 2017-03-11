@@ -1683,6 +1683,33 @@ class Geofences(BaseModel):
     latitude = DoubleField()
     longitude = DoubleField()
 
+    @staticmethod
+    def get_geofences():
+
+        query = Geofences.select(Geofences.geofence_id, Geofences.name,
+                                Geofences.coordinates_id,
+                                Geofences.latitude, Geofences.longitude)
+
+        # Send them all
+        query = (query.dicts())
+
+        # Performance:  disable the garbage collector prior to creating a
+        # (potentially) large dict with append().
+        gc.disable()
+
+        geofences = []
+        for g in query:
+            if args.china:
+                g['polygon']['latitude'], g['polygon']['longitude'] = \
+                    transform_from_wgs_to_gcj(
+                        g['polygon']['latitude'], g['polygon']['longitude'])
+            geofences.append(g)
+
+        # Re-enable the GC.
+        gc.enable()
+
+        return geofences
+
 
 def hex_bounds(center, steps=None, radius=None):
     # Make a box that is (70m * step_limit * 2) + 70m away from the
@@ -2254,7 +2281,7 @@ def write_geofences(geofence_file, db_update_queue):
                 'longitude': geofence_data[key]['polygon'][coords]['lon']
             }
             log.debug('Parsed geofence dict entry: \n\r{}'.format(
-                pprint.PrettyPrinter(indent=4).pformat(geofences)))
+                pprint.PrettyPrinter(indent=4).pformat(geofences[id])))
 
     # Remove old geofences
     with flaskDb.database.transaction():
@@ -2351,8 +2378,6 @@ def clean_db_loop(args):
 
 
 def bulk_upsert(cls, data, db):
-    log.debug('Bulk upsert data: \n\r{}'.format(
-        pprint.PrettyPrinter(indent=4).pformat(data)))
     num_rows = len(data.values())
     i = 0
 

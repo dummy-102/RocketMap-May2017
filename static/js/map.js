@@ -618,6 +618,18 @@ function spawnpointLabel(item) {
     return str
 }
 
+function geofenceLabel(item) {
+    var str = `
+        <div>
+            <b>Geofence</b>
+        </div>
+        <div>
+            ${formatSpawnTime(item.name)}
+        </div>`
+
+    return str
+}
+
 function addRangeCircle(marker, map, type, teamId) {
     var targetmap = null
     var circleCenter = new google.maps.LatLng(marker.position.lat(), marker.position.lng())
@@ -983,6 +995,31 @@ function setupSpawnpointMarker(item) {
     return marker
 }
 
+function setupGeofence(item) {
+    var colour = '#'+Math.floor(Math.random()*16777215).toString(16);
+    //var markerPosition = new google.maps.LatLng(item['polygon'][0]['latitude'], item['polygon'][0]['longitude'])
+
+    var geofence = new google.maps.Polygon({
+        map: map,
+        paths: item['polygon'],
+        strokeColor: colour,
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: colour,
+        fillOpacity: 0.35
+    });
+
+    /*geofence.infoWindow = new google.maps.InfoWindow({
+        content: geofenceLabel(item),
+        disableAutoPan: true,
+        position: markerPosition
+    })*/
+
+    addListeners(marker)
+
+    return marker
+}
+
 function clearSelection() {
     if (document.selection) {
         document.selection.empty()
@@ -1114,6 +1151,8 @@ function loadRawData() {
     var loadScanned = Store.get('showScanned')
     var loadSpawnpoints = Store.get('showSpawnpoints')
     var loadLuredOnly = Boolean(Store.get('showLuredPokestopsOnly'))
+    var loadGeofences = Store.get('showGeofences')
+    console.log("Load geofence raw_data " + Store.get('showGeofences'))
 
     var bounds = map.getBounds()
     var swPoint = bounds.getSouthWest()
@@ -1138,6 +1177,7 @@ function loadRawData() {
             'scanned': loadScanned,
             'lastslocs': lastslocs,
             'spawnpoints': loadSpawnpoints,
+            'geofenes': loadGeofences,
             'lastspawns': lastspawns,
             'swLat': swLat,
             'swLng': swLng,
@@ -1408,8 +1448,37 @@ function updateSpawnPoints() {
     })
 }
 
+function processGeofences(i, item) {
+    if (!Store.get('showGeofences')) {
+        return false
+    }
 
-function updateGeofences(){
+    var id = item['geofence_id']
+
+    if (!(id in mapData.geofences)) { // add marker to map and item to dict
+        if (item.geofence) {
+            item.geofence.setMap(null)
+        }
+        item.geofence = setupGeofence(item)
+        mapData.geofence[id] = item
+    }
+}
+
+// Even needed for gofences?
+function updateGeofences() {
+    if (!Store.get('showGeofences')) {
+        return false
+    }
+
+    var zoom = map.getZoom()
+    console.log("updateGeofences() zoom is " + zoom)
+    /*$.each(mapData.geofences, function (key, value) {
+        if (map.getBounds().contains(value.polygon.getPosition())) {
+        }
+    })*/
+}
+
+/*function updateGeofences(){
     console.log("Toggle is " + Store.get('showGeofences'))
     console.log("Polygon on map is " + geofencesSet)
     if (!Store.get('showGeofences') && geofencesSet === true) {
@@ -1444,7 +1513,7 @@ function updateGeofences(){
     } else {
         console.log("Nothing to do for updateGeofences()")
     }
-}
+}*/
 
 function updateMap() {
     console.log("Updating map...")
@@ -1454,12 +1523,14 @@ function updateMap() {
         $.each(result.gyms, processGyms)
         $.each(result.scanned, processScanned)
         $.each(result.spawnpoints, processSpawnpoints)
+        $.each(result.geofences, processGeofences)
         showInBoundsMarkers(mapData.pokemons, 'pokemon')
         showInBoundsMarkers(mapData.lurePokemons, 'pokemon')
         showInBoundsMarkers(mapData.gyms, 'gym')
         showInBoundsMarkers(mapData.pokestops, 'pokestop')
         showInBoundsMarkers(mapData.scanned, 'scanned')
         showInBoundsMarkers(mapData.spawnpoints, 'inbound')
+        // showInBoundsMarkers(mapData.geofences, 'geofence') // Even needed for geofences?
         //      drawScanPath(result.scanned);
         clearStaleMarkers()
 
