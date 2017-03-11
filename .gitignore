@@ -11,6 +11,8 @@ include/
 lib/
 config/*
 !config/config.ini.example
+accounts/*
+geofences/*
 static/dist/
 node_modules/
 pip-selfcheck.json
