@@ -3,6 +3,7 @@
 
 import calendar
 import logging
+import pprint
 
 from flask import Flask, abort, jsonify, render_template, request,\
     make_response
@@ -201,6 +202,8 @@ class Pogom(Flask):
         lastslocs = request.args.get('lastslocs')
         lastspawns = request.args.get('lastspawns')
         lastgeofences = request.args.get('lastgeofences')
+        log.debug('Argument lastgeofences: \n\r{}'.format(pprint.PrettyPrinter(indent=4).pformat(lastgeofences)))
+
 
         if request.args.get('luredonly', 'true') == 'true':
             luredonly = True
@@ -225,6 +228,7 @@ class Pogom(Flask):
 
         if request.args.get('geofences', 'true') == 'true':
             d['lastgeofences'] = request.args.get('geofences', 'true')
+            log.debug('d[lastgeofences]: \n\r{}'.format(pprint.PrettyPrinter(indent=4).pformat(d['lastgeofences'])))
 
         # If old coords are not equal to current coords we have moved/zoomed!
         if (oSwLng < swLng and oSwLat < swLat and
@@ -356,6 +360,7 @@ class Pogom(Flask):
 
         if request.args.get('geofences', 'true') == 'true':
             d['geofences'] = Geofences.get_geofences()
+            log.debug('d[geofences]: \n\r{}'.format(pprint.PrettyPrinter(indent=4).pformat(d['geofences'])))
 
         if request.args.get('status', 'false') == 'true':
             args = get_args()

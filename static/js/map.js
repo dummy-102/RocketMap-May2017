@@ -47,7 +47,7 @@ var storeZoom = true
 var scanPath
 var moves
 
-var geofenceCoordinates = {  // Testing geofence coordinates
+/*var geofenceCoordinates = {  // Testing geofence coordinates
     1 : [  // Bermuda Triangle
         {lat: 25.774, lng: -80.190},
         {lat: 18.466, lng: -66.118},
@@ -61,8 +61,10 @@ var geofenceCoordinates = {  // Testing geofence coordinates
         {lat: 40.797343, lng: -73.948385},
         {lat: 40.801206, lng: -73.958520}
     ]
-}
+}*/
+var geofences_list = []
 var geofences = []
+var polygons = []
 var geofencesSet = false
 
 var oSwLat
@@ -618,13 +620,13 @@ function spawnpointLabel(item) {
     return str
 }
 
-function geofenceLabel(item) {
+function geofenceLabel(geofence) {
     var str = `
         <div>
             <b>Geofence</b>
         </div>
         <div>
-            ${formatSpawnTime(item.name)}
+            ${geofence.name}
         </div>`
 
     return str
@@ -995,13 +997,13 @@ function setupSpawnpointMarker(item) {
     return marker
 }
 
-function setupGeofence(item) {
+function setupGeofence(geofence) {
     var colour = '#'+Math.floor(Math.random()*16777215).toString(16);
     //var markerPosition = new google.maps.LatLng(item['polygon'][0]['latitude'], item['polygon'][0]['longitude'])
 
-    var geofence = new google.maps.Polygon({
+    var polygon = new google.maps.Polygon({
         map: map,
-        paths: item['polygon'],
+        paths: geofence['coordinates'],
         strokeColor: colour,
         strokeOpacity: 0.8,
         strokeWeight: 2,
@@ -1009,15 +1011,15 @@ function setupGeofence(item) {
         fillOpacity: 0.35
     });
 
-    /*geofence.infoWindow = new google.maps.InfoWindow({
-        content: geofenceLabel(item),
+    polygon.infoWindow = new google.maps.InfoWindow({
+        content: geofenceLabel(geofence),
         disableAutoPan: true,
         position: markerPosition
-    })*/
+    })
 
-    addListeners(marker)
+    addListeners(polygon)
 
-    return marker
+    return polygon
 }
 
 function clearSelection() {
@@ -1448,72 +1450,111 @@ function updateSpawnPoints() {
     })
 }
 
-function processGeofences(i, item) {
+function processGeofences(dictList) {
     if (!Store.get('showGeofences')) {
+        geofencesSet = false
+        geofences = []
+        geofences_list = []
         return false
     }
+    if (!geofencesSet){
+        console.log('Process dict: ', dictList)
 
-    var id = item['geofence_id']
-
-    if (!(id in mapData.geofences)) { // add marker to map and item to dict
-        if (item.geofence) {
-            item.geofence.setMap(null)
+        geofences = []
+        geofences_list = []
+        var geofence_dict
+        var lastGeofenceId = 0
+        var i
+        for (i=0; i < dictList.length; i++){
+            //console.log('i is ', i)
+            //console.log('geofence_id is ', dictList[i].geofence_id)
+            //console.log('name is ', dictList[i].name)
+            //console.log('coordinate_id is', dictList[i].coordinates_id)
+            //console.log('latitude is', dictList[i].latitude)
+            //console.log('longitude is', dictList[i].longitude)
+            if ( dictList[i].geofence_id !== lastGeofenceId ){
+                if (i !== 0) {  // Push current geofence, we start a new one after
+                    geofences_list.push(geofence_dict)
+                    //console.log('geofences_list is ', geofences_list)
+                }
+                geofence_dict = {
+                    name: dictList[i].name,
+                    coordinates: []
+                }
+            }
+            var coordinate = {
+                lat: dictList[i].latitude,
+                lng: dictList[i].longitude
+            }
+            //console.log('coordinate is ',coordinate)
+            geofence_dict.coordinates.push(coordinate)
+            //console.log('geofence_dict is ', geofence_dict)
+            lastGeofenceId = dictList[i].geofence_id
         }
-        item.geofence = setupGeofence(item)
-        mapData.geofence[id] = item
+        geofences_list.push(geofence_dict)  // Push last geofence in pipe
+        console.log('geofences are ', geofences_list)
+
+        /*var i
+        for (i=0; i<geofences.length; i++){
+            geofences.push(setupGeofence(geofences_list[1]))
+            if (!(i in mapData.geofences)) { // add marker to map and item to dict
+                if (geofences[i]) {
+                    geofences[i].setMap(null)
+                }
+                geofences.push(setupGeofence(geofences_list[1]))
+                mapData.geofences.push(geofences[i])
+            }
+        }*/
     }
 }
 
 // Even needed for gofences?
-function updateGeofences() {
+/*function updateGeofences() {
     if (!Store.get('showGeofences')) {
         return false
     }
-
-    var zoom = map.getZoom()
-    console.log("updateGeofences() zoom is " + zoom)
     /*$.each(mapData.geofences, function (key, value) {
         if (map.getBounds().contains(value.polygon.getPosition())) {
         }
     })*/
-}
+//}
 
-/*function updateGeofences(){
+function updateGeofences(){
     console.log("Toggle is " + Store.get('showGeofences'))
     console.log("Polygon on map is " + geofencesSet)
     if (!Store.get('showGeofences') && geofencesSet === true) {
         console.log("Deleting geofences from map")
         for (i = 1; i < 3; i++) {
-            geofences[i].setMap(null)
+            polygons[i].setMap(null)
         }
-        geofences = []
+        polygons = []
         geofencesSet = false
         return false
     } else if(Store.get('showGeofences') && geofencesSet === false) {
-        console.log("Setting geofences")
+        console.log("Setting geofences...")
+        console.log(geofences_list)
         var i
-        console.log("Geofence cords are " + geofenceCoordinates)
-        for (i = 1; i < 3; i++) {
-            console.log("Created temporary geofence")
-            console.log("Create geofence")
+        for (i = 1; i <= geofences_list.length; i++) {
+            console.log("Geofence coords are " + geofences_list[i].coordinates)
+            console.log("Create polygon...")
             var colour = '#'+Math.floor(Math.random()*16777215).toString(16);
-            geofences[i] = new google.maps.Polygon({
-                paths: geofenceCoordinates[i],
+            polygons[i] = new google.maps.Polygon({
+                paths: geofences_list[i].coordinates,
                 strokeColor: colour,
                 strokeOpacity: 0.8,
                 strokeWeight: 2,
                 fillColor: colour,
                 fillOpacity: 0.35
             });
-            console.log("Geofence polygon is " + geofences)
-            geofences[i].setMap(map)
-            console.log("Created geofence " + i)
+            console.log("Geofence polygon is " + polygons[i])
+            polygons[i].setMap(map)
+            console.log("Set geofence " + i)
         }
         geofencesSet = true
     } else {
         console.log("Nothing to do for updateGeofences()")
     }
-}*/
+}
 
 function updateMap() {
     console.log("Updating map...")
@@ -1523,7 +1564,7 @@ function updateMap() {
         $.each(result.gyms, processGyms)
         $.each(result.scanned, processScanned)
         $.each(result.spawnpoints, processSpawnpoints)
-        $.each(result.geofences, processGeofences)
+        processGeofences(result.geofences)
         showInBoundsMarkers(mapData.pokemons, 'pokemon')
         showInBoundsMarkers(mapData.lurePokemons, 'pokemon')
         showInBoundsMarkers(mapData.gyms, 'gym')
