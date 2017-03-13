@@ -12,7 +12,9 @@ lib/
 config/*
 !config/config.ini.example
 accounts/*
+!accounts/accounts.csv.example
 geofences/*
+!geofences/geofences.txt.example
 static/dist/
 node_modules/
 pip-selfcheck.json
