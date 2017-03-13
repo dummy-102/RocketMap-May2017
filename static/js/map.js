@@ -996,16 +996,16 @@ function setupSpawnpointMarker(item) {
 }
 
 function setupGeofencePolygon(item) {
-    var colour = '#'+Math.floor(Math.random()*16777215).toString(16);
+    var randomcolor = randomColor() // '#'+Math.floor(Math.random()*16777215).toString(16);
 
     var polygon = new google.maps.Polygon({
         map: map,
         paths: item['coordinates'],
-        strokeColor: colour,
+        strokeColor: randomcolor,
         strokeOpacity: 0.8,
         strokeWeight: 2,
-        fillColor: colour,
-        fillOpacity: 0.35
+        fillColor: randomcolor,
+        fillOpacity: 0.5
     });
 
     var markerPosition = polygonCenter(polygon)
