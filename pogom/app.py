@@ -367,7 +367,7 @@ class Pogom(Flask):
             log.debug('d[geofences]: \n\r{}'.format(
                 pprint.PrettyPrinter(indent=4).pformat(geofences_db)))
 
-            geofences = []
+            d['geofences'] = {}
             geofence = {}
             lastGeofenceID = 0
 
@@ -377,9 +377,10 @@ class Pogom(Flask):
                 if (g['geofence_id'] != lastGeofenceID):
                     if (lastGeofenceID > 0):
                         # Push current geofence, we start a new one after
-                        geofences.append(geofence)
-                        log.debug('geofences: \n\r{}'.format(
-                            pprint.PrettyPrinter(indent=4).pformat(geofences)))
+                        d['geofences'][geofence['name']] = geofence
+                        log.debug('d[geofences]: \n\r{}'.format(
+                            pprint.PrettyPrinter(indent=4).pformat(
+                                d['geofences'])))
 
                     geofence = {
                         'name': g['name'],
@@ -393,10 +394,7 @@ class Pogom(Flask):
                 geofence['coordinates'].append(coordinate)
                 lastGeofenceID = g['geofence_id']
 
-            geofences.append(geofence)  # Push last geofence
-            log.debug('geofences: \n\r{}'.format(
-                pprint.PrettyPrinter(indent=4).pformat(geofences)))
-            d['geofences'] = geofences
+            d['geofences'][geofence['name']] = geofence  # Push last geofence
             log.debug('d[geofences]: \n\r{}'.format(
                 pprint.PrettyPrinter(indent=4).pformat(d['geofences'])))
 
