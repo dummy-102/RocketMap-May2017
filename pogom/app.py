@@ -202,8 +202,8 @@ class Pogom(Flask):
         lastslocs = request.args.get('lastslocs')
         lastspawns = request.args.get('lastspawns')
         lastgeofences = request.args.get('lastgeofences')
-        log.debug('Argument lastgeofences: \n\r{}'.format(pprint.PrettyPrinter(indent=4).pformat(lastgeofences)))
-
+        log.debug('Argument lastgeofences: \n\r{}'.format(
+            pprint.PrettyPrinter(indent=4).pformat(lastgeofences)))
 
         if request.args.get('luredonly', 'true') == 'true':
             luredonly = True
@@ -228,7 +228,8 @@ class Pogom(Flask):
 
         if request.args.get('geofences', 'true') == 'true':
             d['lastgeofences'] = request.args.get('geofences', 'true')
-            log.debug('d[lastgeofences]: \n\r{}'.format(pprint.PrettyPrinter(indent=4).pformat(d['lastgeofences'])))
+            log.debug('d[lastgeofences]: \n\r{}'.format(
+                pprint.PrettyPrinter(indent=4).pformat(d['lastgeofences'])))
 
         # If old coords are not equal to current coords we have moved/zoomed!
         if (oSwLng < swLng and oSwLat < swLat and
@@ -280,6 +281,9 @@ class Pogom(Flask):
                     Pokemon.get_active_by_id(reids, swLat, swLng,
                                              neLat, neLng))
                 d['reids'] = reids
+
+            log.debug('d[pokemons]: \n\r{}'.format(
+                pprint.PrettyPrinter(indent=4).pformat(d['pokemons'])))
 
         if request.args.get('pokestops', 'true') == 'true':
             if lastpokestops != 'true':
@@ -359,8 +363,42 @@ class Pogom(Flask):
                             oNeLat=oNeLat, oNeLng=oNeLng))
 
         if request.args.get('geofences', 'true') == 'true':
-            d['geofences'] = Geofences.get_geofences()
-            log.debug('d[geofences]: \n\r{}'.format(pprint.PrettyPrinter(indent=4).pformat(d['geofences'])))
+            geofences_db = Geofences.get_geofences()
+            log.debug('d[geofences]: \n\r{}'.format(
+                pprint.PrettyPrinter(indent=4).pformat(geofences_db)))
+
+            geofences = []
+            geofence = {}
+            lastGeofenceID = 0
+
+            for g in geofences_db:
+                log.debug('g: \n\r{}'.format(
+                    pprint.PrettyPrinter(indent=4).pformat(g)))
+                if (g['geofence_id'] != lastGeofenceID):
+                    if (lastGeofenceID > 0):
+                        # Push current geofence, we start a new one after
+                        geofences.append(geofence)
+                        log.debug('geofences: \n\r{}'.format(
+                            pprint.PrettyPrinter(indent=4).pformat(geofences)))
+
+                    geofence = {
+                        'name': g['name'],
+                        'coordinates': []
+                    }
+
+                coordinate = {
+                    'lat': g['latitude'],
+                    'lng': g['longitude']
+                }
+                geofence['coordinates'].append(coordinate)
+                lastGeofenceID = g['geofence_id']
+
+            geofences.append(geofence)  # Push last geofence
+            log.debug('geofences: \n\r{}'.format(
+                pprint.PrettyPrinter(indent=4).pformat(geofences)))
+            d['geofences'] = geofences
+            log.debug('d[geofences]: \n\r{}'.format(
+                pprint.PrettyPrinter(indent=4).pformat(d['geofences'])))
 
         if request.args.get('status', 'false') == 'true':
             args = get_args()

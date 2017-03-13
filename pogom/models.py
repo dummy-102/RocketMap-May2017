@@ -1686,9 +1686,10 @@ class Geofences(BaseModel):
     @staticmethod
     def get_geofences():
 
-        query = Geofences.select(Geofences.geofence_id, Geofences.name,
-                                Geofences.coordinates_id,
-                                Geofences.latitude, Geofences.longitude)
+        query = Geofences.select(
+                Geofences.geofence_id, Geofences.name,
+                Geofences.coordinates_id, Geofences.latitude,
+                Geofences.longitude)
 
         # Send them all
         query = (query.dicts())
