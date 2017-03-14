@@ -996,7 +996,9 @@ function setupSpawnpointMarker(item) {
 }
 
 function setupGeofencePolygon(item) {
-    var randomcolor = randomColor() // '#'+Math.floor(Math.random()*16777215).toString(16);
+    var randomcolor = randomColor()
+    // Random with color seed randomColor({hue: 'pink'})
+    // Total random '#'+Math.floor(Math.random()*16777215).toString(16);
 
     var polygon = new google.maps.Polygon({
         map: map,
