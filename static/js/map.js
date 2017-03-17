@@ -1023,30 +1023,31 @@ function setupGeofencePolygon(item) {
     return polygon
 }
 
-function polygonCenter(polygon) {
-    var lowx,
-        highx,
-        lowy,
-        highy,
-        lats = [],
-        lngs = [],
-        vertices = polygon.getPath();
+function polygonCenter(polygon){
+    var hyp, Lat, Lng
 
-    for(var i=0; i<vertices.length; i++) {
-      lngs.push(vertices.getAt(i).lng());
-      lats.push(vertices.getAt(i).lat());
-    }
+    var X = 0
+    var Y = 0
+    var Z = 0
+	polygon.getPath().forEach(function (vertex, inex) {
+        var lat,lng,
+        lat = vertex.lat()
+		lng = vertex.lng()
+	    lat = lat * Math.PI/180
+		lng = lng * Math.PI/180
+		X += Math.cos(lat) * Math.cos(lng)
+		Y += Math.cos(lat) * Math.sin(lng)
+		Z += Math.sin(lat)
+	})
 
-    lats.sort();
-    lngs.sort();
-    lowx = lats[0];
-    highx = lats[vertices.length - 1];
-    lowy = lngs[0];
-    highy = lngs[vertices.length - 1];
-    var center_x = lowx + ((highx-lowx) / 2);
-    var center_y = lowy + ((highy - lowy) / 2);
-    return (new google.maps.LatLng(center_x, center_y));
-  }
+	hyp = Math.sqrt(X * X + Y * Y)
+	Lat = Math.atan2(Z, hyp)
+	Lng = Math.atan2(Y, X)
+	Lat = Lat * 180/Math.PI
+	Lng = Lng * 180/Math.PI
+
+	return new google.maps.LatLng(Lat, Lng)
+}
 
 function clearSelection() {
     if (document.selection) {

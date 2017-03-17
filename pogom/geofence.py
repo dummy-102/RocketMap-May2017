@@ -44,13 +44,6 @@ def parse_geofences(geofence_file):
                 LatLon = {'lat': lat, 'lon': lon}
                 geofence_data[i]['polygon'].append(LatLon)
 
-        # Close the polygons
-        for key in range(1, len(geofence_data)+1):
-            j = j + 1
-            log.debug('Close polygon for key %d', key)
-            geofence_data[key]['polygon'].append(
-                geofence_data[key]['polygon'][0])
-
         log.info('Loaded %d geofence data for %d coordinates.', len(
             geofence_data), j)
         log.debug(pprint.PrettyPrinter(indent=4).pformat(geofence_data))
