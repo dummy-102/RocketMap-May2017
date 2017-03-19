@@ -2289,7 +2289,7 @@ def write_geofences(geofence_file, db_update_queue):
         if geofences:
             for geofence in geofence_data:
                 log.info(
-                    'Override geofecne %s',
+                    'Override geofence: %s',
                     geofence_data[geofence]['name'])
                 DeleteQuery(Geofences).where(
                     Geofences.name == geofences[geofence]['name']).execute()
