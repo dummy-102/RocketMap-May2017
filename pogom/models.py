@@ -2287,7 +2287,12 @@ def write_geofences(geofence_file, db_update_queue):
     # Remove old geofences
     with flaskDb.database.transaction():
         if geofences:
-            DeleteQuery(Geofences).where(True).execute()
+            for geofence in geofence_data:
+                log.info(
+                    'Override geofecne %s',
+                    geofence_data[geofence]['name'])
+                DeleteQuery(Geofences).where(
+                    Geofences.name == geofences[geofence]['name']).execute()
 
     db_update_queue.put((Geofences, geofences))
     log.debug('Parsed geofence dict: \n\r{}'.format(

@@ -49,8 +49,7 @@ def parse_geofences(geofence_file):
     log.info(
         'Loaded %d geofence(s) with a total of %d coordinates in %s s',
         len(geofence_data), j, elapsedTime)
-    log.debug(
-        'Geofenced results: \n\r{}'.format(
+    log.debug('Geofenced results: \n\r{}'.format(
         pprint.PrettyPrinter(indent=4).pformat(geofence_data)))
 
     return geofence_data
@@ -115,8 +114,7 @@ def geofence_results(results):
     endTime = time.time()
     elapsedTime = endTime - startTime
     log.info('Geofenced cells in %s s', elapsedTime)
-    log.debug(
-        'Geofenced results: \n\r{}'.format(
+    log.debug('Geofenced results: \n\r{}'.format(
         pprint.PrettyPrinter(indent=4).pformat(results_geofenced)))
 
     return results_geofenced
