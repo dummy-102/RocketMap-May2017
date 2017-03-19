@@ -1,18 +1,21 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import time
 import logging
 import pprint
 
 log = logging.getLogger(__name__)
 
+geofence_data = {}
+
 
 def parse_geofences(geofence_file):
-    geofence_data = {}
     name = ''
     i = 0
     j = 0
-    log.info('Looking for possible geofence areas')
+    log.info('Looking for geofenced areas')
+    startTime = time.time()
 
     # Read coordinates of areas from file
     with open(geofence_file) as f:
@@ -24,13 +27,11 @@ def parse_geofences(geofence_file):
                 nameLine = line.strip()
                 nameLine = nameLine.replace("[", "")
                 name = nameLine.replace("]", "")
-                log.info('Found geofence for %s', name)
+                log.info('Found geofence: %s', name)
                 continue
 
             if i not in geofence_data:
                 j = j + 1
-                log.debug('New key: %d', i)
-                log.debug('New value for key %d', i)
                 geofence_data[i] = {}
                 geofence_data[i]['name'] = name
                 geofence_data[i]['polygon'] = []
@@ -39,27 +40,31 @@ def parse_geofences(geofence_file):
                 geofence_data[i]['polygon'].append(LatLon)
             else:
                 j = j + 1
-                log.debug('New value for key %d', i)
                 lat, lon = (line.strip()).split(",")
                 LatLon = {'lat': float(lat), 'lon': float(lon)}
                 geofence_data[i]['polygon'].append(LatLon)
 
-        log.info('Loaded %d geofence data for %d coordinates.', len(
-            geofence_data), j)
-        log.debug(pprint.PrettyPrinter(indent=4).pformat(geofence_data))
+    endTime = time.time()
+    elapsedTime = endTime - startTime
+    log.info(
+        'Loaded %d geofence(s) with a total of %d coordinates in %s s',
+        len(geofence_data), j, elapsedTime)
+    log.debug(
+        'Geofenced results: \n\r{}'.format(
+        pprint.PrettyPrinter(indent=4).pformat(geofence_data)))
 
     return geofence_data
 
 
 def pointInPolygon(point, polygon):
-    log.info('Point: %s', point)
+    log.debug('Point: %s', point)
     log.debug('Point: %s', polygon)
 
     maxLat = polygon[0]['lat']
     minLat = polygon[0]['lat']
     maxLon = polygon[0]['lon']
     minLon = polygon[0]['lon']
-    log.info(
+    log.debug(
         'Default Max/Min Lat and Lon: %s/%s, %s/%s',
         maxLat, minLat, maxLon, minLon)
 
@@ -68,16 +73,14 @@ def pointInPolygon(point, polygon):
         minLat = min(coords['lat'], minLat)
         maxLon = max(coords['lon'], maxLon)
         minLon = min(coords['lon'], minLon)
-    log.info(
+    log.debug(
         'Max/Min Lat and Lon: %s/%s, %s/%s',
         maxLat, minLat, maxLon, minLon)
 
-    log.info('Start Quickcheck')
+    # Quickcheck
     if ((point['lat'] > maxLat) or (point['lat'] < minLat) or
             (point['lon'] > maxLon) or (point['lon'] < minLon)):
         return False
-
-    log.info('Start Check')
 
     inside = False
     lat1, lon1 = polygon[0]['lat'], polygon[0]['lon']
@@ -98,3 +101,22 @@ def pointInPolygon(point, polygon):
         lat1, lon1 = lat2, lon2
 
     return inside
+
+
+def geofence_results(results):
+    results_geofenced = []
+    startTime = time.time()
+    for result in results:
+        point = {'lat': result[0], 'lon': result[1]}
+        for geofence in geofence_data:
+            if pointInPolygon(point, geofence_data[geofence]['polygon']):
+                results_geofenced.append(result)
+
+    endTime = time.time()
+    elapsedTime = endTime - startTime
+    log.info('Geofenced cells in %s s', elapsedTime)
+    log.debug(
+        'Geofenced results: \n\r{}'.format(
+        pprint.PrettyPrinter(indent=4).pformat(results_geofenced)))
+
+    return results_geofenced
