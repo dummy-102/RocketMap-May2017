@@ -58,21 +58,6 @@ var lastpokemon
 var lastslocs
 var lastspawns
 
-/*var result.geofences = {  // Testing geofence coordinates
-    1 : [  // Bermuda Triangle
-        {lat: 25.774, lng: -80.190},
-        {lat: 18.466, lng: -66.118},
-        {lat: 32.321, lng: -64.757},
-        {lat: 25.774, lng: -80.190}
-    ],
-    2 : [  // Central Park, NY
-        {lat: 40.801206, lng: -73.958520},
-        {lat: 40.767827, lng: -73.982835},
-        {lat: 40.763798, lng: -73.972808},
-        {lat: 40.797343, lng: -73.948385},
-        {lat: 40.801206, lng: -73.958520}
-    ]
-}*/
 var polygons = []
 var geofencesSet = false
 
@@ -619,10 +604,20 @@ function spawnpointLabel(item) {
 }
 
 function geofenceLabel(item) {
-    var str = `
-        <div>
-            <b>Geofence</b>
-        </div>
+    var str
+    if (item.forbidden) {
+        str = `
+            <div>
+                <b>Forbidden Area</b>
+            </div>`
+    } else {
+        str = `
+            <div>
+                <b>Geofence</b>
+            </div>`
+    }
+
+    str += `
         <div>
             ${item.name}
         </div>`
@@ -999,6 +994,12 @@ function setupGeofencePolygon(item) {
     var randomcolor = randomColor()
     // Random with color seed randomColor({hue: 'pink'})
     // Total random '#'+Math.floor(Math.random()*16777215).toString(16);
+    console.log(item.forbidden)
+    if (item.forbidden === true) {
+        randomcolor = randomColor({hue: 'red'})
+    } else {
+        randomcolor = randomColor({hue: 'green'})
+    }
 
     var polygon = new google.maps.Polygon({
         map: map,

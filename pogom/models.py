@@ -1678,6 +1678,7 @@ class Token(flaskDb.Model):
 class Geofences(BaseModel):
     id = PrimaryKeyField()
     geofence_id = SmallIntegerField()
+    forbidden = BooleanField()
     name = CharField(max_length=50)
     coordinates_id = SmallIntegerField()
     latitude = DoubleField()
@@ -1687,7 +1688,7 @@ class Geofences(BaseModel):
     def get_geofences():
 
         query = Geofences.select(
-                Geofences.geofence_id, Geofences.name,
+                Geofences.geofence_id, Geofences.forbidden, Geofences.name,
                 Geofences.coordinates_id, Geofences.latitude,
                 Geofences.longitude)
 
@@ -2262,8 +2263,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
              len(gym_members))
 
 
-def write_geofences(geofence_file, db_update_queue):
-    geofence_data = parse_geofences(geofence_file)
+def write_geofences(geofence_file, forbidden_area, db_update_queue):
+    geofence_data = parse_geofences(geofence_file, forbidden_area)
     log.debug('Received data: \n\r{}'.format(
         pprint.PrettyPrinter(indent=4).pformat(geofence_data)))
     geofences = {}
@@ -2276,6 +2277,7 @@ def write_geofences(geofence_file, db_update_queue):
             id = id + 1
             geofences[id] = {
                 'geofence_id': key,
+                'forbidden': geofence_data[key]['forbidden'],
                 'name': geofence_data[key]['name'],
                 'coordinates_id': coords,
                 'latitude': geofence_data[key]['polygon'][coords]['lat'],
@@ -2286,13 +2288,17 @@ def write_geofences(geofence_file, db_update_queue):
 
     # Remove old geofences
     with flaskDb.database.transaction():
-        if geofences:
-            for geofence in geofence_data:
-                log.info(
-                    'Override geofence: %s',
-                    geofence_data[geofence]['name'])
+        if args.geofence_clear_db:
+            log.info(
+                'Clearing all existing geofences, first.')
+            DeleteQuery(Geofences).where(True).execute()
+        elif geofences:
+            log.info(
+                'Override geofence: %s',
+                geofences[id]['name'])
+            for id in geofences:
                 DeleteQuery(Geofences).where(
-                    Geofences.name == geofences[geofence]['name']).execute()
+                    Geofences.name == geofences[id]['name']).execute()
 
     db_update_queue.put((Geofences, geofences))
     log.debug('Parsed geofence dict: \n\r{}'.format(

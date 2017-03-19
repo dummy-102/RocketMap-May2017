@@ -119,8 +119,18 @@ def get_args():
     parser.add_argument('-st', '--step-limit', help='Steps.', type=int,
                         default=12)
     parser.add_argument('-gf', '--geofence-file',
-                        help='Geofence file (currently only for -speed and ' +
-                        'HexSearch)')
+                        help=('Geofence file (currently only for -speed and ' +
+                              'HexSearch)'),
+                        default='')
+    parser.add_argument('-fa', '--forbidden-area',
+                        help=('File with coordinates defining area NOT to ' +
+                              'scan. Basically this is inverted geofence. ' +
+                              'Can be combined with -gf'),
+                        default='')
+    parser.add_argument('-gcd', '--geofence-clear-db',
+                        help=('Deletes the existing geofences in the ' +
+                              'database before starting the Webserver.'),
+                        action='store_true', default=False)
     parser.add_argument('-sd', '--scan-delay',
                         help='Time delay between requests in scan threads.',
                         type=float, default=10)

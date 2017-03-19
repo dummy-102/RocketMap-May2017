@@ -383,6 +383,7 @@ class Pogom(Flask):
                                 d['geofences'])))
 
                     geofence = {
+                        'forbidden': g['forbidden'],
                         'name': g['name'],
                         'coordinates': []
                     }

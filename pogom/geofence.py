@@ -10,45 +10,88 @@ log = logging.getLogger(__name__)
 geofence_data = {}
 
 
-def parse_geofences(geofence_file):
+def parse_geofences(geofence_file, forbidden_area):
     name = ''
+    log.info('Looking for geofenced or forbidden areas')
+
     i = 0
-    j = 0
-    log.info('Looking for geofenced areas')
-    startTime = time.time()
+    if geofence_file:
+        j = 0
+        startTime = time.time()
 
-    # Read coordinates of areas from file
-    with open(geofence_file) as f:
-        for line in f:
-            if len(line.strip()) == 0:
-                continue
-            elif line.startswith("["):  # Find new areas through comments
-                i = i + 1
-                nameLine = line.strip()
-                nameLine = nameLine.replace("[", "")
-                name = nameLine.replace("]", "")
-                log.info('Found geofence: %s', name)
-                continue
+        # Read coordinates of geofences from file
+        with open(geofence_file) as f:
+            for line in f:
+                if len(line.strip()) == 0:
+                    continue
+                elif line.startswith("["):  # Find new areas through comments
+                    i = i + 1
+                    nameLine = line.strip()
+                    nameLine = nameLine.replace("[", "")
+                    name = nameLine.replace("]", "")
+                    log.info('Found geofence: %s', name)
+                    continue
 
-            if i not in geofence_data:
-                j = j + 1
-                geofence_data[i] = {}
-                geofence_data[i]['name'] = name
-                geofence_data[i]['polygon'] = []
-                lat, lon = line.strip().split(",")
-                LatLon = {'lat': float(lat), 'lon': float(lon)}
-                geofence_data[i]['polygon'].append(LatLon)
-            else:
-                j = j + 1
-                lat, lon = (line.strip()).split(",")
-                LatLon = {'lat': float(lat), 'lon': float(lon)}
-                geofence_data[i]['polygon'].append(LatLon)
+                if i not in geofence_data:
+                    j = j + 1
+                    geofence_data[i] = {}
+                    geofence_data[i]['forbidden'] = False
+                    geofence_data[i]['name'] = name
+                    geofence_data[i]['polygon'] = []
+                    lat, lon = line.strip().split(",")
+                    LatLon = {'lat': float(lat), 'lon': float(lon)}
+                    geofence_data[i]['polygon'].append(LatLon)
+                else:
+                    j = j + 1
+                    lat, lon = (line.strip()).split(",")
+                    LatLon = {'lat': float(lat), 'lon': float(lon)}
+                    geofence_data[i]['polygon'].append(LatLon)
 
-    endTime = time.time()
-    elapsedTime = endTime - startTime
-    log.info(
-        'Loaded %d geofence(s) with a total of %d coordinates in %s s',
-        len(geofence_data), j, elapsedTime)
+        endTime = time.time()
+        elapsedTime = endTime - startTime
+        log.info(
+            'Loaded %d geofence(s) with a total of %d coordinates in %s s',
+            len(geofence_data), j, elapsedTime)
+
+    if forbidden_area:
+        j = 0
+        startTime = time.time()
+
+        # Read coordinates of forbidden areas from file
+        with open(forbidden_area) as f:
+            for line in f:
+                if len(line.strip()) == 0:
+                    continue
+                elif line.startswith("["):  # Find new areas through comments
+                    i = i + 1
+                    nameLine = line.strip()
+                    nameLine = nameLine.replace("[", "")
+                    name = nameLine.replace("]", "")
+                    log.info('Found geofence: %s', name)
+                    continue
+
+                if i not in geofence_data:
+                    j = j + 1
+                    geofence_data[i] = {}
+                    geofence_data[i]['forbidden'] = True
+                    geofence_data[i]['name'] = name
+                    geofence_data[i]['polygon'] = []
+                    lat, lon = line.strip().split(",")
+                    LatLon = {'lat': float(lat), 'lon': float(lon)}
+                    geofence_data[i]['polygon'].append(LatLon)
+                else:
+                    j = j + 1
+                    lat, lon = (line.strip()).split(",")
+                    LatLon = {'lat': float(lat), 'lon': float(lon)}
+                    geofence_data[i]['polygon'].append(LatLon)
+
+        endTime = time.time()
+        elapsedTime = endTime - startTime
+        log.info(
+            'Loaded %d forbidden area(s) with a total of %d coordinates ' +
+            'in %s s',
+            len(geofence_data), j, elapsedTime)
+
     log.debug('Geofenced results: \n\r{}'.format(
         pprint.PrettyPrinter(indent=4).pformat(geofence_data)))
 
@@ -108,12 +151,20 @@ def geofence_results(results):
     for result in results:
         point = {'lat': result[0], 'lon': result[1]}
         for geofence in geofence_data:
-            if pointInPolygon(point, geofence_data[geofence]['polygon']):
-                results_geofenced.append(result)
+            if not geofence_data[geofence]['forbidden']:
+                if pointInPolygon(point, geofence_data[geofence]['polygon']):
+                    results_geofenced.append(result)
+            if geofence_data[geofence]['forbidden']:
+                if pointInPolygon(
+                        point, geofence_data[geofence]['polygon']):
+                    results_geofenced.pop(len(results_geofenced)-1)
+
 
     endTime = time.time()
     elapsedTime = endTime - startTime
-    log.info('Geofenced cells in %s s', elapsedTime)
+    log.info(
+        'Geofenced to %s cell(s) in %s s',
+        len(results_geofenced),elapsedTime)
     log.debug('Geofenced results: \n\r{}'.format(
         pprint.PrettyPrinter(indent=4).pformat(results_geofenced)))
 
