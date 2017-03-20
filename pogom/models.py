@@ -2293,10 +2293,13 @@ def write_geofences(geofence_file, forbidden_area, db_update_queue):
                 'Clearing all existing geofences, first.')
             DeleteQuery(Geofences).where(True).execute()
         elif geofences:
-            log.info(
-                'Override geofence: %s',
-                geofences[id]['name'])
+            name = ''
             for id in geofences:
+                if geofences[id]['name'] is not name:
+                    log.info(
+                        'Override geofence: %s',
+                        geofences[id]['name'])
+                name = geofences[id]['name']
                 DeleteQuery(Geofences).where(
                     Geofences.name == geofences[id]['name']).execute()
 

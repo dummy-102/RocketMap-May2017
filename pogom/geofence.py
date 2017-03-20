@@ -68,7 +68,7 @@ def parse_geofences(geofence_file, forbidden_area):
                     nameLine = line.strip()
                     nameLine = nameLine.replace("[", "")
                     name = nameLine.replace("]", "")
-                    log.info('Found geofence: %s', name)
+                    log.info('Found forbidden area: %s', name)
                     continue
 
                 if i not in geofence_data:
@@ -91,7 +91,7 @@ def parse_geofences(geofence_file, forbidden_area):
         log.info(
             'Loaded %d forbidden area(s) with a total of %d coordinates ' +
             'in %s s',
-            len(geofence_data)-lenGeofenceData, j, elapsedTime)
+            len(geofence_data) - lenGeofenceData, j, elapsedTime)
 
     log.debug('Geofenced results: \n\r{}'.format(
         pprint.PrettyPrinter(indent=4).pformat(geofence_data)))
@@ -100,26 +100,26 @@ def parse_geofences(geofence_file, forbidden_area):
 
 
 def pointInPolygon(point, polygon):
-    # log.debug('Point: %s', point)
-    # log.debug('Polygon: \n\r{}'.format(
-    #    pprint.PrettyPrinter(indent=4).pformat(polygon)))
+    log.debug('Point: %s', point)
+    log.debug('Polygon: \n\r{}'.format(
+        pprint.PrettyPrinter(indent=4).pformat(polygon)))
 
     maxLat = polygon[0]['lat']
     minLat = polygon[0]['lat']
     maxLon = polygon[0]['lon']
     minLon = polygon[0]['lon']
-    # log.debug(
-    #    'Default Max/Min Lat and Lon: %s/%s, %s/%s',
-    #    maxLat, minLat, maxLon, minLon)
+    log.debug(
+        'Default Max/Min Lat and Lon: %s/%s, %s/%s',
+        maxLat, minLat, maxLon, minLon)
 
     for coords in polygon:
         maxLat = max(coords['lat'], maxLat)
         minLat = min(coords['lat'], minLat)
         maxLon = max(coords['lon'], maxLon)
         minLon = min(coords['lon'], minLon)
-    # log.debug(
-    #    'Max/Min Lat and Lon: %s/%s, %s/%s',
-    #    maxLat, minLat, maxLon, minLon)
+    log.debug(
+        'Max/Min Lat and Lon: %s/%s, %s/%s',
+        maxLat, minLat, maxLon, minLon)
 
     # Quickcheck
     if ((point['lat'] > maxLat) or (point['lat'] < minLat) or

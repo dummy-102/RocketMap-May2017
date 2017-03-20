@@ -51,6 +51,7 @@ import geopy
 import json
 import time
 import sys
+import os
 from timeit import default_timer
 from threading import Lock
 from copy import deepcopy
@@ -276,8 +277,10 @@ class HexSearch(BaseScheduler):
             else:
                 results = results[-7:] + results[:-7]
 
-        if self.arg.geofence_file is not None:
+        log.info('Results (%s): %s', len(results), results)
+        if self.args.geofence_file or self.args.forbidden_area is not None:
             results = geofence_results(results)
+            log.info('Geofenced results (%s): %s', len(results), results)
 
         # Add the required appear and disappear times.
         locationsZeroed = []
@@ -379,6 +382,14 @@ class SpawnScan(BaseScheduler):
             log.debug('Loading spawn points from database')
             self.locations = Pokemon.get_spawnpoints_in_hex(
                 self.scan_location, self.args.step_limit)
+
+        '''# Does not work, yet, cause of index errors due to different dict
+        log.info('Locations (%s): %s', len(self.locations), self.locations)
+        if self.args.geofence_file or self.args.forbidden_area is not None:
+            self.locations = geofence_results(self.locations)
+            log.info(
+                'Geofenced locations (%s): %s',
+                len(self.locations), self.locations)'''
 
         # Well shit...
         # if not self.locations:
@@ -535,7 +546,15 @@ class SpeedScan(HexSearch):
         self.scans = scans
         db_update_queue.put((ScannedLocation, initial))
         log.info('%d steps created', len(scans))
-        self.band_spacing = int(10 * 60 / len(scans))
+        try:
+            self.band_spacing = int(10 * 60 / len(scans))
+        except Exception as e:
+            log.error(
+                'No cells regarded as valid for desired area: ' +
+                'Exception message: {}'.format(
+                    repr(e)))
+            os._exit(1)
+
         self.band_status()
         spawnpoints = SpawnPoint.select_in_hex(
             self.scan_location, self.args.step_limit)
@@ -611,8 +630,10 @@ class SpeedScan(HexSearch):
                 loc = get_new_coords(loc, xdist, WEST)
                 results.append((loc[0], loc[1], 0))
 
-        if self.args.geofence_file is not None:
+        log.info('Results (%s): %s', len(results), results)
+        if self.args.geofence_file or self.args.forbidden_area  is not None:
             results = geofence_results(results)
+            log.info('Geofenced results (%s): %s', len(results), results)
 
         generated_locations = []
         for step, location in enumerate(results):
