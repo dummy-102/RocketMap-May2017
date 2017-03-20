@@ -631,7 +631,7 @@ class SpeedScan(HexSearch):
                 results.append((loc[0], loc[1], 0))
 
         log.info('Results (%s): %s', len(results), results)
-        if self.args.geofence_file or self.args.forbidden_area  is not None:
+        if self.args.geofence_file or self.args.forbidden_area is not None:
             results = geofence_results(results)
             log.info('Geofenced results (%s): %s', len(results), results)
 

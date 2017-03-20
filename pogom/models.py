@@ -35,7 +35,7 @@ from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
 from .account import tutorial_pokestop_spin
 from .geofence import parse_geofences
->>>>>>> upstream/develop
+
 log = logging.getLogger(__name__)
 
 args = get_args()
