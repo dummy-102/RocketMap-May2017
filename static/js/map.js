@@ -1956,7 +1956,7 @@ function showGymDetails(id) { // eslint-disable-line no-unused-vars
             pokemonHtml = ''
         } else {
             pokemonHtml = `
-                <center class="team-${result.team_id}-text">
+                <center>
                     Gym Leader:<br>
                     <i class="pokemon-large-sprite n${result.guard_pokemon_id}"></i><br>
                     <b>${result.guard_pokemon_name}</b>
