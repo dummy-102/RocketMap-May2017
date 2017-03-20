@@ -61,7 +61,7 @@ def scout_error(error_msg):
     return {"msg": error_msg}
 
 
-def parse_scout_result(request_result, pokemon_name):
+def parse_scout_result(request_result, encounter_id, pokemon_name):
     global encounter_cache
 
     if has_captcha(request_result):
@@ -97,7 +97,6 @@ def parse_scout_result(request_result, pokemon_name):
     else:
         log.warning("No capture_probability info found")
 
-    encounter_id = encounter_result['wild_pokemon']['encounter_id']
     encounter_cache[encounter_id] = response
     return response
 
@@ -157,5 +156,5 @@ def perform_scout(p):
     last_scout_timestamp = time.time()
     scoutLock.release()
 
-    return parse_scout_result(request_result, pokemon_name)
+    return parse_scout_result(request_result, p.encounter_id, pokemon_name)
 
