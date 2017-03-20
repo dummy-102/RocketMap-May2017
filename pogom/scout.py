@@ -113,7 +113,7 @@ def perform_scout(p):
     if p.encounter_id in encounter_cache:
         result = encounter_cache[p.encounter_id]
         log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["level"], pokemon_name, result["cp"]))
-        return
+        return result
 
     scoutLock.acquire()
 
@@ -121,7 +121,7 @@ def perform_scout(p):
     if p.encounter_id in encounter_cache:
         result = encounter_cache[p.encounter_id]
         log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["level"], pokemon_name, result["cp"]))
-        return
+        return result
 
     # Delay scouting
     now = time.time()
