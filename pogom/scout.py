@@ -46,7 +46,7 @@ def has_captcha(request_result):
     return len(captcha_url) > 1
 
 
-def calc_level(pokemon_info):
+def calc_pokemon_level(pokemon_info):
     cpm = pokemon_info["cp_multiplier"]
     if cpm < 0.734:
         level = 58.35178527 * cpm * cpm - 2.838007664 * cpm + 0.8539209906
@@ -56,25 +56,82 @@ def calc_level(pokemon_info):
     return level
 
 
+def scout_error(error_msg):
+    log.error(error_msg)
+    return {"msg": error_msg}
+
+
+def parse_scout_result(request_result, pokemon_name):
+    global encounter_cache
+
+    if has_captcha(request_result):
+        return scout_error("Failure: Scout account captcha'd.")
+
+    if request_result is None:
+        return scout_error("Unknown failure")
+
+    encounter_result = request_result.get('responses', {}).get('ENCOUNTER', {})
+
+    if encounter_result.get('status', None) == 3:
+        return scout_error("Failure: Pokemon already despawned.")
+
+    if 'wild_pokemon' not in encounter_result:
+        return scout_error("No wild pokemon info found")
+
+    pokemon_info = encounter_result['wild_pokemon']['pokemon_data']
+    cp = pokemon_info["cp"]
+    level = calc_pokemon_level(pokemon_info)
+    trainer_level = get_player_level(request_result)
+    response = {
+        'cp': cp,
+        'level': level,
+        'trainer_level': trainer_level
+    }
+    log.info(u"Found level {} {} with CP {} for trainer level {}.".format(level, pokemon_name, cp, trainer_level))
+
+    if 'capture_probability' in encounter_result:
+        probs = encounter_result['capture_probability']['capture_probability']
+        response['prob_red'] = "{:.1f}".format(probs[0] * 100)
+        response['prob_blue'] = "{:.1f}".format(probs[1] * 100)
+        response['prob_yellow'] = "{:.1f}".format(probs[2] * 100)
+    else:
+        log.warning("No capture_probability info found")
+
+    encounter_id = encounter_result['wild_pokemon']['encounter_id']
+    encounter_cache[encounter_id] = response
+    return response
+
+
 def perform_scout(p):
     global api, last_scout_timestamp, encounter_cache
 
     if not args.scout_account_username:
         return { "msg": "No scout account configured." }
 
-    if p.encounter_id in encounter_cache:
-        return encounter_cache[p.encounter_id]
+    pokemon_name = get_pokemon_name(p.pokemon_id)
 
-    pname = get_pokemon_name(p.pokemon_id)
+    # Check cache once in a non-blocking way
+    if p.encounter_id in encounter_cache:
+        result = encounter_cache[p.encounter_id]
+        log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["level"], pokemon_name, result["cp"]))
+        return
 
     scoutLock.acquire()
+
+    # Check cache again after mutually exclusive access
+    if p.encounter_id in encounter_cache:
+        result = encounter_cache[p.encounter_id]
+        log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["level"], pokemon_name, result["cp"]))
+        return
+
+    # Delay scouting
     now = time.time()
     if last_scout_timestamp is not None and now < last_scout_timestamp + scout_delay_seconds:
         wait_secs = last_scout_timestamp + scout_delay_seconds - now
         log.info("Waiting {} more seconds before next scout use.".format(wait_secs))
         time.sleep(wait_secs)
 
-    log.info(u"Scouting a {} at {}, {}".format(pname, p.latitude, p.longitude))
+    log.info(u"Scouting a {} at {}, {}".format(pokemon_name, p.latitude, p.longitude))
     step_location = jitter_location([p.latitude, p.longitude, 42])
 
     if api is None:
@@ -96,46 +153,9 @@ def perform_scout(p):
 
     request_result = encounter_request(long(b64decode(p.encounter_id)), p.spawnpoint_id, p.latitude, p.longitude)
 
+    # Update last timestamp
     last_scout_timestamp = time.time()
     scoutLock.release()
 
-    if has_captcha(request_result):
-        log.error("Scout account has to solve captcha. Cannot continue.")
-        return {
-            "msg": "Account captcha'd. :-/"
-        }
-
-    if request_result is not None:
-        encounter_result = request_result.get('responses', {}).get('ENCOUNTER', {})
-        if encounter_result.get('status', None) == 3:
-            return { "msg": "Failure: Pokemon already despawned." }
-
-        ret = {}
-        if 'wild_pokemon' in encounter_result:
-            trainer_level = get_player_level(request_result)
-            pokemon_info = encounter_result['wild_pokemon']['pokemon_data']
-            level = calc_level(pokemon_info)
-            cp = pokemon_info["cp"]
-            log.info(u"Found level {} {} with CP {} for trainer level {}.".format(level, pname, cp, trainer_level))
-            ret['cp'] = cp
-            ret['level'] = level
-            ret['trainer_level'] = trainer_level
-        else:
-            log.warning("No wild_pokemon info found")
-
-        if 'capture_probability' in encounter_result:
-            probs = encounter_result['capture_probability']['capture_probability']
-            log.info("Found capture probabilities: {}".format(repr(encounter_result['capture_probability'])))
-            ret['prob_red'] = "{:.1f}".format(probs[0] * 100)
-            ret['prob_blue'] = "{:.1f}".format(probs[1] * 100)
-            ret['prob_yellow'] = "{:.1f}".format(probs[2] * 100)
-        else:
-            log.warning("No capture_probability info found")
-        encounter_cache[p.encounter_id] = ret
-        return ret
-
-    return {
-        "msg": "Unknown failure"
-    }
-
+    return parse_scout_result(request_result, pokemon_name)
 
