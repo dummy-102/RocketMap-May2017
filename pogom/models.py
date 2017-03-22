@@ -13,7 +13,7 @@ import math
 from peewee import InsertQuery, \
     Check, CompositeKey, ForeignKeyField, \
     SmallIntegerField, IntegerField, CharField, DoubleField, BooleanField, \
-    DateTimeField, fn, DeleteQuery, FloatField, SQL, TextField, JOIN, \
+    DateTimeField, fn, DeleteQuery, FloatField, TextField, JOIN, \
     OperationalError
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
@@ -316,74 +316,70 @@ class Pokemon(BaseModel):
     def get_spawn_time(cls, disappear_time):
         return (disappear_time + 2700) % 3600
 
-    @classmethod
-    def get_spawnpoints(cls, swLat, swLng, neLat, neLng, timestamp=0,
+    @staticmethod
+    def get_spawnpoints(swLat, swLng, neLat, neLng, timestamp=0,
                         oSwLat=None, oSwLng=None, oNeLat=None, oNeLng=None):
-        query = (Pokemon
-                 .select(Pokemon.latitude, Pokemon.longitude,
-                         Pokemon.spawnpoint_id,
-                         (date_secs(Pokemon.disappear_time)).alias('time'),
-                         fn.Count(Pokemon.spawnpoint_id).alias('count')))
+        query = (SpawnPoint
+                 .select(SpawnPoint.latitude, SpawnPoint.longitude,
+                         SpawnPoint.id, SpawnPoint.links, SpawnPoint.kind,
+                         SpawnPoint.latest_seen, SpawnPoint.earliest_unseen))
 
         if timestamp > 0:
             query = (query
-                     .where(((Pokemon.last_modified >
+                     .where(((SpawnPoint.last_scanned >
                               datetime.utcfromtimestamp(timestamp / 1000))) &
-                            ((Pokemon.latitude >= swLat) &
-                             (Pokemon.longitude >= swLng) &
-                             (Pokemon.latitude <= neLat) &
-                             (Pokemon.longitude <= neLng)))
+                            ((SpawnPoint.latitude >= swLat) &
+                            (SpawnPoint.longitude >= swLng) &
+                            (SpawnPoint.latitude <= neLat) &
+                            (SpawnPoint.longitude <= neLng)))
                      .dicts())
         elif oSwLat and oSwLng and oNeLat and oNeLng:
             # Send spawnpoints in view but exclude those within old boundaries.
             # Only send newly uncovered spawnpoints.
             query = (query
-                     .where((((Pokemon.latitude >= swLat) &
-                              (Pokemon.longitude >= swLng) &
-                              (Pokemon.latitude <= neLat) &
-                              (Pokemon.longitude <= neLng))) &
-                            ~((Pokemon.latitude >= oSwLat) &
-                              (Pokemon.longitude >= oSwLng) &
-                              (Pokemon.latitude <= oNeLat) &
-                              (Pokemon.longitude <= oNeLng)))
+                     .where((((SpawnPoint.latitude >= swLat) &
+                              (SpawnPoint.longitude >= swLng) &
+                              (SpawnPoint.latitude <= neLat) &
+                              (SpawnPoint.longitude <= neLng))) &
+                            ~((SpawnPoint.latitude >= oSwLat) &
+                              (SpawnPoint.longitude >= oSwLng) &
+                              (SpawnPoint.latitude <= oNeLat) &
+                              (SpawnPoint.longitude <= oNeLng)))
                      .dicts())
         elif swLat and swLng and neLat and neLng:
             query = (query
-                     .where((Pokemon.latitude <= neLat) &
-                            (Pokemon.latitude >= swLat) &
-                            (Pokemon.longitude >= swLng) &
-                            (Pokemon.longitude <= neLng)
+                     .where((SpawnPoint.latitude <= neLat) &
+                            (SpawnPoint.latitude >= swLat) &
+                            (SpawnPoint.longitude >= swLng) &
+                            (SpawnPoint.longitude <= neLng)
                             ))
 
-        query = query.group_by(Pokemon.latitude, Pokemon.longitude,
-                               Pokemon.spawnpoint_id, SQL('time'))
+        query = query.group_by(SpawnPoint.latitude, SpawnPoint.longitude,
+                               SpawnPoint.id)
 
         queryDict = query.dicts()
         spawnpoints = {}
-
         for sp in queryDict:
-            key = sp['spawnpoint_id']
-            disappear_time = cls.get_spawn_time(sp.pop('time'))
-            count = int(sp['count'])
-
-            if key not in spawnpoints:
-                spawnpoints[key] = sp
-            else:
-                spawnpoints[key]['special'] = True
-
-            if ('time' not in spawnpoints[key] or
-                    count >= spawnpoints[key]['count']):
-                spawnpoints[key]['time'] = disappear_time
-                spawnpoints[key]['count'] = count
+            key = sp['id']
+            appear_time, disappear_time = SpawnPoint.start_end(sp)
+            spawnpoints[key] = sp
+            spawnpoints[key]['time'] = disappear_time
+            spawnpoints[key]['appear_time'] = appear_time
+            if not SpawnPoint.tth_found(sp):
+                spawnpoints[key]['noTTH'] = True
 
         # Helping out the GC.
         for sp in spawnpoints.values():
-            del sp['count']
+            del sp['kind']
+            del sp['links']
+            del sp['latest_seen']
+            del sp['earliest_unseen']
 
         return list(spawnpoints.values())
 
     @classmethod
     def get_spawnpoints_in_hex(cls, center, steps):
+
         log.info('Finding spawnpoints {} steps away.'.format(steps))
 
         n, e, s, w = hex_bounds(center, steps)

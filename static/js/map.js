@@ -595,15 +595,17 @@ function spawnpointLabel(item) {
     var str = `
         <div>
             <b>Spawn Point</b>
-        </div>
-        <div>
-            Every hour from ${formatSpawnTime(item.time)} to ${formatSpawnTime(item.time + 900)}
         </div>`
 
-    if (item.special) {
+    if (item.noTTH) {
         str += `
             <div>
-                May appear as early as ${formatSpawnTime(item.time - 1800)}
+                Spawn times not yet determined. Current guess ${formatSpawnTime(item.appear_time)} until ${formatSpawnTime(item.time)}
+            </div>`
+    } else {
+        str += `
+            <div>
+                Every hour from ${formatSpawnTime(item.appear_time)} to ${formatSpawnTime(item.time)}
             </div>`
     }
     return str
@@ -1381,7 +1383,7 @@ function processSpawnpoints(i, item) {
         return false
     }
 
-    var id = item['spawnpoint_id']
+    var id = item['id']
 
     if (!(id in mapData.spawnpoints)) { // add marker to map and item to dict
         if (item.marker) {
