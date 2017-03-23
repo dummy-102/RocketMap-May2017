@@ -360,13 +360,12 @@ class Pokemon(BaseModel):
         queryDict = query.dicts()
         spawnpoints = {}
         for sp in queryDict:
-            log.error(sp)
             key = sp['id']
             appear_time, disappear_time = SpawnPoint.start_end(sp)
             spawnpoints[key] = sp
             spawnpoints[key]['disappear_time'] = disappear_time
             spawnpoints[key]['appear_time'] = appear_time
-            if not SpawnPoint.tth_found(sp) and sp['done']:
+            if not SpawnPoint.tth_found(sp) or not sp['done']:
                 spawnpoints[key]['uncertain'] = True
 
         # Helping out the GC.
