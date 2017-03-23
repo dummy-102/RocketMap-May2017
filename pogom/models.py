@@ -322,7 +322,11 @@ class Pokemon(BaseModel):
         query = (SpawnPoint
                  .select(SpawnPoint.latitude, SpawnPoint.longitude,
                          SpawnPoint.id, SpawnPoint.links, SpawnPoint.kind,
-                         SpawnPoint.latest_seen, SpawnPoint.earliest_unseen))
+                         SpawnPoint.latest_seen, SpawnPoint.earliest_unseen,
+                         ScannedLocation.done)
+                 .join(ScanSpawnPoint)
+                 .join(ScannedLocation)
+                 .dicts())
 
         if timestamp > 0:
             query = (query
@@ -351,25 +355,23 @@ class Pokemon(BaseModel):
                      .where((SpawnPoint.latitude <= neLat) &
                             (SpawnPoint.latitude >= swLat) &
                             (SpawnPoint.longitude >= swLng) &
-                            (SpawnPoint.longitude <= neLng)
-                            ))
-
-        query = query.group_by(SpawnPoint.latitude, SpawnPoint.longitude,
-                               SpawnPoint.id)
+                            (SpawnPoint.longitude <= neLng)))
 
         queryDict = query.dicts()
         spawnpoints = {}
         for sp in queryDict:
+            log.error(sp)
             key = sp['id']
             appear_time, disappear_time = SpawnPoint.start_end(sp)
             spawnpoints[key] = sp
-            spawnpoints[key]['time'] = disappear_time
+            spawnpoints[key]['disappear_time'] = disappear_time
             spawnpoints[key]['appear_time'] = appear_time
-            if not SpawnPoint.tth_found(sp):
-                spawnpoints[key]['noTTH'] = True
+            if not SpawnPoint.tth_found(sp) and sp['done']:
+                spawnpoints[key]['uncertain'] = True
 
         # Helping out the GC.
         for sp in spawnpoints.values():
+            del sp['done']
             del sp['kind']
             del sp['links']
             del sp['latest_seen']

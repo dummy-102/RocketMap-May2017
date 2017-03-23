@@ -597,15 +597,15 @@ function spawnpointLabel(item) {
             <b>Spawn Point</b>
         </div>`
 
-    if (item.noTTH) {
+    if (item.uncertain) {
         str += `
             <div>
-                Spawn times not yet determined. Current guess ${formatSpawnTime(item.appear_time)} until ${formatSpawnTime(item.time)}
+                Spawn times not yet determined. Current guess ${formatSpawnTime(item.appear_time)} until ${formatSpawnTime(item.disappear_time)}
             </div>`
     } else {
         str += `
             <div>
-                Every hour from ${formatSpawnTime(item.appear_time)} to ${formatSpawnTime(item.time)}
+                Every hour from ${formatSpawnTime(item.appear_time)} to ${formatSpawnTime(item.disappear_time)}
             </div>`
     }
     return str
