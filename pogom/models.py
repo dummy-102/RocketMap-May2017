@@ -10,6 +10,7 @@ import gc
 import time
 import geopy
 import math
+import pprint
 from peewee import InsertQuery, \
     Check, CompositeKey, ForeignKeyField, \
     SmallIntegerField, IntegerField, CharField, DoubleField, BooleanField, \
@@ -39,7 +40,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 16
+db_schema_version = 17
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -1638,6 +1639,17 @@ class GymDetails(BaseModel):
     last_scanned = DateTimeField(default=datetime.utcnow)
 
 
+class PokestopDetails(BaseModel):
+    pokestop_id = CharField(primary_key=True, max_length=50)
+    name = CharField()
+    description = TextField(null=True, default="")
+    url = CharField()
+    item_id = SmallIntegerField(null=True)
+    trainer_name = CharField(max_length=50, default="")
+    expires = DateTimeField(default=datetime.utcnow)
+    last_scanned = DateTimeField(default=datetime.utcnow)
+
+
 class Token(flaskDb.Model):
     token = TextField()
     last_updated = DateTimeField(default=datetime.utcnow, index=True)
@@ -1941,13 +1953,21 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'Pokestop can not be spun since parsing Pokestops is ' +
                     'not active. Check if \'-nk\' flag is accidentally set.')
 
+        log.info("lolFort")
         for f in forts:
             if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops.
                 if 'active_fort_modifier' in f:
+                    log.info('Lured Pokestop: \n\r{}'.format(
+                        pprint.PrettyPrinter(indent=4).pformat(f)))
                     lure_expiration = (datetime.utcfromtimestamp(
                         f['last_modified_timestamp_ms'] / 1000.0) +
                         timedelta(minutes=args.lure_duration))
                     active_fort_modifier = f['active_fort_modifier']
+
+                    log.info('Parsed pokestop details: \n\r{}'.format(
+                        pprint.PrettyPrinter(indent=4).pformat(
+                            fort_details_request(api, f), db_update_queue)))
+
                     if args.webhooks and args.webhook_updates_only:
                         wh_update_queue.put(('pokestop', {
                             'pokestop_id': b64encode(str(f['id'])),
@@ -2102,6 +2122,71 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         'sp_id_list': sp_id_list,
         'bad_scan': False
     }
+
+
+def fort_details_request(api, f):
+    try:
+        log.debug('Getting details for pokestop @ %f/%f',
+                  f['latitude'], f['longitude'])
+        req = api.create_request()
+        x = req.fort_details(
+            fort_id=f['id'],
+            latitude=f['latitude'],
+            longitude=f['longitude'])
+        x = req.check_challenge()
+        x = req.get_hatched_eggs()
+        x = req.get_inventory()
+        x = req.check_awarded_badges()
+        x = req.download_settings()
+        x = req.get_buddy_walked()
+        x = req.call()
+        # Print pretty(x).
+        log.info('Fort Details: \n\r{}'.format(
+            pprint.PrettyPrinter(indent=4).pformat(
+                x['responses']['FORT_DETAILS'])))
+
+        return x
+
+    except Exception as e:
+        log.warning('Exception while downloading fort details: %s', repr(e))
+        return False
+
+
+def parse_pokestop_details(fort_details_response, db_update_queue):
+    pokestop_details = {}
+
+    f = fort_details_response['responses']['FORT_DETAILS']
+
+    pokestop_id = f['fort_id']
+
+    pokestop_details[pokestop_id] = {
+        'pokestop_id': pokestop_id,
+        'name': f['name'],
+        'description': f.get('description'),
+        'url': f['urls'][0],
+    }
+
+    if 'modifiers' in f:
+        modifiers = f.get('modifiers', None)
+        pokestop_details[pokestop_id].update({
+            'item_id': modifiers['item_id'],
+            'expires': datetime.utcfromtimestamp(
+                modifiers['expiration_timestamp_ms'] / 1000.0),
+            'deployer': modifiers['deployer_player_codename'],
+        })
+
+    # Upsert all the models.
+    if pokestop_details:
+        db_update_queue.put((PokestopDetails, pokestop_details))
+
+    with flaskDb.database.transaction():
+        # Get rid of all the forts, we're going to insert new records.
+        if pokestop_details:
+            DeleteQuery(PokestopDetails).where(
+                PokestopDetails.pokestop_id <<
+                pokestop_details.keys()).execute()
+
+    log.info('Upserted forts: %d', len(pokestop_details))
 
 
 def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
@@ -2377,20 +2462,21 @@ def bulk_upsert(cls, data, db):
 def create_tables(db):
     db.connect()
     verify_database_schema(db)
-    db.create_tables([Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
-                      GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
-                      SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-                      Token, LocationAltitude], safe=True)
+    db.create_tables(
+        [Pokemon, Pokestop, PokestopDetails, Gym, ScannedLocation, GymDetails,
+            GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
+            SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData, Token,
+            LocationAltitude], safe=True)
     db.close()
 
 
 def drop_tables(db):
     db.connect()
-    db.drop_tables([Pokemon, Pokestop, Gym, ScannedLocation, Versions,
-                    GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
-                    WorkerStatus, SpawnPoint, ScanSpawnPoint,
-                    SpawnpointDetectionData, LocationAltitude,
-                    Token, Versions], safe=True)
+    db.drop_tables(
+        [Pokemon, Pokestop, PokestopDetails, Gym, ScannedLocation, Versions,
+            GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
+            WorkerStatus, SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
+            LocationAltitude, Token, Versions], safe=True)
     db.close()
 
 
