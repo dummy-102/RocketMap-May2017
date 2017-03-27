@@ -540,35 +540,62 @@ function getGymLevel(points) {
     return level
 }
 
-function pokestopLabel(expireTime, latitude, longitude) {
+function pokestopLabel(item) {
     var str
-    if (expireTime) {
-        var expireDate = new Date(expireTime)
+    if (item['lure_expiration']) {
+        var expireDate = new Date(item['lure_expiration'])
 
-        str = `
-            <div>
-                <b>Lured Pokéstop</b>
-            </div>
-            <div>
+        if (item['details']) {
+            str = `
+                <div>
+                    <img src="${item['details']['url']}" style="float:left; width:30px; height:30px; margin-right: 3px">
+                    <b>Lured Pokéstop</b>
+                    <br>
+                    ${item['details']['name']}
+                </div>
+                <div>
+                Lured by ${item['details']['deployer']}`
+        } else {
+            str = `
+                <div>
+                    <b>Lured Pokéstop</b>
+                </div>
+                <div>`
+        }
+
+        str += `
                 Lure expires at ${pad(expireDate.getHours())}:${pad(expireDate.getMinutes())}:${pad(expireDate.getSeconds())}
-                <span class='label-countdown' disappears-at='${expireTime}'>(00m00s)</span>
+                <span class='label-countdown' disappears-at='${item['lure_expiration']}'>(00m00s)</span>
             </div>
             <div>
-                Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+                Location: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
             </div>
             <div>
-                <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>
+                <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
             </div>`
     } else {
-        str = `
-            <div>
-                <b>Pokéstop</b>
+        if (item['details']) {
+            str = `
+                <div>
+                    <img src="${item['details']['url']}" style="float:left; width: 30px; height:30px; margin-right: 3px">
+                    <b>Pokéstop</b>
+                    <br>
+                    ${item['details']['name']}
+                </div>
+                <div>`
+        } else {
+            str = `
+                <div>
+                    <b>Pokéstop</b>
+                </div>
+                <div>`
+        }
+
+        str += `
+                Location: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
             </div>
             <div>
-                Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
-            </div>
-            <div>
-                <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>
+                <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
             </div>`
     }
 
@@ -842,7 +869,7 @@ function setupPokestopMarker(item) {
     }
 
     marker.infoWindow = new google.maps.InfoWindow({
-        content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude']),
+        content: pokestopLabel(item),
         disableAutoPan: true
     })
 
