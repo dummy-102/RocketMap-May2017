@@ -10,7 +10,9 @@ import gc
 import time
 import geopy
 import math
+import random
 import pprint
+
 from peewee import InsertQuery, \
     Check, CompositeKey, ForeignKeyField, \
     SmallIntegerField, IntegerField, CharField, DoubleField, BooleanField, \
@@ -1953,9 +1955,23 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'Pokestop can not be spun since parsing Pokestops is ' +
                     'not active. Check if \'-nk\' flag is accidentally set.')
 
-        log.info("lolFort")
         for f in forts:
-            if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops.
+            if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops
+                # Get detailed informations about Pokestops
+                if args.pokestop_info:
+                    try:
+                        PokestopDetails.get(pokestop_id=f['id'])
+                    except PokestopDetails.DoesNotExist:  # Let's get it
+                        time.sleep(random.random() + 2)
+                        fort_details_response = fort_details_request(api, f)
+                        if fort_details_response:
+                            pokestop_details = parse_pokestop_details(
+                                fort_details_response, db_update_queue)
+                            log.info(
+                                'Parsed pokestop details: \n\r{}'.format(
+                                    pprint.PrettyPrinter(indent=4).pformat(
+                                        pokestop_details)))
+
                 if 'active_fort_modifier' in f:
                     log.info('Lured Pokestop: \n\r{}'.format(
                         pprint.PrettyPrinter(indent=4).pformat(f)))
@@ -1963,10 +1979,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         f['last_modified_timestamp_ms'] / 1000.0) +
                         timedelta(minutes=args.lure_duration))
                     active_fort_modifier = f['active_fort_modifier']
-
-                    log.info('Parsed pokestop details: \n\r{}'.format(
-                        pprint.PrettyPrinter(indent=4).pformat(
-                            fort_details_request(api, f), db_update_queue)))
 
                     if args.webhooks and args.webhook_updates_only:
                         wh_update_queue.put(('pokestop', {
@@ -2154,20 +2166,17 @@ def fort_details_request(api, f):
 
 def parse_pokestop_details(fort_details_response, db_update_queue):
     pokestop_details = {}
-
-    f = fort_details_response['responses']['FORT_DETAILS']
-
-    pokestop_id = f['fort_id']
-
+    fort_details = fort_details_response['responses']['FORT_DETAILS']
+    pokestop_id = fort_details['fort_id']
     pokestop_details[pokestop_id] = {
         'pokestop_id': pokestop_id,
-        'name': f['name'],
-        'description': f.get('description'),
-        'url': f['urls'][0],
+        'name': fort_details['name'],
+        'description': fort_details.get('description'),
+        'url': fort_details['image_urls'][0],
     }
 
-    if 'modifiers' in f:
-        modifiers = f.get('modifiers', None)
+    if 'modifiers' in fort_details:
+        modifiers = fort_details.get('modifiers', None)
         pokestop_details[pokestop_id].update({
             'item_id': modifiers['item_id'],
             'expires': datetime.utcfromtimestamp(
@@ -2187,6 +2196,7 @@ def parse_pokestop_details(fort_details_response, db_update_queue):
                 pokestop_details.keys()).execute()
 
     log.info('Upserted forts: %d', len(pokestop_details))
+    return pokestop_details
 
 
 def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
