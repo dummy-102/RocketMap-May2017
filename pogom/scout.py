@@ -116,45 +116,46 @@ def perform_scout(p):
         return result
 
     scoutLock.acquire()
+    try:
+        # Check cache again after mutually exclusive access
+        if p.encounter_id in encounter_cache:
+            result = encounter_cache[p.encounter_id]
+            log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["level"], pokemon_name, result["cp"]))
+            return result
 
-    # Check cache again after mutually exclusive access
-    if p.encounter_id in encounter_cache:
-        result = encounter_cache[p.encounter_id]
-        log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["level"], pokemon_name, result["cp"]))
-        return result
+        # Delay scouting
+        now = time.time()
+        if last_scout_timestamp is not None and now < last_scout_timestamp + scout_delay_seconds:
+            wait_secs = last_scout_timestamp + scout_delay_seconds - now
+            log.info("Waiting {} more seconds before next scout use.".format(wait_secs))
+            time.sleep(wait_secs)
 
-    # Delay scouting
-    now = time.time()
-    if last_scout_timestamp is not None and now < last_scout_timestamp + scout_delay_seconds:
-        wait_secs = last_scout_timestamp + scout_delay_seconds - now
-        log.info("Waiting {} more seconds before next scout use.".format(wait_secs))
-        time.sleep(wait_secs)
+        log.info(u"Scouting a {} at {}, {}".format(pokemon_name, p.latitude, p.longitude))
+        step_location = jitter_location([p.latitude, p.longitude, 42])
 
-    log.info(u"Scouting a {} at {}, {}".format(pokemon_name, p.latitude, p.longitude))
-    step_location = jitter_location([p.latitude, p.longitude, 42])
+        if api is None:
+            # instantiate pgoapi
+            api = PGoApi()
 
-    if api is None:
-        # instantiate pgoapi
-        api = PGoApi()
+        api.set_position(*step_location)
+        account = {
+            "auth_service": args.scout_account_auth,
+            "username": args.scout_account_username,
+            "password": args.scout_account_password
+        }
+        check_login(args, account, api, None, False)
 
-    api.set_position(*step_location)
-    account = {
-        "auth_service": args.scout_account_auth,
-        "username": args.scout_account_username,
-        "password": args.scout_account_password
-    }
-    check_login(args, account, api, None, False)
+        if args.hash_key:
+            key = key_scheduler.next()
+            log.debug('Using key {} for this scout use.'.format(key))
+            api.activate_hash_server(key)
 
-    if args.hash_key:
-        key = key_scheduler.next()
-        log.debug('Using key {} for this scout use.'.format(key))
-        api.activate_hash_server(key)
+        request_result = encounter_request(long(b64decode(p.encounter_id)), p.spawnpoint_id, p.latitude, p.longitude)
 
-    request_result = encounter_request(long(b64decode(p.encounter_id)), p.spawnpoint_id, p.latitude, p.longitude)
-
-    # Update last timestamp
-    last_scout_timestamp = time.time()
-    scoutLock.release()
+        # Update last timestamp
+        last_scout_timestamp = time.time()
+    finally:
+        scoutLock.release()
 
     return parse_scout_result(request_result, p.encounter_id, pokemon_name)
 
