@@ -653,12 +653,15 @@ class Gym(BaseModel):
             details = (GymDetails
                        .select(
                            GymDetails.gym_id,
-                           GymDetails.name)
+                           GymDetails.name,
+                           GymDetails.url)
                        .where(GymDetails.gym_id << gym_ids)
                        .dicts())
 
             for d in details:
                 gyms[d['gym_id']]['name'] = d['name']
+                gyms[d['gym_id']]['description'] = d['description']
+                gyms[d['gym_id']]['url'] = d['url']
 
         # Re-enable the GC.
         gc.enable()
@@ -672,6 +675,7 @@ class Gym(BaseModel):
                           Gym.team_id,
                           GymDetails.name,
                           GymDetails.description,
+                          GymDetails.url,
                           Gym.guard_pokemon_id,
                           Gym.gym_points,
                           Gym.latitude,
