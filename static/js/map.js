@@ -2294,7 +2294,6 @@ $(function () {
             lastpokemon = false
             wrapper.hide(options)
         }
-        Store.set('showPokemon', this.checked)
         buildSwitchChangeListener(mapData, ['pokemons'], 'showPokemon').bind(this)()
     })
     $('#pokemon-opacity-switch').change(function () {
