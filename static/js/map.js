@@ -484,7 +484,7 @@ function gymLabel(teamName, teamId, gymPoints, latitude, longitude, lastScanned 
                 <center>
                     <div>
                         <b style='color:rgba(${gymColor[teamId]})'>${teamName}</b><br>`
-        if (imgUrl != null) {
+        if (imgUrl) {
             str += `<img height='70px' width='70px' style='padding: 5px;' src='${imgUrl}'>`
         } else {
             str += `<img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>`
@@ -510,7 +510,7 @@ function gymLabel(teamName, teamId, gymPoints, latitude, longitude, lastScanned 
                     </div>
                     <div>
                         <b style='color:rgba(${gymColor[teamId]})'>Team ${teamName}</b><br>`
-        if (imgUrl != null) {
+        if (imgUrl) {
             str += `<img height='70px' width='70px' style='padding: 5px;' src='${imgUrl}'>`
         } else {
             str += `<img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>`
