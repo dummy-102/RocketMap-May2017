@@ -977,6 +977,10 @@ var StoreOptions = {
     'showPokemonOpacity': {
         default: false,
         type: StoreTypes.Boolean
+    },
+    'minPokemonOpacityPercentage': {
+        default: 33,
+        type: StoreTypes.Number
     }
 }
 

@@ -735,10 +735,12 @@ function customizePokemonMarker(marker, item, skipNotification) {
         }
     }
 
+
+    var minOpacity = Store.get('minPokemonOpacityPercentage') / 100.0
     if (item['individual_attack'] != null && item['individual_defense'] != null && item['individual_stamina'] != null) {
         var perfection = getIv(item['individual_attack'], item['individual_defense'], item['individual_stamina'])
         if (Store.get('showPokemonOpacity')) {
-            marker.setOpacity(0.33 + 0.67 * (perfection / 100))  // Vary opacity between 33% for 0% IV and 100 % for 100% IV.
+            marker.setOpacity(minOpacity + (1 - minOpacity) * (perfection / 100.0))  // Vary opacity between 33% for 0% IV and 100 % for 100% IV.
         }
         if (notifiedMinPerfection > 0 && perfection >= notifiedMinPerfection) {
             if (!skipNotification) {
@@ -752,7 +754,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
             }
         }
     } else if (Store.get('showPokemonOpacity')) {
-        marker.setOpacity(0.33)  // Default opacity if enabled
+        marker.setOpacity(minOpacity)  // Default opacity if enabled
     }
 
     addListeners(marker)
