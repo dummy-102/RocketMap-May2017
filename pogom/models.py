@@ -660,7 +660,6 @@ class Gym(BaseModel):
 
             for d in details:
                 gyms[d['gym_id']]['name'] = d['name']
-                gyms[d['gym_id']]['description'] = d['description']
                 gyms[d['gym_id']]['url'] = d['url']
 
         # Re-enable the GC.
@@ -674,7 +673,6 @@ class Gym(BaseModel):
                   .select(Gym.gym_id,
                           Gym.team_id,
                           GymDetails.name,
-                          GymDetails.description,
                           GymDetails.url,
                           Gym.guard_pokemon_id,
                           Gym.gym_points,
@@ -1666,7 +1664,6 @@ class Trainer(BaseModel):
 class GymDetails(BaseModel):
     gym_id = CharField(primary_key=True, max_length=50)
     name = CharField()
-    description = TextField(null=True, default="")
     url = CharField()
     last_scanned = DateTimeField(default=datetime.utcnow)
 
@@ -2250,8 +2247,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
         gym_details[gym_id] = {
             'gym_id': gym_id,
             'name': g['name'],
-            'description': g.get('description'),
-            'url': g['urls'][0],
+            'url': g['urls'][0]
         }
 
         if args.webhooks:
@@ -2261,7 +2257,6 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'longitude': gym_state['fort_data']['longitude'],
                 'team': gym_state['fort_data'].get('owned_by_team', 0),
                 'name': g['name'],
-                'description': g.get('description'),
                 'url': g['urls'][0],
                 'pokemon': [],
             }

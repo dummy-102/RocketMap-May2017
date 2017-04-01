@@ -450,7 +450,7 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
     return contentstring
 }
 
-function gymLabel(teamName, teamId, gymPoints, latitude, longitude, lastScanned = null, name = null, members = [], gymId) {
+function gymLabel(teamName, teamId, gymPoints, latitude, longitude, lastScanned = null, name = null, members = [], gymId, imgUrl) {
     var memberStr = ''
     for (var i = 0; i < members.length; i++) {
         memberStr += `
@@ -483,9 +483,13 @@ function gymLabel(teamName, teamId, gymPoints, latitude, longitude, lastScanned 
             <div>
                 <center>
                     <div>
-                        <b style='color:rgba(${gymColor[teamId]})'>${teamName}</b><br>
-                        <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
-                    </div>
+                        <b style='color:rgba(${gymColor[teamId]})'>${teamName}</b><br>`
+        if (imgUrl != null) {
+            str += `<img height='70px' width='70px' style='padding: 5px;' src='${imgUrl}'>`
+        } else {
+            str += `<img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>`
+        }
+        str += `    </div>
                     ${nameStr}
                     <div>
                         Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
@@ -505,8 +509,13 @@ function gymLabel(teamName, teamId, gymPoints, latitude, longitude, lastScanned 
                         Gym owned by:
                     </div>
                     <div>
-                        <b style='color:rgba(${gymColor[teamId]})'>Team ${teamName}</b><br>
-                        <img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>
+                        <b style='color:rgba(${gymColor[teamId]})'>Team ${teamName}</b><br>`
+        if (imgUrl != null) {
+            str += `<img height='70px' width='70px' style='padding: 5px;' src='${imgUrl}'>`
+        } else {
+            str += `<img height='70px' style='padding: 5px;' src='static/forts/${teamName}_large.png'>`
+        }
+        str += `
                     </div>
                     <div>
                         ${nameStr}
@@ -796,7 +805,7 @@ function setupGymMarker(item) {
     }
 
     marker.infoWindow = new google.maps.InfoWindow({
-        content: gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['latitude'], item['longitude'], item['last_scanned'], item['name'], item['pokemon'], item['gym_id']),
+        content: gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['latitude'], item['longitude'], item['last_scanned'], item['name'], item['pokemon'], item['gym_id'], item['url']),
         disableAutoPan: true
     })
 
