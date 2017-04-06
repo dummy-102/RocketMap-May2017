@@ -459,7 +459,7 @@ def search_overseer_thread(args, beehive_workers, new_location_queue,
     account_queue = Queue()
     threadStatus = {}
     key_scheduler = None
-    api_version = '0.59.1'
+    api_version = '0.59.0'
     api_check_time = 0
 
     '''
