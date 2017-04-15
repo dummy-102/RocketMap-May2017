@@ -322,7 +322,7 @@ def spin_pokestop_request(api, fort, step_location):
 
 
 def drop_items(api, inventory, item_id, min_count, drop_fraction, item_name):
-    item_count = inventory[item_id]
+    item_count = inventory.get(item_id, 0)
     drop_count = int(item_count * drop_fraction)
     if item_count > min_count and drop_count > 0:
         result = drop_items_request(api, item_id, drop_count)
