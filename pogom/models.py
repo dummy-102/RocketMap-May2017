@@ -1805,7 +1805,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             forts += cell.get('forts', [])
         else:
             forts_count += len(cell.get('forts', []))
-
     now_secs = date_secs(now_date)
     if wild_pokemon:
         wild_pokemon_count = len(wild_pokemon)
@@ -1920,6 +1919,13 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             disappear_time = now_date + \
                 timedelta(seconds=seconds_until_despawn)
 
+            # if this is an ignored pokemon, skip this whole section
+            # We want the stuff above or we will impact spawn detection
+            # but we don't want to insert it, or send it to webhooks
+            if p['pokemon_data']['pokemon_id'] in args.ignore_list:
+                log.debug("Ignoring Pokemon id: %i",
+                          p['pokemon_data']['pokemon_id'])
+                continue
             printPokemon(p['pokemon_data']['pokemon_id'], p[
                          'latitude'], p['longitude'], disappear_time)
 
@@ -1986,7 +1992,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'weight': pokemon_info['weight_kg'],
                     'gender': pokemon_info['pokemon_display']['gender'],
                 })
-
             if args.webhooks:
 
                 wh_poke = pokemon[p['encounter_id']].copy()

@@ -172,6 +172,13 @@ def get_args():
                                 default='', help='File containing a list of '
                                                  'Pokemon to NOT encounter for'
                                                  ' more stats.')
+    ignore_list = parser.add_mutually_exclusive_group()
+    ignore_list.add_argument('-ign', '--ignore-list',
+                             action='append', default=[],
+                             help=('List of Pokemon to ignore.'))
+    ignore_list.add_argument('-ignf', '--ignore-list-file',
+                             default='', help='File containing a list of '
+                             'Pokemon to ignore.')
     parser.add_argument('-ld', '--login-delay',
                         help='Time delay between each login attempt.',
                         type=float, default=6)
@@ -653,6 +660,13 @@ def get_args():
                                         args.encounter_blacklist]
             args.encounter_whitelist = [int(i) for i in
                                         args.encounter_whitelist]
+        if args.ignore_list_file:
+            with open(args.ignore_file) as f:
+                args.ignore_list = [get_pokemon_id(name) for name in
+                                    f.read().splitlines()]
+        else:
+            args.ignore_list = [int(i) for i in
+                                args.ignore_list]
 
         # Decide which scanning mode to use.
         if args.spawnpoint_scanning:
