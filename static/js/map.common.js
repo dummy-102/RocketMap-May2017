@@ -973,6 +973,14 @@ var StoreOptions = {
     'zoomLevel': {
         default: 16,
         type: StoreTypes.Number
+    },
+    'showPokemonOpacity': {
+        default: false,
+        type: StoreTypes.Boolean
+    },
+    'minPokemonOpacityPercentage': {
+        default: 33,
+        type: StoreTypes.Number
     }
 }
 
