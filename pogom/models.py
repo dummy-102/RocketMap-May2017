@@ -33,7 +33,8 @@ from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, \
     clear_dict_response
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
-from .account import tutorial_pokestop_spin, get_player_level
+from .account import pokestop_spin, get_player_level, get_player_inventory
+
 log = logging.getLogger(__name__)
 
 args = get_args()
@@ -1780,9 +1781,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     # Consolidate the individual lists in each cell into two lists of Pokemon
     # and a list of forts.
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
-    # Get the level for the pokestop spin in any case delete inventory
-    if args.complete_tutorial and config['parse_pokestops']:
-        level = get_player_level(map_dict)
+    # Get minimal inventory for the pokestop spin and delete inventory from main dict
+    if config['parse_pokestops']:
+        inventory = get_player_inventory(map_dict)
     if 'GET_INVENTORY' in map_dict['responses']:
         del map_dict['responses']['GET_INVENTORY']
     for i, cell in enumerate(cells):
@@ -2015,11 +2016,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     (f['last_modified'] -
                      datetime(1970, 1, 1)).total_seconds())) for f in query]
 
-        # Complete tutorial with a Pokestop spin
-        if args.complete_tutorial and not (len(captcha_url) > 1):
+        # Perform Pokestop spin
+        if not (len(captcha_url) > 1):
             if config['parse_pokestops']:
-                tutorial_pokestop_spin(
-                    api, level, forts, step_location, account)
+                pokestop_spin(
+                    api, inventory, forts, step_location, account)
             else:
                 log.error(
                     'Pokestop can not be spun since parsing Pokestops is ' +
