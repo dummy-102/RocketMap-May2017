@@ -129,7 +129,7 @@ def main():
         # You need custom image files now.
         if not os.path.isfile(
                 os.path.join(os.path.dirname(__file__),
-                             'static/icons-sprite.png')):
+                             'static/icons-shuffle-sprite128x.png')):
             log.info('Sprite files not present, extracting bundled ones...')
             extract_sprites()
             log.info('Done!')
