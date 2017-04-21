@@ -26,6 +26,7 @@ from cachetools import TTLCache
 from cachetools import cached
 from timeit import default_timer
 
+from pogom.catch import catch
 from . import config
 from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, \
     get_args, cellid, in_radius, date_secs, clock_between, secs_between, \
@@ -33,7 +34,7 @@ from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, \
     clear_dict_response
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
-from .account import pokestop_spin, get_player_level, get_player_inventory
+from .account import pokestop_spin, get_player_inventory, got_balls
 
 log = logging.getLogger(__name__)
 
@@ -1777,13 +1778,14 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     new_spawn_points = []
     sp_id_list = []
     captcha_url = ''
+    ditto_dex = [16, 19, 41, 129, 161, 163, 193]
+    account_is_adult = account.get('level', 0) >= 25
 
     # Consolidate the individual lists in each cell into two lists of Pokemon
     # and a list of forts.
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     # Get minimal inventory for the pokestop spin and delete inventory from main dict
-    if config['parse_pokestops']:
-        inventory = get_player_inventory(map_dict)
+    inventory = get_player_inventory(map_dict)
     if 'GET_INVENTORY' in map_dict['responses']:
         del map_dict['responses']['GET_INVENTORY']
     for i, cell in enumerate(cells):
@@ -1929,13 +1931,15 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             printPokemon(p['pokemon_data']['pokemon_id'], p[
                          'latitude'], p['longitude'], disappear_time)
 
+            scan_for_ditto = not account_is_adult and args.ditto and p['pokemon_data']['pokemon_id'] in ditto_dex and got_balls(inventory)
+
             # Scan for IVs and moves.
             encounter_result = None
             if (args.encounter and (p['pokemon_data']['pokemon_id']
                                     in args.encounter_whitelist or
                                     p['pokemon_data']['pokemon_id']
                                     not in args.encounter_blacklist and
-                                    not args.encounter_whitelist)):
+                                    not args.encounter_whitelist) and account_is_adult) or scan_for_ditto:
                 time.sleep(args.encounter_delay)
                 # Setup encounter request envelope.
                 req = api.create_request()
@@ -1976,7 +1980,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             }
 
             if (encounter_result is not None and 'wild_pokemon'
-                    in encounter_result['responses']['ENCOUNTER']):
+                    in encounter_result['responses']['ENCOUNTER'] and account_is_adult):
                 pokemon_info = encounter_result['responses'][
                     'ENCOUNTER']['wild_pokemon']['pokemon_data']
                 pokemon[p['encounter_id']].update({
@@ -1992,8 +1996,31 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'weight': pokemon_info['weight_kg'],
                     'gender': pokemon_info['pokemon_display']['gender'],
                 })
-            if args.webhooks:
 
+            # Catch pokemon to check for Ditto if --ditto enabled
+            # Thanks to voxx!
+            if scan_for_ditto:
+                pid = p['pokemon_data']['pokemon_id']
+                pname = get_pokemon_name(pid)
+
+                log.info('%s may be a ditto. Triggering catch logic!', pname)
+
+                caught = catch(api, p['encounter_id'], p['spawn_point_id'], pid, inventory)
+                if caught.get('catch_status', None) == 'success' and 'pid' in caught and int(caught['pid']) == 132:
+                    log.info('%s is a Ditto! Updating encounter ' +
+                             'data with new pokemon_id and movesets.', pname)
+
+                    pokemon[p['encounter_id']]['pokemon_id'] = 132
+                    if account_is_adult:
+                        pokemon[p['encounter_id']].update({
+                            'move_1': caught['m1'],
+                            'move_2': caught['m2'],
+                            'height': caught['height'],
+                            'weight': caught['weight'],
+                            'gender': caught['gender']
+                        })
+
+            if args.webhooks:
                 wh_poke = pokemon[p['encounter_id']].copy()
                 wh_poke.update({
                     'disappear_time': calendar.timegm(
@@ -2024,8 +2051,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         # Perform Pokestop spin
         if not (len(captcha_url) > 1):
             if config['parse_pokestops']:
-                pokestop_spin(
-                    api, inventory, forts, step_location, account)
+                if not account_is_adult:
+                    pokestop_spin(api, inventory, forts, step_location, account)
             else:
                 log.error(
                     'Pokestop can not be spun since parsing Pokestops is ' +

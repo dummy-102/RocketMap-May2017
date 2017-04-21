@@ -6,6 +6,7 @@ import time
 import random
 
 from pgoapi.exceptions import AuthException
+from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
 from .utils import in_radius
 
@@ -17,7 +18,6 @@ class TooManyLoginAttempts(Exception):
 
 
 def check_login(args, account, api, position, proxy_url):
-
     # Logged in? Enough time left? Cool!
     if api._auth_provider and api._auth_provider._ticket_expire:
         remaining_time = api._auth_provider._ticket_expire / 1000 - time.time()
@@ -215,12 +215,20 @@ def pokestop_spin(api, inventory, forts, step_location, account):
                     'Account %s successfully spun a Pokestop.',
                     account['username'])
                 log.debug("Dropping some items for account {}".format(account["username"]))
-                drop_items(api, inventory, 1, 30, 0.40, "Poke Ball")
-                drop_items(api, inventory, 2, 30, 0.40, "Great Ball")
-                drop_items(api, inventory, 101, 30, 0.40, "Potion")
-                drop_items(api, inventory, 102, 30, 0.40, "Super Potion")
-                drop_items(api, inventory, 201, 30, 0.40, "Revive")
-                drop_items(api, inventory, 701, 30, 0.40, "Razz Berry")
+                drop_items(api, inventory, ITEM_POKE_BALL, 30, 0.40, "Poke Ball")
+                drop_items(api, inventory, ITEM_GREAT_BALL, 30, 0.40, "Great Ball")
+                drop_items(api, inventory, ITEM_ULTRA_BALL, 30, 0.40, "Great Ball")
+                drop_items(api, inventory, ITEM_POTION, 20, 1.0, "Potion")
+                drop_items(api, inventory, ITEM_SUPER_POTION, 20, 1.0, "Super Potion")
+                drop_items(api, inventory, ITEM_HYPER_POTION, 20, 1.0, "Hyper Potion")
+                drop_items(api, inventory, ITEM_MAX_POTION, 20, 1.0, "Max Potion")
+                drop_items(api, inventory, ITEM_REVIVE, 20, 1.0, "Revive")
+                drop_items(api, inventory, ITEM_MAX_REVIVE, 20, 1.0, "Max Revive")
+                drop_items(api, inventory, ITEM_RAZZ_BERRY, 20, 0.40, "Razz Berry")
+                drop_items(api, inventory, ITEM_BLUK_BERRY, 20, 1.0, "Bluk Berry")
+                drop_items(api, inventory, ITEM_NANAB_BERRY, 20, 1.0, "Nanab Berry")
+                drop_items(api, inventory, ITEM_WEPAR_BERRY, 20, 1.0, "Wepar Berry")
+                drop_items(api, inventory, ITEM_PINAP_BERRY, 20, 1.0, "Pinap Berry")
                 return True
 
     return False
@@ -248,12 +256,33 @@ def get_player_inventory(map_dict):
         'inventory_delta', {}).get(
         'inventory_items', [])
     inventory = {}
+    item_ids = (
+        ITEM_POKE_BALL,
+        ITEM_GREAT_BALL,
+        ITEM_ULTRA_BALL,
+        ITEM_POTION,
+        ITEM_SUPER_POTION,
+        ITEM_HYPER_POTION,
+        ITEM_MAX_POTION,
+        ITEM_REVIVE,
+        ITEM_MAX_REVIVE,
+        ITEM_RAZZ_BERRY,
+        ITEM_BLUK_BERRY,
+        ITEM_NANAB_BERRY,
+        ITEM_WEPAR_BERRY,
+        ITEM_PINAP_BERRY
+    )
     for item in inventory_items:
-        if 'item' in item.get('inventory_item_data', {}) and item['inventory_item_data']['item']['item_id'] in (1, 2, 101, 102, 201, 701):
+        if 'item' in item.get('inventory_item_data', {}) and item['inventory_item_data']['item']['item_id'] in item_ids:
             item_id = item['inventory_item_data']['item']['item_id']
-            count = item['inventory_item_data']['item']['count']
+            count = item['inventory_item_data']['item'].get('count', 0)
             inventory[item_id] = count
     return inventory
+
+
+def got_balls(inventory):
+    return inventory.get(ITEM_POKE_BALL, 0) > 0 or inventory.get(ITEM_GREAT_BALL, 0) > 0 or inventory.get(
+        ITEM_ULTRA_BALL, 0) > 0
 
 
 def spin_pokestop(api, fort, step_location):
@@ -291,7 +320,7 @@ def spin_pokestop(api, fort, step_location):
 def pokestop_spinnable(fort, step_location):
     spinning_radius = 0.04
     in_range = in_radius((fort['latitude'], fort['longitude']), step_location,
-                 spinning_radius)
+                         spinning_radius)
     now = time.time()
     needs_cooldown = "cooldown_complete_timestamp_ms" in fort and fort["cooldown_complete_timestamp_ms"] / 1000 > now
     return in_range and not needs_cooldown
@@ -321,10 +350,10 @@ def spin_pokestop_request(api, fort, step_location):
         return False
 
 
-def drop_items(api, inventory, item_id, min_count, drop_fraction, item_name):
+def drop_items(api, inventory, item_id, max_count, drop_fraction, item_name):
     item_count = inventory.get(item_id, 0)
     drop_count = int(item_count * drop_fraction)
-    if item_count > min_count and drop_count > 0:
+    if item_count > max_count and drop_count > 0:
         result = drop_items_request(api, item_id, drop_count)
         if result == 1:
             log.debug("Dropped {} {}s.".format(drop_count, item_name))

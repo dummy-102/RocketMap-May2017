@@ -85,12 +85,9 @@ def parse_scout_result(request_result, encounter_id, pokemon_name):
         'cp': cp,
         'level': level,
         'trainer_level': trainer_level,
-        'atk': pokemon_info.get(
-            'individual_attack', 0),
-        'def': pokemon_info.get(
-            'individual_defense', 0),
-        'sta': pokemon_info.get(
-            'individual_stamina', 0),
+        'atk': pokemon_info.get('individual_attack', 0),
+        'def': pokemon_info.get('individual_defense', 0),
+        'sta': pokemon_info.get('individual_stamina', 0),
         'move_1': pokemon_info['move_1'],
         'move_2': pokemon_info['move_2']
     }
