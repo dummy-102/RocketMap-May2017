@@ -20,7 +20,6 @@ key_scheduler = schedulers.KeyScheduler(args.hash_key)
 
 scoutLock = Lock()
 last_scout_timestamp = None
-scout_delay_seconds = 60
 encounter_cache = {}
 
 
@@ -85,7 +84,15 @@ def parse_scout_result(request_result, encounter_id, pokemon_name):
     response = {
         'cp': cp,
         'level': level,
-        'trainer_level': trainer_level
+        'trainer_level': trainer_level,
+        'atk': pokemon_info.get(
+            'individual_attack', 0),
+        'def': pokemon_info.get(
+            'individual_defense', 0),
+        'sta': pokemon_info.get(
+            'individual_stamina', 0),
+        'move_1': pokemon_info['move_1'],
+        'move_2': pokemon_info['move_2']
     }
     log.info(u"Found level {} {} with CP {} for trainer level {}.".format(level, pokemon_name, cp, trainer_level))
 
@@ -125,8 +132,8 @@ def perform_scout(p):
 
         # Delay scouting
         now = time.time()
-        if last_scout_timestamp is not None and now < last_scout_timestamp + scout_delay_seconds:
-            wait_secs = last_scout_timestamp + scout_delay_seconds - now
+        if last_scout_timestamp is not None and now < last_scout_timestamp + args.scout_cooldown_delay:
+            wait_secs = last_scout_timestamp + args.scout_cooldown_delay - now
             log.info("Waiting {} more seconds before next scout use.".format(wait_secs))
             time.sleep(wait_secs)
 

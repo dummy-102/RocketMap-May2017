@@ -397,6 +397,7 @@ function openMapDirections(lat, lng) { // eslint-disable-line no-unused-vars
 function scout(encounterId) {
     var encounterIdLong = atob(encounterId)
     var infoEl = $("#scoutCP" + encounterIdLong)
+    var ivEl = $("#scoutIV" + encounterIdLong)
     var probsEl = $("#scoutProb" + encounterIdLong)
     return $.ajax({
         url: 'scout',
@@ -414,15 +415,21 @@ function scout(encounterId) {
             infoEl.text("Error scouting, try again?")
         },
         success: function (data, textStatus, jqXHR) {
-            console.log(data)
             if ('cp' in data) {
-                infoEl.text("CP: " + data.cp + " | Pokemon Level: " + data.level + " | Scout Level: " + data.trainer_level)
+                infoEl.text(`CP: ${data.cp} | Pokemon Level: ${data.level}`)
+
+                var iv = getIv(data.atk, data.def, data.sta)
+                var pMove1 = (moves[data.move_1] !== undefined) ? i8ln(moves[data.move_1]['name']) : 'gen/unknown'
+                var pMove2 = (moves[data.move_2] !== undefined) ? i8ln(moves[data.move_2]['name']) : 'gen/unknown'
+                ivEl.text(`IV: ${iv.toFixed(1)}% | ${pMove1} / ${pMove2}`)
+                ivEl.show()
+
+                if ('prob_red' in data) {
+                    probsEl.text("Pokeball: " + data.prob_red + "% | Great Ball: " + data.prob_blue + "% | Ultra Ball: " + data.prob_yellow + "%")
+                    probsEl.show()
+                }
             } else {
                 infoEl.text(data.msg)
-            }
-            if ('prob_red' in data) {
-                probsEl.text("Pokeball: " + data.prob_red + "% | Great Ball: " + data.prob_blue + "% | Ultra Ball: " + data.prob_yellow + "%")
-                probsEl.show()
             }
         }
     })
@@ -479,6 +486,7 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
         </div>
             ${details}
         <div id="scoutCP${encounterIdLong}" style="display:none;"></div>
+        <div id="scoutIV${encounterIdLong}" style="display:none;"></div>
         <div id="scoutProb${encounterIdLong}" style="display:none;"></div>
         <div>
             <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
