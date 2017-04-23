@@ -3,7 +3,6 @@
 
 import time
 import logging
-import pprint
 
 log = logging.getLogger(__name__)
 
@@ -93,16 +92,14 @@ def parse_geofences(geofence_file, forbidden_area):
             'in %s s',
             len(geofence_data) - lenGeofenceData, j, elapsedTime)
 
-    log.debug('Geofenced results: \n\r{}'.format(
-        pprint.PrettyPrinter(indent=4).pformat(geofence_data)))
+    log.debug('Geofenced results: \n\r{}'.format(geofence_data))
 
     return geofence_data
 
 
 def pointInPolygon(point, polygon):
     log.debug('Point: %s', point)
-    log.debug('Polygon: \n\r{}'.format(
-        pprint.PrettyPrinter(indent=4).pformat(polygon)))
+    log.debug('Polygon: \n\r{}'.format(polygon))
 
     maxLat = polygon[0]['lat']
     minLat = polygon[0]['lat']
@@ -166,7 +163,6 @@ def geofence_results(results):
     log.info(
         'Geofenced to %s cell(s) in %s s',
         len(results_geofenced), elapsedTime)
-    log.debug('Geofenced results: \n\r{}'.format(
-        pprint.PrettyPrinter(indent=4).pformat(results_geofenced)))
+    log.debug('Geofenced results: \n\r{}'.format(results_geofenced))
 
     return results_geofenced
