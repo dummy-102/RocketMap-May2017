@@ -3,6 +3,7 @@
 
 import time
 import logging
+import matplotlib
 
 log = logging.getLogger(__name__)
 
@@ -95,6 +96,41 @@ def parse_geofences(geofence_file, forbidden_area):
     return geofence_data
 
 
+def geofence_results(results):
+    results_geofenced = []
+    startTime = time.time()
+    for result in results:
+        point = {'lat': result[0], 'lon': result[1]}
+        for geofence in geofence_data:
+            if not geofence_data[geofence]['forbidden']:
+                if not False:  # Argument matplotlib
+                    if pointInPolygonMatplotlib(
+                            point, geofence_data[geofence]['polygon']):
+                        results_geofenced.append(result)
+                else:
+                    if pointInPolygon(
+                            point, geofence_data[geofence]['polygon']):
+                        results_geofenced.append(result)
+            if geofence_data[geofence]['forbidden']:
+                if not False:  # Argument matplotlib
+                    if pointInPolygonMatplotlib(
+                            point, geofence_data[geofence]['polygon']):
+                        results_geofenced.pop(len(results_geofenced)-1)
+                else:
+                    if pointInPolygon(
+                            point, geofence_data[geofence]['polygon']):
+                        results_geofenced.pop(len(results_geofenced)-1)
+
+    endTime = time.time()
+    elapsedTime = endTime - startTime
+    log.info(
+        'Geofenced to %s cell(s) in %s s',
+        len(results_geofenced), elapsedTime)
+    log.debug('Geofenced results: \n\r{}'.format(results_geofenced))
+
+    return results_geofenced
+
+
 def pointInPolygon(point, polygon):
     log.debug('Point: %s', point)
     log.debug('Polygon: \n\r{}'.format(polygon))
@@ -142,25 +178,14 @@ def pointInPolygon(point, polygon):
     return inside
 
 
-def geofence_results(results):
-    results_geofenced = []
-    startTime = time.time()
-    for result in results:
-        point = {'lat': result[0], 'lon': result[1]}
-        for geofence in geofence_data:
-            if not geofence_data[geofence]['forbidden']:
-                if pointInPolygon(point, geofence_data[geofence]['polygon']):
-                    results_geofenced.append(result)
-            if geofence_data[geofence]['forbidden']:
-                if pointInPolygon(
-                        point, geofence_data[geofence]['polygon']):
-                    results_geofenced.pop(len(results_geofenced)-1)
+def pointInPolygonMatplotlib(point, polygon):
+    pointTouple = (point['latitude'], point['longitude'])
+    polygonToupleList = []
+    for c in polygon:
+        coordinateTouple = (c['latitude'], c['longitude'])
+        polygonToupleList.append(coordinateTouple)
 
-    endTime = time.time()
-    elapsedTime = endTime - startTime
-    log.info(
-        'Geofenced to %s cell(s) in %s s',
-        len(results_geofenced), elapsedTime)
-    log.debug('Geofenced results: \n\r{}'.format(results_geofenced))
+    polygonToupleList.append(polygonToupleList[0])
+    path = Path(polygonToupleList)
 
-    return results_geofenced
+    return path.contains_point(pointTouple)
