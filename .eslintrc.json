@@ -39,9 +39,7 @@
 
     "isTouchDevice": true,
     "isMobileDevice": true,
-
     "pokemonSprites": true,
-
     "noLabelsStyle": true,
     "darkStyle": true,
     "light2Style": true,

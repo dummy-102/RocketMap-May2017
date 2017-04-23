@@ -92,8 +92,6 @@ def parse_geofences(geofence_file, forbidden_area):
             'in %s s',
             len(geofence_data) - lenGeofenceData, j, elapsedTime)
 
-    log.debug('Geofenced results: \n\r{}'.format(geofence_data))
-
     return geofence_data
 
 

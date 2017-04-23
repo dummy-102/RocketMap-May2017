@@ -2426,8 +2426,6 @@ def write_geofences(geofence_file, forbidden_area, db_update_queue):
     log.debug('Parsed geofence dict: \n\r{}'.format(geofences))
     log.info('Upserted geofences: %d', len(geofences))
 
-    return True
-
 
 def db_updater(args, q, db):
     # The forever loop.
@@ -2574,9 +2572,9 @@ def create_tables(db):
     db.connect()
     verify_database_schema(db)
     tables = [Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
-                  GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
-                  SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-                  Token, LocationAltitude, Geofences]
+              GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
+              SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
+              Token, LocationAltitude, Geofences]
     for table in tables:
         log.info("Creating table: %s", table.__name__)
         db.create_tables([table], safe=True)
