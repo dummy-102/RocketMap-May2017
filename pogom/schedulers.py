@@ -277,10 +277,10 @@ class HexSearch(BaseScheduler):
             else:
                 results = results[-7:] + results[:-7]
 
-        log.info('Results (%s): %s', len(results), results)
+        log.debug('Results (%s): %s', len(results), results)
         if self.args.geofence_file or self.args.forbidden_area is not None:
             results = geofence_results(results)
-            log.info('Geofenced results (%s): %s', len(results), results)
+            log.debug('Geofenced results (%s): %s', len(results), results)
 
         # Add the required appear and disappear times.
         locationsZeroed = []
@@ -608,10 +608,10 @@ class SpeedScan(HexSearch):
                     loc = get_new_coords(star_loc, xdist * (j), 210 + 60*i)
                     results.append((loc[0], loc[1], 0))
 
-        log.info('Results (%s): %s', len(results), results)
+        log.debug('Results (%s): %s', len(results), results)
         if self.args.geofence_file or self.args.forbidden_area is not None:
             results = geofence_results(results)
-            log.info('Geofenced results (%s): %s', len(results), results)
+            log.debug('Geofenced results (%s): %s', len(results), results)
 
         generated_locations = []
         for step, location in enumerate(results):

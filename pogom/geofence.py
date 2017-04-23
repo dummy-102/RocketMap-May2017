@@ -3,7 +3,7 @@
 
 import time
 import logging
-import matplotlib
+from matplotlib.path import Path
 
 log = logging.getLogger(__name__)
 
@@ -179,10 +179,10 @@ def pointInPolygon(point, polygon):
 
 
 def pointInPolygonMatplotlib(point, polygon):
-    pointTouple = (point['latitude'], point['longitude'])
+    pointTouple = (point['lat'], point['lon'])
     polygonToupleList = []
     for c in polygon:
-        coordinateTouple = (c['latitude'], c['longitude'])
+        coordinateTouple = (c['lat'], c['lon'])
         polygonToupleList.append(coordinateTouple)
 
     polygonToupleList.append(polygonToupleList[0])
