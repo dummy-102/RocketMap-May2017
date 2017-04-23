@@ -3,7 +3,6 @@
 
 import calendar
 import logging
-import pprint
 
 from flask import Flask, abort, jsonify, render_template, request,\
     make_response
@@ -154,11 +153,23 @@ class Pogom(Flask):
         args = get_args()
         if args.on_demand_timeout > 0:
             self.search_control.clear()
-        fixed_display = "none" if args.fixed_location else "inline"
-        search_display = "inline" if (args.search_control and
-                                      args.on_demand_timeout <= 0) else "none"
-        scan_display = "none" if (args.only_server or args.fixed_location or
-                                  args.spawnpoint_scanning) else "inline"
+
+        search_display = True if (args.search_control and
+                                  args.on_demand_timeout <= 0) else False
+
+        scan_display = False if (args.only_server or args.fixed_location or
+                                 args.spawnpoint_scanning) else True
+
+        visibility_flags = {
+            'gyms': not args.no_gyms,
+            'pokemons': not args.no_pokemon,
+            'pokestops': not args.no_pokestops,
+            'gym_info': args.gym_info,
+            'encounter': args.encounter,
+            'scan_display': scan_display,
+            'search_display': search_display,
+            'fixed_display': not args.fixed_location
+        }
 
         map_lat = self.current_location[0]
         map_lng = self.current_location[1]
@@ -171,9 +182,7 @@ class Pogom(Flask):
                                lng=map_lng,
                                gmaps_key=config['GMAPS_KEY'],
                                lang=config['LOCALE'],
-                               is_fixed=fixed_display,
-                               search_control=search_display,
-                               show_scan=scan_display
+                               show=visibility_flags
                                )
 
     def raw_data(self):
@@ -210,8 +219,7 @@ class Pogom(Flask):
         lastslocs = request.args.get('lastslocs')
         lastspawns = request.args.get('lastspawns')
         lastgeofences = request.args.get('lastgeofences')
-        log.debug('Argument lastgeofences: \n\r{}'.format(
-            pprint.PrettyPrinter(indent=4).pformat(lastgeofences)))
+        log.debug('Argument lastgeofences: \n\r{}'.format(lastgeofences))
 
         if request.args.get('luredonly', 'true') == 'true':
             luredonly = True
@@ -236,8 +244,7 @@ class Pogom(Flask):
 
         if request.args.get('geofences', 'true') == 'true':
             d['lastgeofences'] = request.args.get('geofences', 'true')
-            log.debug('d[lastgeofences]: \n\r{}'.format(
-                pprint.PrettyPrinter(indent=4).pformat(d['lastgeofences'])))
+            log.debug('d[lastgeofences]: \n\r{}'.format(d['lastgeofences']))
 
         # If old coords are not equal to current coords we have moved/zoomed!
         if (oSwLng < swLng and oSwLat < swLat and
@@ -255,7 +262,8 @@ class Pogom(Flask):
         d['oNeLat'] = neLat
         d['oNeLng'] = neLng
 
-        if request.args.get('pokemon', 'true') == 'true':
+        if (request.args.get('pokemon', 'true') == 'true' and
+                not args.no_pokemon):
             if request.args.get('ids'):
                 ids = [int(x) for x in request.args.get('ids').split(',')]
                 d['pokemons'] = Pokemon.get_active_by_id(ids, swLat, swLng,
@@ -290,10 +298,8 @@ class Pogom(Flask):
                                              neLat, neLng))
                 d['reids'] = reids
 
-            log.debug('d[pokemons]: \n\r{}'.format(
-                pprint.PrettyPrinter(indent=4).pformat(d['pokemons'])))
-
-        if request.args.get('pokestops', 'true') == 'true':
+        if (request.args.get('pokestops', 'true') == 'true' and
+                not args.no_pokestops):
             if lastpokestops != 'true':
                 d['pokestops'] = Pokestop.get_stops(swLat, swLng, neLat, neLng,
                                                     lured=luredonly)
@@ -307,7 +313,7 @@ class Pogom(Flask):
                                            oNeLat=oNeLat, oNeLng=oNeLng,
                                            lured=luredonly))
 
-        if request.args.get('gyms', 'true') == 'true':
+        if request.args.get('gyms', 'true') == 'true' and not args.no_gyms:
             if lastgyms != 'true':
                 d['gyms'] = Gym.get_gyms(swLat, swLng, neLat, neLng)
             else:
@@ -372,23 +378,20 @@ class Pogom(Flask):
 
         if request.args.get('geofences', 'true') == 'true':
             geofences_db = Geofences.get_geofences()
-            log.debug('d[geofences]: \n\r{}'.format(
-                pprint.PrettyPrinter(indent=4).pformat(geofences_db)))
+            log.debug('d[geofences]: \n\r{}'.format(geofences_db))
 
             d['geofences'] = {}
             geofence = {}
             lastGeofenceID = 0
 
             for g in geofences_db:
-                log.debug('g: \n\r{}'.format(
-                    pprint.PrettyPrinter(indent=4).pformat(g)))
+                log.debug('g: \n\r{}'.format(g))
                 if (g['geofence_id'] != lastGeofenceID):
                     if (lastGeofenceID > 0):
                         # Push current geofence, we start a new one after
                         d['geofences'][geofence['name']] = geofence
                         log.debug('d[geofences]: \n\r{}'.format(
-                            pprint.PrettyPrinter(indent=4).pformat(
-                                d['geofences'])))
+                            d['geofences']))
 
                     geofence = {
                         'forbidden': g['forbidden'],
@@ -404,8 +407,7 @@ class Pogom(Flask):
                 lastGeofenceID = g['geofence_id']
 
             d['geofences'][geofence['name']] = geofence  # Push last geofence
-            log.debug('d[geofences]: \n\r{}'.format(
-                pprint.PrettyPrinter(indent=4).pformat(d['geofences'])))
+            log.debug('d[geofences]: \n\r{}'.format(d['geofences']))
 
         if request.args.get('status', 'false') == 'true':
             args = get_args()

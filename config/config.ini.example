@@ -53,7 +53,7 @@
 #############
 
 #beehive                        # Use beehive configuration for multiple accounts, one account per hex.
-                                # Make sure to keep -st under 5, and -w under the totalamount of accounts available.
+                                # Make sure to keep -st under 5, and -w under the total amount of accounts available.
 #spawnpoint-scanning            # Use spawnpoint scanning (instead of hex grid).
                                 # Scans in a circle based on step_limit when on DB.
                                 # A spawnpoint-file can be added optinal as value for "spawnpoint-scanning".
@@ -111,8 +111,8 @@
 #no-server                      # No-Server Mode. Starts the searcher but not the Webserver.
 #only-server                    # Server-Only Mode. Starts only the Webserver without the searcher.
 #locale:                        # Pokemon translation
-#no-search-control              # Disables search control.
-#fixed-location                 # Hides the search bar for use in shared maps.
+#search-control                 # Enables search control.
+#no-fixed-location              # Disables the fixed map location and shows the search bar for use in shared maps.
 #cors                           # Enable CORS on web server.
 #ssl-certificate:               # Path to ssl certificate
 #ssl-privatekey:                # Path to ssl private key
