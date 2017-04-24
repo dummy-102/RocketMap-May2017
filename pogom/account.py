@@ -204,34 +204,31 @@ def complete_tutorial(api, account, tutorial_state):
     return True
 
 
-# Perform a Pokestop spin.
-# API argument needs to be a logged in API instance.
-# Called during fort parsing in models.py
-def pokestop_spin(api, inventory, forts, step_location):
-    for fort in forts:
-        if fort.get('type') == 1 and pokestop_spinnable(fort, step_location) and spin_pokestop(api, fort, step_location, inventory):
-            if inventory['total'] >= 350:
-                items_dropped = drop_items(api, inventory, ITEM_POTION, "Potion")
-                items_dropped += drop_items(api, inventory, ITEM_SUPER_POTION, "Super Potion")
-                items_dropped += drop_items(api, inventory, ITEM_HYPER_POTION, "Hyper Potion")
-                items_dropped += drop_items(api, inventory, ITEM_MAX_POTION, "Max Potion")
-                items_dropped += drop_items(api, inventory, ITEM_REVIVE, "Revive")
-                items_dropped += drop_items(api, inventory, ITEM_MAX_REVIVE, "Max Revive")
-                items_dropped += drop_items(api, inventory, ITEM_BLUK_BERRY, "Bluk Berry")
-                items_dropped += drop_items(api, inventory, ITEM_NANAB_BERRY, "Nanab Berry")
-                items_dropped += drop_items(api, inventory, ITEM_WEPAR_BERRY, "Wepar Berry")
-                items_dropped += drop_items(api, inventory, ITEM_PINAP_BERRY, "Pinap Berry")
-                items_dropped += drop_items(api, inventory, ITEM_RAZZ_BERRY, "Razz Berry")
-                if inventory['total'] >= 350:
-                    # need to drop some balls, too
-                    need_to_drop = inventory['total'] - 350 + 1
-                    items_dropped = drop_items(api, inventory, ITEM_POKE_BALL, "Poke Ball", need_to_drop)
-                    if items_dropped < need_to_drop:
-                        need_to_drop -= items_dropped
-                        items_dropped = drop_items(api, inventory, ITEM_GREAT_BALL, "Great Ball", need_to_drop)
-                    if items_dropped < need_to_drop:
-                        need_to_drop -= items_dropped
-                        drop_items(api, inventory, ITEM_ULTRA_BALL, "Great Ball", need_to_drop)
+def cleanup_inventory(api, inventory):
+    # Just need to make room for 1 more item
+    if inventory['total'] >= 350:
+        items_dropped = drop_items(api, inventory, ITEM_POTION, "Potion")
+        items_dropped += drop_items(api, inventory, ITEM_SUPER_POTION, "Super Potion")
+        items_dropped += drop_items(api, inventory, ITEM_HYPER_POTION, "Hyper Potion")
+        items_dropped += drop_items(api, inventory, ITEM_MAX_POTION, "Max Potion")
+        items_dropped += drop_items(api, inventory, ITEM_REVIVE, "Revive")
+        items_dropped += drop_items(api, inventory, ITEM_MAX_REVIVE, "Max Revive")
+        items_dropped += drop_items(api, inventory, ITEM_BLUK_BERRY, "Bluk Berry")
+        items_dropped += drop_items(api, inventory, ITEM_NANAB_BERRY, "Nanab Berry")
+        items_dropped += drop_items(api, inventory, ITEM_WEPAR_BERRY, "Wepar Berry")
+        items_dropped += drop_items(api, inventory, ITEM_PINAP_BERRY, "Pinap Berry")
+        items_dropped += drop_items(api, inventory, ITEM_RAZZ_BERRY, "Razz Berry")
+
+        # Throw away balls if necessary
+        if inventory['total'] >= 350:
+            need_to_drop = inventory['total'] - 350 + 1
+            items_dropped = drop_items(api, inventory, ITEM_POKE_BALL, "Poke Ball", need_to_drop)
+            if items_dropped < need_to_drop:
+                need_to_drop -= items_dropped
+                items_dropped = drop_items(api, inventory, ITEM_GREAT_BALL, "Great Ball", need_to_drop)
+            if items_dropped < need_to_drop:
+                need_to_drop -= items_dropped
+                drop_items(api, inventory, ITEM_ULTRA_BALL, "Great Ball", need_to_drop)
 
 
 def get_player_level(map_dict):
@@ -282,11 +279,6 @@ def get_player_inventory(map_dict):
         ITEM_ULTRA_BALL, 0) + inventory.get(ITEM_MASTER_BALL, 0)
     inventory['total'] = total_items
     return inventory
-
-
-def got_balls(inventory):
-    return inventory.get(ITEM_POKE_BALL, 0) > 0 or inventory.get(ITEM_GREAT_BALL, 0) > 0 or inventory.get(
-        ITEM_ULTRA_BALL, 0) > 0
 
 
 def spin_pokestop(api, fort, step_location, inventory):

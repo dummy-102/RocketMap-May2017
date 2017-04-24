@@ -34,7 +34,7 @@ from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, \
     clear_dict_response
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
-from .account import pokestop_spin, get_player_inventory, got_balls
+from .account import get_player_inventory, pokestop_spinnable, spin_pokestop, cleanup_inventory
 
 log = logging.getLogger(__name__)
 
@@ -1932,7 +1932,10 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             printPokemon(p['pokemon_data']['pokemon_id'], p[
                          'latitude'], p['longitude'], disappear_time)
 
-            scan_for_ditto = not account_is_adult and args.ditto and p['pokemon_data']['pokemon_id'] in ditto_dex and got_balls(inventory)
+            # Determine if to scan for Ditto
+            is_ditto_candidate = p['pokemon_data']['pokemon_id'] in ditto_dex
+            have_balls = inventory.get('balls', 0) > 0
+            scan_for_ditto = not account_is_adult and args.ditto and is_ditto_candidate and have_balls
 
             # Scan for IVs and moves.
             encounter_result = None
@@ -2049,16 +2052,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     (f['last_modified'] -
                      datetime(1970, 1, 1)).total_seconds())) for f in query]
 
-        # Perform Pokestop spin
-        if not (len(captcha_url) > 1):
-            if config['parse_pokestops']:
-                if not account_is_adult:
-                    pokestop_spin(api, inventory, forts, step_location)
-            else:
-                log.error(
-                    'Pokestop can not be spun since parsing Pokestops is ' +
-                    'not active. Check if \'-nk\' flag is accidentally set.')
-
         for f in forts:
             if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops.
                 if 'active_fort_modifier' in f:
@@ -2118,6 +2111,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'lure_expiration': lure_expiration,
                     'active_fort_modifier': active_fort_modifier
                 }
+
+                # Spin Pokestop to gain XP if account is below level 25
+                if not account_is_adult and pokestop_spinnable(f, step_location):
+                    cleanup_inventory(api, inventory)
+                    spin_pokestop(api, f, step_location, inventory)
 
             # Currently, there are only stops and gyms.
             elif config['parse_gyms'] and f.get('type') is None:
