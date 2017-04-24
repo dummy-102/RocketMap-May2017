@@ -316,68 +316,6 @@ class Pokemon(BaseModel):
     def get_spawn_time(cls, disappear_time):
         return (disappear_time + 2700) % 3600
 
-    @staticmethod
-    def get_spawnpoints(swLat, swLng, neLat, neLng, timestamp=0,
-                        oSwLat=None, oSwLng=None, oNeLat=None, oNeLng=None):
-        query = (SpawnPoint
-                 .select(SpawnPoint.latitude, SpawnPoint.longitude,
-                         SpawnPoint.id, SpawnPoint.links, SpawnPoint.kind,
-                         SpawnPoint.latest_seen, SpawnPoint.earliest_unseen,
-                         ScannedLocation.done)
-                 .join(ScanSpawnPoint)
-                 .join(ScannedLocation)
-                 .dicts())
-
-        if timestamp > 0:
-            query = (query
-                     .where(((SpawnPoint.last_scanned >
-                              datetime.utcfromtimestamp(timestamp / 1000))) &
-                            ((SpawnPoint.latitude >= swLat) &
-                            (SpawnPoint.longitude >= swLng) &
-                            (SpawnPoint.latitude <= neLat) &
-                            (SpawnPoint.longitude <= neLng)))
-                     .dicts())
-        elif oSwLat and oSwLng and oNeLat and oNeLng:
-            # Send spawnpoints in view but exclude those within old boundaries.
-            # Only send newly uncovered spawnpoints.
-            query = (query
-                     .where((((SpawnPoint.latitude >= swLat) &
-                              (SpawnPoint.longitude >= swLng) &
-                              (SpawnPoint.latitude <= neLat) &
-                              (SpawnPoint.longitude <= neLng))) &
-                            ~((SpawnPoint.latitude >= oSwLat) &
-                              (SpawnPoint.longitude >= oSwLng) &
-                              (SpawnPoint.latitude <= oNeLat) &
-                              (SpawnPoint.longitude <= oNeLng)))
-                     .dicts())
-        elif swLat and swLng and neLat and neLng:
-            query = (query
-                     .where((SpawnPoint.latitude <= neLat) &
-                            (SpawnPoint.latitude >= swLat) &
-                            (SpawnPoint.longitude >= swLng) &
-                            (SpawnPoint.longitude <= neLng)))
-
-        queryDict = query.dicts()
-        spawnpoints = {}
-        for sp in queryDict:
-            key = sp['id']
-            appear_time, disappear_time = SpawnPoint.start_end(sp)
-            spawnpoints[key] = sp
-            spawnpoints[key]['disappear_time'] = disappear_time
-            spawnpoints[key]['appear_time'] = appear_time
-            if not SpawnPoint.tth_found(sp) or not sp['done']:
-                spawnpoints[key]['uncertain'] = True
-
-        # Helping out the GC.
-        for sp in spawnpoints.values():
-            del sp['done']
-            del sp['kind']
-            del sp['links']
-            del sp['latest_seen']
-            del sp['earliest_unseen']
-
-        return list(spawnpoints.values())
-
     @classmethod
     def get_spawnpoints_in_hex(cls, center, steps):
 
@@ -1262,6 +1200,68 @@ class SpawnPoint(BaseModel):
             'earliest_unseen': None
 
         }
+
+    @staticmethod
+    def get_spawnpoints(swLat, swLng, neLat, neLng, timestamp=0,
+                        oSwLat=None, oSwLng=None, oNeLat=None, oNeLng=None):
+        query = (SpawnPoint
+                 .select(SpawnPoint.latitude, SpawnPoint.longitude,
+                         SpawnPoint.id, SpawnPoint.links, SpawnPoint.kind,
+                         SpawnPoint.latest_seen, SpawnPoint.earliest_unseen,
+                         ScannedLocation.done)
+                 .join(ScanSpawnPoint)
+                 .join(ScannedLocation)
+                 .dicts())
+
+        if timestamp > 0:
+            query = (query
+                     .where(((SpawnPoint.last_scanned >
+                              datetime.utcfromtimestamp(timestamp / 1000))) &
+                            ((SpawnPoint.latitude >= swLat) &
+                            (SpawnPoint.longitude >= swLng) &
+                            (SpawnPoint.latitude <= neLat) &
+                            (SpawnPoint.longitude <= neLng)))
+                     .dicts())
+        elif oSwLat and oSwLng and oNeLat and oNeLng:
+            # Send spawnpoints in view but exclude those within old boundaries.
+            # Only send newly uncovered spawnpoints.
+            query = (query
+                     .where((((SpawnPoint.latitude >= swLat) &
+                              (SpawnPoint.longitude >= swLng) &
+                              (SpawnPoint.latitude <= neLat) &
+                              (SpawnPoint.longitude <= neLng))) &
+                            ~((SpawnPoint.latitude >= oSwLat) &
+                              (SpawnPoint.longitude >= oSwLng) &
+                              (SpawnPoint.latitude <= oNeLat) &
+                              (SpawnPoint.longitude <= oNeLng)))
+                     .dicts())
+        elif swLat and swLng and neLat and neLng:
+            query = (query
+                     .where((SpawnPoint.latitude <= neLat) &
+                            (SpawnPoint.latitude >= swLat) &
+                            (SpawnPoint.longitude >= swLng) &
+                            (SpawnPoint.longitude <= neLng)))
+
+        queryDict = query.dicts()
+        spawnpoints = {}
+        for sp in queryDict:
+            key = sp['id']
+            appear_time, disappear_time = SpawnPoint.start_end(sp)
+            spawnpoints[key] = sp
+            spawnpoints[key]['disappear_time'] = disappear_time
+            spawnpoints[key]['appear_time'] = appear_time
+            if not SpawnPoint.tth_found(sp) or not sp['done']:
+                spawnpoints[key]['uncertain'] = True
+
+        # Helping out the GC.
+        for sp in spawnpoints.values():
+            del sp['done']
+            del sp['kind']
+            del sp['links']
+            del sp['latest_seen']
+            del sp['earliest_unseen']
+
+        return list(spawnpoints.values())
 
     # Confirm if tth has been found.
     @staticmethod

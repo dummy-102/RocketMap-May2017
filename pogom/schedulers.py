@@ -318,7 +318,7 @@ class HexSearchSpawnpoint(HexSearch):
     def _generate_locations(self):
         n, e, s, w = hex_bounds(self.scan_location, self.step_limit)
         spawnpoints = set((d['latitude'], d['longitude'])
-                          for d in Pokemon.get_spawnpoints(s, w, n, e))
+                          for d in SpawnPoint.get_spawnpoints(s, w, n, e))
 
         if len(spawnpoints) == 0:
             log.warning('No spawnpoints found in the specified area!  (Did ' +
