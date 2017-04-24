@@ -64,7 +64,7 @@ function addElement(pokemonId, name) {
 
     jQuery('<a/>', {
         id: 'link_' + pokemonId,
-        href: 'http://www.pokemon.com/us/pokedex/' + pokemonId,
+        href: 'http://www.pokehamilton.com/pokemon/' + pokemonId,
         target: '_blank',
         title: 'View in Pokedex',
         text: name

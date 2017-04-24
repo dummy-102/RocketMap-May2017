@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Rocket Map - Statistics</title>
+    <title>PokéHamilton.com</title>
 
     <!-- Fav- & Apple-Touch-Icons -->
     <!-- Favicon -->
@@ -36,12 +36,18 @@
       var centerLng = {{lng}};
     </script>
     <script src="{{ url_for('static', filename='dist/js/map.common.min.js').lstrip('/') }}"></script>
+	<style>
+	img.middle {
+		vertical-align: middle;
+	}
+	</style>
 </head>
 <body>
         <!-- Header -->
         <header id="header">
-            <a href="#nav">Options</a>
-            <h1><a href="./">Rocket Map</a></h1>
+			<a href="#nav"></a>
+			<a href="http://skoodat.dlinkddns.com:4300/"> <img class="middle" src="http://i.imgur.com/XBEi7ns.png" height="40" width="180" /></a>
+            <a style="float: right;" href="http://ssolutions.ca/"> <img class="middle" src="http://i.imgur.com/mO66mfI.png" height="26" width="55" /></a>
         </header>
         <nav id="nav">
           <div class="ui-accordion-content">

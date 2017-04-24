@@ -20,6 +20,7 @@ static/icons-sprite.png
 static/icons-large-sprite.png
 static/icons-shuffle-sprite128x.png
 static/icons/*.png
+static/sprites/*.png
 *.csv
 *.bat
 *.sh
