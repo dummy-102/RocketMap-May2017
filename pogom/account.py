@@ -207,31 +207,31 @@ def complete_tutorial(api, account, tutorial_state):
 # Perform a Pokestop spin.
 # API argument needs to be a logged in API instance.
 # Called during fort parsing in models.py
-def pokestop_spin(api, inventory, forts, step_location, account):
+def pokestop_spin(api, inventory, forts, step_location):
     for fort in forts:
-        if fort.get('type') == 1:
-            if pokestop_spinnable(fort, step_location) and spin_pokestop(api, fort, step_location):
-                log.debug(
-                    'Account %s successfully spun a Pokestop.',
-                    account['username'])
-                log.debug("Dropping some items for account {}".format(account["username"]))
-                drop_items(api, inventory, ITEM_POKE_BALL, 30, 0.40, "Poke Ball")
-                drop_items(api, inventory, ITEM_GREAT_BALL, 30, 0.40, "Great Ball")
-                drop_items(api, inventory, ITEM_ULTRA_BALL, 30, 0.40, "Great Ball")
-                drop_items(api, inventory, ITEM_POTION, 20, 1.0, "Potion")
-                drop_items(api, inventory, ITEM_SUPER_POTION, 20, 1.0, "Super Potion")
-                drop_items(api, inventory, ITEM_HYPER_POTION, 20, 1.0, "Hyper Potion")
-                drop_items(api, inventory, ITEM_MAX_POTION, 20, 1.0, "Max Potion")
-                drop_items(api, inventory, ITEM_REVIVE, 20, 1.0, "Revive")
-                drop_items(api, inventory, ITEM_MAX_REVIVE, 20, 1.0, "Max Revive")
-                drop_items(api, inventory, ITEM_RAZZ_BERRY, 20, 0.40, "Razz Berry")
-                drop_items(api, inventory, ITEM_BLUK_BERRY, 20, 1.0, "Bluk Berry")
-                drop_items(api, inventory, ITEM_NANAB_BERRY, 20, 1.0, "Nanab Berry")
-                drop_items(api, inventory, ITEM_WEPAR_BERRY, 20, 1.0, "Wepar Berry")
-                drop_items(api, inventory, ITEM_PINAP_BERRY, 20, 1.0, "Pinap Berry")
-                return True
-
-    return False
+        if fort.get('type') == 1 and pokestop_spinnable(fort, step_location) and spin_pokestop(api, fort, step_location, inventory):
+            if inventory['total'] >= 350:
+                items_dropped = drop_items(api, inventory, ITEM_POTION, "Potion")
+                items_dropped += drop_items(api, inventory, ITEM_SUPER_POTION, "Super Potion")
+                items_dropped += drop_items(api, inventory, ITEM_HYPER_POTION, "Hyper Potion")
+                items_dropped += drop_items(api, inventory, ITEM_MAX_POTION, "Max Potion")
+                items_dropped += drop_items(api, inventory, ITEM_REVIVE, "Revive")
+                items_dropped += drop_items(api, inventory, ITEM_MAX_REVIVE, "Max Revive")
+                items_dropped += drop_items(api, inventory, ITEM_BLUK_BERRY, "Bluk Berry")
+                items_dropped += drop_items(api, inventory, ITEM_NANAB_BERRY, "Nanab Berry")
+                items_dropped += drop_items(api, inventory, ITEM_WEPAR_BERRY, "Wepar Berry")
+                items_dropped += drop_items(api, inventory, ITEM_PINAP_BERRY, "Pinap Berry")
+                items_dropped += drop_items(api, inventory, ITEM_RAZZ_BERRY, "Razz Berry")
+                if inventory['total'] >= 350:
+                    # need to drop some balls, too
+                    need_to_drop = inventory['total'] - 350 + 1
+                    items_dropped = drop_items(api, inventory, ITEM_POKE_BALL, "Poke Ball", need_to_drop)
+                    if items_dropped < need_to_drop:
+                        need_to_drop -= items_dropped
+                        items_dropped = drop_items(api, inventory, ITEM_GREAT_BALL, "Great Ball", need_to_drop)
+                    if items_dropped < need_to_drop:
+                        need_to_drop -= items_dropped
+                        drop_items(api, inventory, ITEM_ULTRA_BALL, "Great Ball", need_to_drop)
 
 
 def get_player_level(map_dict):
@@ -289,12 +289,9 @@ def got_balls(inventory):
         ITEM_ULTRA_BALL, 0) > 0
 
 
-def spin_pokestop(api, fort, step_location):
-    log.debug('Attempt to spin Pokestop.')
-
-    time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle
+def spin_pokestop(api, fort, step_location, inventory):
+    time.sleep(random.uniform(2, 5))  # Do not let Niantic throttle
     spin_response = spin_pokestop_request(api, fort, step_location)
-    time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle
 
     # Check for reCaptcha
     captcha_url = spin_response['responses'][
@@ -305,6 +302,9 @@ def spin_pokestop(api, fort, step_location):
 
     spin_result = spin_response['responses']['FORT_SEARCH']['result']
     if spin_result is 1:
+        awards = get_awarded_items(spin_response['responses']['FORT_SEARCH']['items_awarded'])
+        log.info('Got {} items ({} balls) from Pokestop.'.format(awards['total'], awards['balls']))
+        inventory.update(get_player_inventory(spin_response))
         return True
     elif spin_result is 2:
         log.debug('Pokestop was not in range to spin.')
@@ -321,6 +321,22 @@ def spin_pokestop(api, fort, step_location):
     return False
 
 
+def get_awarded_items(items_awarded):
+    awards = {}
+    total = 0
+    balls = 0
+    for item in items_awarded:
+        item_id = item['item_id']
+        count = item['item_count']
+        total += count
+        if item_id in (ITEM_POKE_BALL, ITEM_GREAT_BALL, ITEM_ULTRA_BALL, ITEM_MASTER_BALL):
+            balls += count
+        awards[item_id] = awards.get(item_id, 0) + count
+    awards['total'] = total
+    awards['balls'] = balls
+    return awards
+
+
 def pokestop_spinnable(fort, step_location):
     spinning_radius = 0.04
     in_range = in_radius((fort['latitude'], fort['longitude']), step_location,
@@ -333,42 +349,41 @@ def pokestop_spinnable(fort, step_location):
 def spin_pokestop_request(api, fort, step_location):
     try:
         req = api.create_request()
-        spin_pokestop_response = req.fort_search(
+        req.fort_search(
             fort_id=fort['id'],
             fort_latitude=fort['latitude'],
             fort_longitude=fort['longitude'],
             player_latitude=step_location[0],
             player_longitude=step_location[1])
-        spin_pokestop_response = req.check_challenge()
-        spin_pokestop_response = req.get_hatched_eggs()
-        spin_pokestop_response = req.get_inventory()
-        spin_pokestop_response = req.check_awarded_badges()
-        spin_pokestop_response = req.download_settings()
-        spin_pokestop_response = req.get_buddy_walked()
-        spin_pokestop_response = req.call()
-
-        return spin_pokestop_response
-
+        req.check_challenge()
+        req.get_hatched_eggs()
+        req.get_inventory()
+        req.check_awarded_badges()
+        req.download_settings()
+        req.get_buddy_walked()
+        return req.call()
     except Exception as e:
         log.warning('Exception while spinning Pokestop: %s', repr(e))
         return False
 
 
-def drop_items(api, inventory, item_id, max_count, drop_fraction, item_name):
+def drop_items(api, inventory, item_id, item_name, drop_count=-1):
     item_count = inventory.get(item_id, 0)
-    drop_count = int(item_count * drop_fraction)
-    if item_count > max_count and drop_count > 0:
+    drop_count = item_count if drop_count == -1 else min(item_count, drop_count)
+    if drop_count > 0:
         result = drop_items_request(api, item_id, drop_count)
         if result == 1:
-            log.debug("Dropped {} {}s.".format(drop_count, item_name))
+            log.info("Dropped {} {}s.".format(drop_count, item_name))
+            inventory[item_id] -= drop_count
+            inventory['total'] -= drop_count
+            return drop_count
         else:
             log.warning("Failed dropping {} {}s.".format(drop_count, item_name))
-    else:
-        log.debug("Got only {} {}s. No need to drop some.".format(item_count, item_name))
+    return 0
 
 
 def drop_items_request(api, item_id, amount):
-    time.sleep(5)
+    time.sleep(random.uniform(2, 4))
     try:
         req = api.create_request()
         req.recycle_inventory_item(item_id=item_id,

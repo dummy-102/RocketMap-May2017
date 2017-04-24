@@ -2053,7 +2053,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         if not (len(captcha_url) > 1):
             if config['parse_pokestops']:
                 if not account_is_adult:
-                    pokestop_spin(api, inventory, forts, step_location, account)
+                    pokestop_spin(api, inventory, forts, step_location)
             else:
                 log.error(
                     'Pokestop can not be spun since parsing Pokestops is ' +
