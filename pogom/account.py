@@ -256,27 +256,31 @@ def get_player_inventory(map_dict):
         'inventory_delta', {}).get(
         'inventory_items', [])
     inventory = {}
-    item_ids = (
-        ITEM_POKE_BALL,
-        ITEM_GREAT_BALL,
-        ITEM_ULTRA_BALL,
-        ITEM_POTION,
-        ITEM_SUPER_POTION,
-        ITEM_HYPER_POTION,
-        ITEM_MAX_POTION,
-        ITEM_REVIVE,
-        ITEM_MAX_REVIVE,
-        ITEM_RAZZ_BERRY,
-        ITEM_BLUK_BERRY,
-        ITEM_NANAB_BERRY,
-        ITEM_WEPAR_BERRY,
-        ITEM_PINAP_BERRY
+    no_item_ids = (
+        ITEM_UNKNOWN,
+        ITEM_TROY_DISK,
+        ITEM_X_ATTACK,
+        ITEM_X_DEFENSE,
+        ITEM_X_MIRACLE,
+        ITEM_POKEMON_STORAGE_UPGRADE,
+        ITEM_ITEM_STORAGE_UPGRADE
     )
+    total_items = 0
     for item in inventory_items:
-        if 'item' in item.get('inventory_item_data', {}) and item['inventory_item_data']['item']['item_id'] in item_ids:
-            item_id = item['inventory_item_data']['item']['item_id']
-            count = item['inventory_item_data']['item'].get('count', 0)
+        iid = item.get('inventory_item_data', {})
+        if 'item' in iid and iid['item']['item_id'] not in no_item_ids:
+            item_id = iid['item']['item_id']
+            count = iid['item'].get('count', 0)
             inventory[item_id] = count
+            total_items += count
+        elif 'egg_incubators' in iid and 'egg_incubator' in iid['egg_incubators']:
+            for incubator in iid['egg_incubators']['egg_incubator']:
+                item_id = incubator['item_id']
+                inventory[item_id] = inventory.get(item_id, 0) + 1
+                total_items += 1
+    inventory['balls'] = inventory.get(ITEM_POKE_BALL, 0) + inventory.get(ITEM_GREAT_BALL, 0) + inventory.get(
+        ITEM_ULTRA_BALL, 0) + inventory.get(ITEM_MASTER_BALL, 0)
+    inventory['total'] = total_items
     return inventory
 
 

@@ -1786,6 +1786,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     # Get minimal inventory for the pokestop spin and delete inventory from main dict
     inventory = get_player_inventory(map_dict)
+    account['inventory'] = inventory
     if 'GET_INVENTORY' in map_dict['responses']:
         del map_dict['responses']['GET_INVENTORY']
     for i, cell in enumerate(cells):
