@@ -323,10 +323,10 @@ def print_account_stats(rows, thread_status, account_queue,
 
     # Print table header.
     row_tmpl = '{:7} | {:' + str(userlen) + '} | {:5} | {:>8} | {:10} | {:6}' \
-                                   ' | {:8} | {:5} | {:5} | {:>10}'
+                                   ' | {:8} | {:9} | {:5} | {:>10}'
     rows.append(row_tmpl.format('Status', 'User', 'Level', 'XP',
                                      'Encounters', 'Throws',
-                                     'Captures', 'Balls', 'Spins', 'Walked'))
+                                     'Captures', 'Inventory', 'Spins', 'Walked'))
 
     # Pagination.
     start_line, end_line, total_pages = calc_pagination(len(accounts), 6,
@@ -349,6 +349,12 @@ def print_account_stats(rows, thread_status, account_queue,
         else:
             km_walked_str = ""
 
+        # Inventory
+        inv_str = ''
+        inv = account.get('inventory', {})
+        if inv:
+            inv_str = '{}B/{}T'.format(inv.get('balls', 0), inv.get('total', 0))
+
         rows.append(row_tmpl.format(
             status,
             account.get('username', ''),
@@ -357,7 +363,7 @@ def print_account_stats(rows, thread_status, account_queue,
             account.get('pokemons_encountered', ''),
             account.get('pokeballs_thrown', ''),
             account.get('pokemons_captured', ''),
-            account.get('inventory', {}).get('balls', ''),
+            inv_str,
             account.get('poke_stop_visits', ''),
             km_walked_str))
 
