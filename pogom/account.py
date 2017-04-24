@@ -283,11 +283,12 @@ def get_player_inventory(map_dict):
 
 def spin_pokestop(api, fort, step_location, inventory):
     time.sleep(random.uniform(2, 5))  # Do not let Niantic throttle
-    spin_response = spin_pokestop_request(api, fort, step_location)
+    spin_response = spin_pokestop_request(api, fort, step_location, inventory)
+    if not spin_response:
+        return False
 
     # Check for reCaptcha
-    captcha_url = spin_response['responses'][
-        'CHECK_CHALLENGE']['challenge_url']
+    captcha_url = spin_response['responses']['CHECK_CHALLENGE']['challenge_url']
     if len(captcha_url) > 1:
         log.debug('Account encountered a reCaptcha.')
         return False
@@ -338,7 +339,7 @@ def pokestop_spinnable(fort, step_location):
     return in_range and not needs_cooldown
 
 
-def spin_pokestop_request(api, fort, step_location):
+def spin_pokestop_request(api, fort, step_location, inventory):
     try:
         req = api.create_request()
         req.fort_search(
@@ -353,7 +354,9 @@ def spin_pokestop_request(api, fort, step_location):
         req.check_awarded_badges()
         req.download_settings()
         req.get_buddy_walked()
-        return req.call()
+        response_dict = req.call()
+        inventory.update(get_player_inventory(response_dict))
+        return response_dict
     except Exception as e:
         log.warning('Exception while spinning Pokestop: %s', repr(e))
         return False
@@ -363,7 +366,7 @@ def drop_items(api, inventory, item_id, item_name, drop_count=-1):
     item_count = inventory.get(item_id, 0)
     drop_count = item_count if drop_count == -1 else min(item_count, drop_count)
     if drop_count > 0:
-        result = drop_items_request(api, item_id, drop_count)
+        result = drop_items_request(api, item_id, drop_count, inventory)
         if result == 1:
             log.info("Dropped {} {}s.".format(drop_count, item_name))
             inventory[item_id] -= drop_count
@@ -374,7 +377,7 @@ def drop_items(api, inventory, item_id, item_name, drop_count=-1):
     return 0
 
 
-def drop_items_request(api, item_id, amount):
+def drop_items_request(api, item_id, amount, inventory):
     time.sleep(random.uniform(2, 4))
     try:
         req = api.create_request()
@@ -387,10 +390,39 @@ def drop_items_request(api, item_id, amount):
         req.download_settings()
         req.get_buddy_walked()
         response_dict = req.call()
-
+        inventory.update(get_player_inventory(response_dict))
         if ('responses' in response_dict) and ('RECYCLE_INVENTORY_ITEM' in response_dict['responses']):
             drop_details = response_dict['responses']['RECYCLE_INVENTORY_ITEM']
             return drop_details.get('result', -1)
     except Exception as e:
         log.warning('Exception while dropping items: %s', repr(e))
         return False
+
+
+# Send LevelUpRewards request to check for and accept level up rewards.
+# @Returns
+# 0: UNSET
+# 1: SUCCESS
+# 2: AWARDED_ALREADY
+def level_up_rewards_request(api, level, username, inventory):
+    log.info('Attempting to check level up rewards for level {} of account {}.'.format(level, username))
+    time.sleep(random.uniform(2, 3))
+    try:
+        req = api.create_request()
+        req.level_up_rewards(level=level)
+        req.check_challenge()
+        req.get_hatched_eggs()
+        req.get_inventory()
+        req.check_awarded_badges()
+        req.download_settings()
+        req.get_buddy_walked()
+        rewards_response = req.call()
+        inventory.update(get_player_inventory(rewards_response))
+        if ('responses' in rewards_response) and ('LEVEL_UP_REWARDS' in rewards_response['responses']):
+            reward_details = rewards_response['responses']['LEVEL_UP_REWARDS']
+            return reward_details.get('result', -1)
+
+    except Exception as e:
+        log.warning('Exception while requesting level up rewards: %s', repr(e))
+
+    return False

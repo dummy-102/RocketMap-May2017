@@ -7,6 +7,7 @@ import random
 
 from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
+from pogom.account import get_player_inventory
 from pogom.utils import get_pokemon_name
 
 log = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ def catch(api, encounter_id, spawn_point_id, pid, inventory):
             req.download_settings()
             req.get_buddy_walked()
             catch_result = req.call()
+            inventory.update(get_player_inventory(catch_result))
 
             if (catch_result is not None and 'CATCH_POKEMON' in catch_result['responses']):
                 catch_status = catch_result['responses']['CATCH_POKEMON']['status']

@@ -1715,6 +1715,47 @@ class GymDetails(BaseModel):
     last_scanned = DateTimeField(default=datetime.utcnow)
 
 
+class Account(BaseModel):
+    last_modified = DateTimeField(
+        index=True, default=datetime.utcnow)
+    username = CharField(primary_key=True, max_length=32)
+    level = SmallIntegerField(null=True)
+    xp = IntegerField(null=True)
+    encounters = IntegerField(null=True)
+    balls_thrown = IntegerField(null=True)
+    captures = IntegerField(null=True)
+    spins = IntegerField(null=True)
+    walked = DoubleField(null=True)
+    awarded_to_level = SmallIntegerField(default=1)
+    num_balls = SmallIntegerField(null=True)
+
+    def update(self, acc):
+        self.level = acc.get('level')
+        self.xp = acc.get('experience')
+        self.encounters = acc.get('pokemons_encountered')
+        self.balls_thrown = acc.get('pokeballs_thrown')
+        self.captures = acc.get('pokemons_captured')
+        self.spins = acc.get('poke_stop_visits')
+        self.walked = acc.get('km_walked')
+        self.num_balls = acc.get('inventory', {}).get('balls')
+        self.last_modified = datetime.utcnow()
+
+    def db_format(self):
+        return {
+            'username': self.username,
+            'level': self.level,
+            'xp': self.xp,
+            'encounters': self.encounters,
+            'balls_thrown': self.balls_thrown,
+            'captures': self.captures,
+            'spins': self.spins,
+            'walked': self.walked,
+            'awarded_to_level': self.awarded_to_level,
+            'num_balls': self.num_balls,
+            'last_modified': datetime.utcnow()
+        }
+
+
 class Token(flaskDb.Model):
     token = TextField()
     last_updated = DateTimeField(default=datetime.utcnow, index=True)
@@ -1780,13 +1821,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     captcha_url = ''
     ditto_dex = [16, 19, 41, 129, 161, 163, 193]
     account_is_adult = account.get('level', 0) >= 25
+    inventory = account['inventory']
 
     # Consolidate the individual lists in each cell into two lists of Pokemon
     # and a list of forts.
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
-    # Get minimal inventory for the pokestop spin and delete inventory from main dict
-    inventory = get_player_inventory(map_dict)
-    account['inventory'] = inventory
     if 'GET_INVENTORY' in map_dict['responses']:
         del map_dict['responses']['GET_INVENTORY']
     for i, cell in enumerate(cells):
@@ -2094,6 +2133,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'active_fort_modifier': active_fort_modifier
                     }))
 
+                # Spin Pokestop to gain XP if account is below level 25
+                if not account_is_adult and pokestop_spinnable(f, step_location):
+                    cleanup_inventory(api, inventory)
+                    spin_pokestop(api, f, step_location, inventory)
+
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):
                     # If pokestop has been encountered before and hasn't
@@ -2111,11 +2155,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'lure_expiration': lure_expiration,
                     'active_fort_modifier': active_fort_modifier
                 }
-
-                # Spin Pokestop to gain XP if account is below level 25
-                if not account_is_adult and pokestop_spinnable(f, step_location):
-                    cleanup_inventory(api, inventory)
-                    spin_pokestop(api, f, step_location, inventory)
 
             # Currently, there are only stops and gyms.
             elif config['parse_gyms'] and f.get('type') is None:
@@ -2520,7 +2559,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, LocationAltitude]
+              Token, LocationAltitude, Account]
     for table in tables:
         log.info("Creating table: %s", table.__name__)
         db.create_tables([table], safe=True)

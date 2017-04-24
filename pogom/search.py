@@ -41,11 +41,11 @@ from pgoapi import utilities as util
 from pgoapi.hash_server import HashServer
 
 from .models import (parse_map, GymDetails, parse_gyms, parse_player_stats,
-                     MainWorker, WorkerStatus)
+                     MainWorker, WorkerStatus, Account)
 from .fakePogoApi import FakePogoApi
 from .utils import now, generate_device_info, clear_dict_response
 from .transform import get_new_coords, jitter_location
-from .account import check_login, get_tutorial_state, complete_tutorial
+from .account import check_login, get_tutorial_state, complete_tutorial, level_up_rewards_request, get_player_inventory
 from .captcha import captcha_overseer_thread, handle_captcha
 
 from .proxy import get_new_proxy
@@ -881,6 +881,13 @@ def search_worker_thread(args, account_queue, account_failures,
             status['account'] = account
             log.info(status['message'])
 
+            # Get or create new account stats entry
+            acc_stats, created = Account.get_or_create(username=account['username'],
+                                                       defaults={'username': account['username']})
+            if created:
+                acc_stats.update(account)
+            account['stats'] = acc_stats
+
             # New lease of life right here.
             status['fail'] = 0
             status['success'] = 0
@@ -1096,8 +1103,12 @@ def search_worker_thread(args, account_queue, account_failures,
                     continue
 
                 # Update player account stats.
-                status['account'].update(parse_player_stats(response_dict))
-                
+                account.update(parse_player_stats(response_dict))
+
+                # Extract player inventory
+                inventory = get_player_inventory(response_dict)
+                account['inventory'] = inventory
+
                 # Got the response, check for captcha, parse it out, then send
                 # todo's to db/wh queues.
                 try:
@@ -1147,6 +1158,13 @@ def search_worker_thread(args, account_queue, account_failures,
                         status['message'], repr(e)))
                     if response_dict is not None:
                         del response_dict
+
+                # Update account stats
+                if acc_stats.awarded_to_level < account['level']:
+                    if level_up_rewards_request(api, account['level'], account['username'], inventory) == 1:
+                        acc_stats.awarded_to_level = account['level']
+                acc_stats.update(account)
+                dbq.put((Account, {account['username']: acc_stats.db_format()}))
 
                 # Get detailed information about gyms.
                 if args.gym_info and parsed:
