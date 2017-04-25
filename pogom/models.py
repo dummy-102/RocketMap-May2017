@@ -34,7 +34,7 @@ from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, \
     clear_dict_response
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
-from .account import get_player_inventory, pokestop_spinnable, spin_pokestop, cleanup_inventory
+from .account import get_player_inventory, pokestop_spinnable, spin_pokestop, cleanup_inventory, get_player_level
 
 log = logging.getLogger(__name__)
 
