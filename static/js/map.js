@@ -434,6 +434,7 @@ function scout(encounterId) {
             }
         }
     })
+}
 
 // Converts timestamp to readable String
 function getDateStr(t) {
