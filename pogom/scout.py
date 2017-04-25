@@ -9,6 +9,7 @@ from pgoapi import PGoApi
 
 from pogom import schedulers
 from pogom.account import check_login, get_player_level
+from pogom.models import Pokemon
 from pogom.transform import jitter_location
 from pogom.utils import get_args, get_pokemon_name
 
@@ -89,15 +90,18 @@ def parse_scout_result(request_result, encounter_id, pokemon_name):
         'def': pokemon_info.get('individual_defense', 0),
         'sta': pokemon_info.get('individual_stamina', 0),
         'move_1': pokemon_info['move_1'],
-        'move_2': pokemon_info['move_2']
+        'move_2': pokemon_info['move_2'],
+        'height': pokemon_info['height_m'],
+        'weight': pokemon_info['weight_kg'],
+        'gender': pokemon_info['pokemon_display']['gender']
     }
     log.info(u"Found level {} {} with CP {} for trainer level {}.".format(level, pokemon_name, cp, trainer_level))
 
     if 'capture_probability' in encounter_result:
         probs = encounter_result['capture_probability']['capture_probability']
-        response['prob_red'] = "{:.1f}".format(probs[0] * 100)
-        response['prob_blue'] = "{:.1f}".format(probs[1] * 100)
-        response['prob_yellow'] = "{:.1f}".format(probs[2] * 100)
+        response['catch_prob_1'] = probs[0]
+        response['catch_prob_2'] = probs[1]
+        response['catch_prob_3'] = probs[2]
     else:
         log.warning("No capture_probability info found")
 
@@ -105,7 +109,7 @@ def parse_scout_result(request_result, encounter_id, pokemon_name):
     return response
 
 
-def perform_scout(p):
+def perform_scout(p, db_updates_queue):
     global api, last_scout_timestamp, encounter_cache
 
     if not args.scout_account_username:
@@ -161,5 +165,30 @@ def perform_scout(p):
     finally:
         scoutLock.release()
 
-    return parse_scout_result(request_result, p.encounter_id, pokemon_name)
-
+    result = parse_scout_result(request_result, p.encounter_id, pokemon_name)
+    if 'cp' in result:
+        update_data = {
+            p.encounter_id: {
+                'encounter_id': p.encounter_id,
+                'spawnpoint_id': p.spawnpoint_id,
+                'pokemon_id': p.pokemon_id,
+                'latitude': p.latitude,
+                'longitude': p.longitude,
+                'disappear_time': p.disappear_time,
+                'individual_attack': result['atk'],
+                'individual_defense': result['def'],
+                'individual_stamina': result['sta'],
+                'move_1': result['move_1'],
+                'move_2': result['move_2'],
+                'height': result['height'],
+                'weight': result['weight'],
+                'gender': result['gender'],
+                'cp': result['cp'],
+                'level': result['level'],
+                'catch_prob_1': result['catch_prob_1'],
+                'catch_prob_2': result['catch_prob_2'],
+                'catch_prob_3': result['catch_prob_3']
+            }
+        }
+        db_updates_queue.put((Pokemon, update_data))
+    return result

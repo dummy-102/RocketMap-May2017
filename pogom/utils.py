@@ -469,6 +469,13 @@ def get_args():
     parser.add_argument('-scd', '--scout-cooldown-delay',
                         help='Number of seconds to wait before scout may be used again.',
                         type=int, default=10)
+    parser.add_argument('-saf', '--scout-accounts-file',
+                             default='', help='File containing a list of '
+                             'accounts >= lvl 30 for scouting')
+    parser.add_argument('-prs', '--pre-scout',
+                                action='append', default=[],
+                                help=('List of Pokemon to scout immediately for ' +
+                                      'IV, moves and CP.'))
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
@@ -710,6 +717,8 @@ def get_args():
                                       args.webhook_blacklist]
             args.webhook_whitelist = [int(i) for i in
                                       args.webhook_whitelist]
+        args.pre_scout = [int(i) for i in args.pre_scout]
+
         # Decide which scanning mode to use.
         if args.spawnpoint_scanning:
             args.scheduler = 'SpawnScan'

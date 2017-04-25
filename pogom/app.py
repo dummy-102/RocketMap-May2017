@@ -72,7 +72,7 @@ class Pogom(Flask):
     def get_scout_data(self):
         encounterId = request.args.get('encounter_id')
         p = Pokemon.get(Pokemon.encounter_id == encounterId)
-        return jsonify(perform_scout(p))
+        return jsonify(perform_scout(p, self.db_updates_queue))
 
     def render_robots_txt(self):
         return render_template('robots.txt')
@@ -138,6 +138,9 @@ class Pogom(Flask):
 
     def set_current_location(self, location):
         self.current_location = location
+
+    def set_db_updates_queue(self, db_updates_queue):
+        self.db_updates_queue = db_updates_queue
 
     def set_wh_updates_queue(self, wh_updates_queue):
         self.wh_updates_queue = wh_updates_queue

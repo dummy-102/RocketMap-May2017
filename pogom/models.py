@@ -42,7 +42,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 16
+db_schema_version = 17
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -109,6 +109,11 @@ class Pokemon(BaseModel):
     weight = FloatField(null=True)
     height = FloatField(null=True)
     gender = SmallIntegerField(null=True)
+    cp = IntegerField(null=True)
+    level = SmallIntegerField(null=True)
+    catch_prob_1 = DoubleField(null=True)
+    catch_prob_2 = DoubleField(null=True)
+    catch_prob_3 = DoubleField(null=True)
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
 
@@ -2832,3 +2837,17 @@ def database_migrate(db, old_ver):
                 migrator.add_index('pokestop', ('last_updated',), False)
             )
         log.info('Schema upgrade complete.')
+
+    if old_ver < 17:
+        migrate(
+            migrator.add_column('pokemon', 'cp',
+                                IntegerField(null=True)),
+            migrator.add_column('pokemon', 'level',
+                                SmallIntegerField(null=True)),
+            migrator.add_column('pokemon', 'catch_prob_1',
+                                DoubleField(null=True)),
+            migrator.add_column('pokemon', 'catch_prob_2',
+                                DoubleField(null=True)),
+            migrator.add_column('pokemon', 'catch_prob_3',
+                                DoubleField(null=True)),
+        )
