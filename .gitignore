@@ -30,3 +30,5 @@ static/icons/*.png
 !contrib/supervisord/install-reinstall.sh
 !static/data/*
 !static/icons/hsl*.png
+static/icons-large-sprite.png
+static/icons-sprite.png
