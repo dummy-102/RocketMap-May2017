@@ -16,8 +16,8 @@ _build
 _build_html
 beehive.*
 static/pixel_icons/*.png
-static/icons-sprite.png		
-static/icons-large-sprite.png		
+static/icons-sprite.png
+static/icons-large-sprite.png
 static/icons/*.png
 *.csv
 *.bat
@@ -32,3 +32,4 @@ static/icons/*.png
 !static/icons/hsl*.png
 static/icons-large-sprite.png
 static/icons-sprite.png
+static/icons-shuffle-sprite128x.png
