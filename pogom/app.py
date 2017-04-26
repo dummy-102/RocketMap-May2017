@@ -19,7 +19,7 @@ from bisect import bisect_left
 
 from . import config
 from .models import (Pokemon, Gym, Pokestop, ScannedLocation,
-                     MainWorker, WorkerStatus, Token)
+                     MainWorker, WorkerStatus, Token, Geofences)
 from .utils import now, dottedQuadToNum, get_blacklist
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -233,6 +233,8 @@ class Pogom(Flask):
         lastpokemon = request.args.get('lastpokemon')
         lastslocs = request.args.get('lastslocs')
         lastspawns = request.args.get('lastspawns')
+        lastgeofences = request.args.get('lastgeofences')
+        log.debug('Argument lastgeofences: \n\r{}'.format(lastgeofences))
 
         if request.args.get('luredonly', 'true') == 'true':
             luredonly = True
@@ -254,6 +256,10 @@ class Pogom(Flask):
 
         if request.args.get('spawnpoints', 'false') == 'true':
             d['lastspawns'] = request.args.get('spawnpoints', 'false')
+
+        if request.args.get('geofences', 'true') == 'true':
+            d['lastgeofences'] = request.args.get('geofences', 'true')
+            log.debug('d[lastgeofences]: \n\r{}'.format(d['lastgeofences']))
 
         # If old coords are not equal to current coords we have moved/zoomed!
         if (oSwLng < swLng and oSwLat < swLat and
@@ -384,6 +390,39 @@ class Pogom(Flask):
                             swLat, swLng, neLat, neLng,
                             oSwLat=oSwLat, oSwLng=oSwLng,
                             oNeLat=oNeLat, oNeLng=oNeLng))
+
+        if request.args.get('geofences', 'true') == 'true':
+            geofences_db = Geofences.get_geofences()
+            log.debug('d[geofences]: \n\r{}'.format(geofences_db))
+
+            d['geofences'] = {}
+            geofence = {}
+            lastGeofenceID = 0
+
+            for g in geofences_db:
+                log.debug('g: \n\r{}'.format(g))
+                if (g['geofence_id'] != lastGeofenceID):
+                    if (lastGeofenceID > 0):
+                        # Push current geofence, we start a new one after
+                        d['geofences'][geofence['name']] = geofence
+                        log.debug('d[geofences]: \n\r{}'.format(
+                            d['geofences']))
+
+                    geofence = {
+                        'forbidden': g['forbidden'],
+                        'name': g['name'],
+                        'coordinates': []
+                    }
+
+                coordinate = {
+                    'lat': g['latitude'],
+                    'lng': g['longitude']
+                }
+                geofence['coordinates'].append(coordinate)
+                lastGeofenceID = g['geofence_id']
+
+            d['geofences'][geofence['name']] = geofence  # Push last geofence
+            log.debug('d[geofences]: \n\r{}'.format(d['geofences']))
 
         if request.args.get('status', 'false') == 'true':
             args = get_args()

@@ -121,6 +121,19 @@ def get_args():
                         action='store_true', default=False)
     parser.add_argument('-st', '--step-limit', help='Steps.', type=int,
                         default=12)
+    parser.add_argument('-gf', '--geofence-file',
+                        help=('Geofence file (currently only for -speed and ' +
+                              'HexSearch)'),
+                        default='')
+    parser.add_argument('-fa', '--forbidden-area',
+                        help=('File with coordinates defining area NOT to ' +
+                              'scan. Basically this is inverted geofence. ' +
+                              'Can be combined with -gf'),
+                        default='')
+    parser.add_argument('-gcd', '--geofence-clear-db',
+                        help=('Deletes the existing geofences in the ' +
+                              'database before starting the Webserver.'),
+                        action='store_true', default=False)
     parser.add_argument('-sd', '--scan-delay',
                         help='Time delay between requests in scan threads.',
                         type=float, default=10)
@@ -719,6 +732,19 @@ def get_args():
                                       args.webhook_whitelist]
         args.pre_scout = [int(i) for i in args.pre_scout]
 
+        if args.webhook_whitelist_file:
+            with open(args.webhook_whitelist_file) as f:
+                args.webhook_whitelist = [get_pokemon_id(name) for name in
+                                          f.read().splitlines()]
+        elif args.webhook_blacklist_file:
+            with open(args.webhook_blacklist_file) as f:
+                args.webhook_blacklist = [get_pokemon_id(name) for name in
+                                          f.read().splitlines()]
+        else:
+            args.webhook_blacklist = [int(i) for i in
+                                      args.webhook_blacklist]
+            args.webhook_whitelist = [int(i) for i in
+                                      args.webhook_whitelist]
         # Decide which scanning mode to use.
         if args.spawnpoint_scanning:
             args.scheduler = 'SpawnScan'

@@ -4,7 +4,6 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<script>var pageLoaded = new Date().getTime();</script>
 	<link rel="stylesheet" href="{{ url_for('static', filename='dist/css/mobile.min.css').lstrip('/') }}" type="text/css" />
-	
 	<style>
 	img.middle {
 		vertical-align: middle;
@@ -25,7 +24,7 @@
 						<span class="name"><a href='https://maps.google.com/?q={{pokemon.latitude}},{{pokemon.longitude}}&ll={{pokemon.latitude}},{{pokemon.longitude}}'>{{pokemon.name}}</a></span><span class="dir"> - {{pokemon.distance}}m ({{pokemon.card_dir}})</span>
 						<br>
 						<span class="remain" disappear="{{pokemon.disappear_sec}}">{{pokemon.time_to_disappear}}</span>
-				</p>  
+				</p>
 		</li>
 {% endfor %}
 	</ol>

@@ -24,7 +24,7 @@ from pogom.altitude import get_gmaps_altitude
 
 from pogom.search import search_overseer_thread
 from pogom.models import (init_database, create_tables, drop_tables,
-                          Pokemon, db_updater, clean_db_loop)
+                          Pokemon, db_updater, clean_db_loop, write_geofences)
 from pogom.webhook import wh_updater
 
 from pogom.proxy import check_proxies, proxies_refresher
@@ -248,6 +248,7 @@ def main():
     # Thread(s) to process database updates.
     for i in range(args.db_threads):
         log.debug('Starting db-updater worker thread %d', i)
+        log.debug('db_updates_queue: %s', db_updates_queue)
         t = Thread(target=db_updater, name='db-updater-{}'.format(i),
                    args=(args, db_updates_queue, db))
         t.daemon = True
@@ -312,6 +313,10 @@ def main():
                                name='search-overseer', args=argset)
         search_thread.daemon = True
         search_thread.start()
+
+    if args.geofence_file or args.forbidden_area is not None:
+        write_geofences(
+            args.geofence_file, args.forbidden_area, db_updates_queue)
 
     if args.cors:
         CORS(app)
