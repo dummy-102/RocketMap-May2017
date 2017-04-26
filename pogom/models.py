@@ -1851,7 +1851,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 temp_nearby_list.append(n)
 
         nearby_pokemon = temp_nearby_list
-        log.info('Narrowed down to %s nearby Pokemon', len(nearby_pokemon))
 
         encounter_ids = [b64encode(str(n['encounter_id']))
                          for n in nearby_pokemon]
@@ -1886,7 +1885,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     in encountered_pokemon):
                 continue  # If Pokemon has been found before don't process it.
             elif n['fort_id'] in matched_pokestops:
-                disappear_time = now_date + timedelta(minutes=5)
+                disappear_time = now_date + timedelta(minutes=3)
                 latitude = (matched_pokestops[n['fort_id']]['latitude'] +
                     random.uniform(-0.00025, 0.00025))
                 longitude = (matched_pokestops[n['fort_id']]['longitude'] +
