@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import pprint
 import itertools
 import calendar
 import sys
@@ -1805,6 +1806,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         # if a scan was actually bad.
         if config['parse_pokemon']:
             wild_pokemon += cell.get('wild_pokemons', [])
+            nearby_pokemon += cell.get('nearby_pokemons', [])
 
         if config['parse_pokestops'] or config['parse_gyms']:
             forts += cell.get('forts', [])
@@ -1838,6 +1840,86 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     done_already = scan_loc['done']
     ScannedLocation.update_band(scan_loc, now_date)
     just_completed = not done_already and scan_loc['done']
+
+    #log.info('Nearby Pokemon: {}'.format(
+    #    pprint.PrettyPrinter(indent=4).pformat(nearby_pokemon)))
+    if nearby_pokemon and config['parse_pokemon']:
+        temp_nearby_list = []
+        for n in nearby_pokemon:
+            if 'fort_id' in n:
+                temp_nearby_list.append(n)
+
+        nearby_pokemon = temp_nearby_list
+        log.info('Narrowed down to %s nearby Pokemon', len(nearby_pokemon))
+
+        encounter_ids = [b64encode(str(n['encounter_id']))
+                         for n in nearby_pokemon]
+        pokestop_ids = [n['fort_id'] for n in nearby_pokemon]
+        # For all the nearby Pokemon we found check if an active Pokemon is in
+        # the database.
+        query = (Pokemon
+                 .select(Pokemon.encounter_id, Pokemon.spawnpoint_id)
+                 .where((Pokemon.disappear_time >= now_date) &
+                        (Pokemon.encounter_id << encounter_ids))
+                 .dicts())
+
+        # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
+        # All of that is needed to make sure it's unique.
+        encountered_pokemon = [p['encounter_id'] for p in query]
+
+        query = (Pokestop
+                 .select(Pokestop.pokestop_id, Pokestop.latitude, Pokestop.longitude)
+                 .where((Pokestop.pokestop_id << pokestop_ids))
+                 .dicts())
+
+        matched_pokestops = {}
+        for f in query:
+            matched_pokestops[f['pokestop_id']] = {
+                'pokestop_id': f['pokestop_id'],
+                'latitude': f['latitude'],
+                'longitude': f['latitude']
+            }
+
+        for n in nearby_pokemon:
+            if (b64encode(str(n['encounter_id']))
+                    in encountered_pokemon):
+                continue  # If Pokemon has been encountered before don't process it.
+            elif n['fort_id'] in matched_pokestops:
+                disappear_time = now_date + timedelta(minutes=30)
+                pokemon[n['encounter_id']] = {
+                    'encounter_id': b64encode(str(n['encounter_id'])),
+                    'spawnpoint_id': '1234ab567cd',
+                    'pokemon_id': n['pokemon_id'],
+                    'latitude': matched_pokestops[n['fort_id']]['latitude'],
+                    'longitude': matched_pokestops[n['fort_id']]['longitude'],
+                    'disappear_time': disappear_time,
+                    'individual_attack': None,
+                    'individual_defense': None,
+                    'individual_stamina': None,
+                    'move_1': None,
+                    'move_2': None,
+                    'height': None,
+                    'weight': None,
+                    'gender': n['pokemon_display']['gender'],
+                    'form': None
+                }
+
+                if pokemon[n['encounter_id']] == 201:
+                    pokemon[n['encounter_id']]['form'] = n[
+                        'pokemon_display'].get('form', None)
+
+                if args.webhooks:
+                    pokemon_id = n['pokemon_data']['pokemon_id']
+                    if (pokemon_id in args.webhook_whitelist or
+                        (not args.webhook_whitelist and pokemon_id
+                         not in args.webhook_blacklist)):
+                        wh_poke = pokemon[n['encounter_id']].copy()
+                        wh_poke.update({
+                            'disappear_time': calendar.timegm(
+                                disappear_time.timetuple()),
+                            'player_level': level
+                        })
+                        wh_update_queue.put(('pokemon', wh_poke))
 
     if wild_pokemon and config['parse_pokemon']:
         encounter_ids = [b64encode(str(p['encounter_id']))
