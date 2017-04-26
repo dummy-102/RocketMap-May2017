@@ -1773,7 +1773,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     forts_count = 0
     wild_pokemon = []
     wild_pokemon_count = 0
-    nearby_pokemon = 0
+    nearby_pokemon = []
+    nearby_pokemon_count = 0
     spawn_points = {}
     scan_spawn_points = {}
     sightings = {}
@@ -1797,7 +1798,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             now_date = datetime.utcfromtimestamp(
                 cell['current_timestamp_ms'] / 1000)
 
-        nearby_pokemon += len(cell.get('nearby_pokemons', []))
+        nearby_pokemon_count += len(cell.get('nearby_pokemons', []))
         # Parse everything for stats (counts).  Future enhancement -- we don't
         # necessarily need to know *how many* forts/wild/nearby were found but
         # we'd like to know whether or not *any* were found to help determine
@@ -1822,7 +1823,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     del map_dict['responses']['GET_MAP_OBJECTS']
 
     # If there are no wild or nearby Pokemon . . .
-    if not wild_pokemon and not nearby_pokemon:
+    if not wild_pokemon and not nearby_pokemon_count:
         # . . . and there are no gyms/pokestops then it's unusable/bad.
         if not forts:
             log.warning('Bad scan. Parsing found absolutely nothing.')
@@ -2136,7 +2137,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
     log.info('Parsing found Pokemon: %d, nearby: %d, pokestops: %d, gyms: %d.',
              len(pokemon) + skipped,
-             nearby_pokemon,
+             nearby_pokemon_count,
              len(pokestops) + stopsskipped,
              len(gyms))
 
@@ -2196,7 +2197,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         if sightings:
             db_update_queue.put((SpawnpointDetectionData, sightings))
 
-    if not nearby_pokemon and not wild_pokemon:
+    if not nearby_pokemon_count and not wild_pokemon:
         # After parsing the forts, we'll mark this scan as bad due to
         # a possible speed violation.
         return {
