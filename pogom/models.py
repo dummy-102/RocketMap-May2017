@@ -11,6 +11,7 @@ import gc
 import time
 import geopy
 import math
+import random
 from peewee import InsertQuery, \
     Check, CompositeKey, ForeignKeyField, \
     SmallIntegerField, IntegerField, CharField, DoubleField, BooleanField, \
@@ -1877,21 +1878,25 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             matched_pokestops[f['pokestop_id']] = {
                 'pokestop_id': f['pokestop_id'],
                 'latitude': f['latitude'],
-                'longitude': f['latitude']
+                'longitude': f['longitude']
             }
 
         for n in nearby_pokemon:
             if (b64encode(str(n['encounter_id']))
                     in encountered_pokemon):
-                continue  # If Pokemon has been encountered before don't process it.
+                continue  # If Pokemon has been found before don't process it.
             elif n['fort_id'] in matched_pokestops:
-                disappear_time = now_date + timedelta(minutes=30)
+                disappear_time = now_date + timedelta(minutes=5)
+                latitude = (matched_pokestops[n['fort_id']]['latitude'] +
+                    random.uniform(-0.00025, 0.00025))
+                longitude = (matched_pokestops[n['fort_id']]['longitude'] +
+                    random.uniform(-0.00025, 0.00025))
                 pokemon[n['encounter_id']] = {
                     'encounter_id': b64encode(str(n['encounter_id'])),
-                    'spawnpoint_id': '1234ab567cd',
+                    'spawnpoint_id': 'placeholder',
                     'pokemon_id': n['pokemon_id'],
-                    'latitude': matched_pokestops[n['fort_id']]['latitude'],
-                    'longitude': matched_pokestops[n['fort_id']]['longitude'],
+                    'latitude': latitude,
+                    'longitude': longitude,
                     'disappear_time': disappear_time,
                     'individual_attack': None,
                     'individual_defense': None,
@@ -1934,8 +1939,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
         # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
         # All of that is needed to make sure it's unique.
-        encountered_pokemon = [
-            (p['encounter_id'], p['spawnpoint_id']) for p in query]
+        for p in query:
+            if p['spawnpoint_id'] != 'placeholder':
+                encountered_pokemon = [(p['encounter_id'], p['spawnpoint_id'])]
 
         for p in wild_pokemon:
 
