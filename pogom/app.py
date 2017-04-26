@@ -588,9 +588,6 @@ class Pogom(Flask):
 
     def post_geofency_wh(self):
         args = get_args()
-        if args.fixed_location:
-            return 'Location changes are turned off', 403
-
         entry = request.form.get('entry')
 
         # trigger only when entering locations
@@ -598,19 +595,24 @@ class Pogom(Flask):
             lat = request.form.get('latitude', type=float)
             lon = request.form.get('longitude', type=float)
             if not (lat and lon):
-                log.warning('Invalid next location: %s,%s', lat, lon)
-                return 'bad parameters', 400
+                warning = 'Invalid location: {}, {}'.format(lat, lon)
+                log.warning(warning)
+                return warning, 400
             else:
-                self.location_queue.put((lat, lon, 0))
-                self.set_current_location((lat, lon, 0))
-                log.info('Changing next location: %s,%s', lat, lon)
+                result = "Success."
+                if not args.fixed_location:
+                    self.location_queue.put((lat, lon, 0))
+                    self.set_current_location((lat, lon, 0))
+                    log.info('Changing map location to  %s,%s', lat, lon)
+                    result += " Changed map location."
 
                 # Geofency specific things
                 name = request.form.get('name')
                 self.wh_updates_queue.put(('location', {'latitude': lat, 'longitude': lon}))
-                log.info('Queued next location "%s" for webhooks', name)
+                log.info('Sent location "%s" to webhooks', name)
+                result += " Sent location to webhooks."
 
-                return self.loc()
+                return result
 
 
 class CustomJSONEncoder(JSONEncoder):
