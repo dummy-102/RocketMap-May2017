@@ -434,7 +434,7 @@ function scout(encounterId) {
                     genderEl = $("#pkmGender" + encounterIdLong)
                 }
                 if (cpEl.length == 0) {
-                    genderEl.after(build_cp_div(encounterIdLong, data.cp, data.level))
+                    genderEl.after(build_cp_div(encounterIdLong, data.cp, data.pokemon_level))
                     cpEl = $("#pkmCP" + encounterIdLong)
                 }
                 if (probsEl.length == 0) {
@@ -453,7 +453,7 @@ function scout(encounterId) {
                 pkm['height'] = data.height
                 pkm['gender'] = data.gender
                 pkm['cp'] = data.cp
-                pkm['level'] = data.level
+                pkm['pokemon_level'] = data.pokemon_level
                 pkm['catch_prob_1'] = data.catch_prob_1
                 pkm['catch_prob_2'] = data.catch_prob_2
                 pkm['catch_prob_3'] = data.catch_prob_3
@@ -492,18 +492,42 @@ function build_moves_div(encounterIdLong, move1, move2) {
         `
 }
 
-function build_gender_div(encounterIdLong, weight, height, gender) {
+function build_gender_div(encounterIdLong, gender) {
     return `
         <div id="pkmGender${encounterIdLong}">
-            Gender: ${GenderType[gender - 1]} | Weight: ${weight.toFixed(2)}kg | Height: ${height.toFixed(2)}m
+            Gender: ${GenderType[gender - 1]}
         </div>
         `
 }
 
-function build_cp_div(encounterIdLong, cp, level) {
+function build_height_div(encounterIdLong, height) {
+    return `
+        <div id="pkmGender${encounterIdLong}">
+            Height: ${height.toFixed(2)}m
+        </div>
+        `
+}
+
+function build_weight_div(encounterIdLong, weight) {
+    return `
+        <div id="pkmGender${encounterIdLong}">
+            Weight: ${weight.toFixed(2)}kg
+        </div>
+        `
+}
+
+function build_cp_div(encounterIdLong, cp, pokemon_level) {
     return `
         <div id="pkmCP${encounterIdLong}">
-            CP: <b>${cp}</b> | Pokemon Level: <b>${level}</b>
+			CP: <b>${cp}</b> | Pokemon Level: <b>${pokemon_level}</b>
+        </div>
+        `
+}
+
+function build_worker_level_div(encounterIdLong, worker_level) {
+    return `
+        <div id="pkmCP${encounterIdLong}">
+			Trainer Level: <b>${worker_level}</b>
         </div>
         `
 }
@@ -519,7 +543,7 @@ function build_probs_div(encounterIdLong, prob1, prob2, prob3) {
         `
 }
 
-function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId, atk, def, sta, move1, move2, weight, height, gender, cp, level, prob1, prob2, prob3) {
+function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId, atk, def, sta, move1, move2, weight, height, gender, cp, pokemon_level, worker_level, prob1, prob2, prob3) {
     var disappearDate = new Date(disappearTime)
     var rarityDisplay = rarity ? '(' + rarity + ')' : ''
     var typesDisplay = ''
@@ -534,11 +558,20 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
         details += build_moves_div(encounterIdLong, move1, move2)
     }
     if (gender != null) {
-        details += build_gender_div(encounterIdLong, weight, height, gender)
+        details += build_gender_div(encounterIdLong, gender)
+    }
+    if (height != null) {
+        details += build_height_div(encounterIdLong, height)
+    }
+    if (weight != null) {
+        details += build_weight_div(encounterIdLong, weight)
     }
     if (cp != null) {
-        details += build_cp_div(encounterIdLong, cp, level)
+        details += build_cp_div(encounterIdLong, cp, pokemon_level)
         details += build_probs_div(encounterIdLong, prob1, prob2, prob3)
+    }
+    if (worker_level != null) {
+        details += build_worker_level_div(encounterIdLong, worker_level)
     }
     var scoutLink = cp == null ? `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>` : ""
     var contentstring = `
@@ -839,7 +872,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
     }
 
     marker.infoWindow = new google.maps.InfoWindow({
-        content: pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id'], item['individual_attack'], item['individual_defense'], item['individual_stamina'], item['move_1'], item['move_2'], item['weight'], item['height'], item['gender'], item['cp'], item['level'], item['catch_prob_1'], item['catch_prob_2'], item['catch_prob_3']),
+        content: pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id'], item['individual_attack'], item['individual_defense'], item['individual_stamina'], item['move_1'], item['move_2'], item['weight'], item['height'], item['gender'], item['cp'], item['pokemon_level'], item['worker_level'], item['catch_prob_1'], item['catch_prob_2'], item['catch_prob_3']),
         disableAutoPan: true
     })
 

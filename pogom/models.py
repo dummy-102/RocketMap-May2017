@@ -110,7 +110,8 @@ class Pokemon(BaseModel):
     height = FloatField(null=True)
     gender = SmallIntegerField(null=True)
     cp = IntegerField(null=True)
-    level = SmallIntegerField(null=True)
+    pokemon_level = SmallIntegerField(null=True)
+    worker_level = SmallIntegerField(null=True)
     catch_prob_1 = DoubleField(null=True)
     catch_prob_2 = DoubleField(null=True)
     catch_prob_3 = DoubleField(null=True)
@@ -1807,6 +1808,14 @@ def hex_bounds(center, steps=None, radius=None):
     w = get_new_coords(center, sp_dist, 270)[1]
     return (n, e, s, w)
 
+def calc_pokemon_level(pokemon_info):
+    cpm = pokemon_info["cp_multiplier"]
+    if cpm < 0.734:
+        pokemon_level = 58.35178527 * cpm * cpm - 2.838007664 * cpm + 0.8539209906
+    else:
+        pokemon_level = 171.0112688 * cpm - 95.20425243
+    pokemon_level = (round(pokemon_level) * 2) / 2.0
+    return pokemon_level
 
 # todo: this probably shouldn't _really_ be in "models" anymore, but w/e.
 def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
@@ -1829,13 +1838,14 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     captcha_url = ''
     ditto_dex = [16, 19, 41, 129, 161, 163, 193]
     account_is_adult = account.get('level', 0) >= 25
+    account_is_adult2 = account.get('level', 0) >= 30
     inventory = account['inventory']
 
     # Consolidate the individual lists in each cell into two lists of Pokemon
     # and a list of forts.
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     # Get the level for the pokestop spin, and to send to webhook.
-    level = get_player_level(map_dict)
+    worker_level = get_player_level(map_dict)
 
     # Helping out the GC.
     if 'GET_INVENTORY' in map_dict['responses']:
@@ -1998,7 +2008,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                     in args.encounter_whitelist or
                                     p['pokemon_data']['pokemon_id']
                                     not in args.encounter_blacklist and
-                                    not args.encounter_whitelist) and account_is_adult) or scan_for_ditto:
+                                    not args.encounter_whitelist)) or scan_for_ditto:
                 time.sleep(args.encounter_delay)
                 # Setup encounter request envelope.
                 req = api.create_request()
@@ -2035,26 +2045,56 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'move_2': None,
                 'height': None,
                 'weight': None,
-                'gender': None
+                'gender': None,
+                'cp': None,
+                'pokemon_level': None,
+                'worker_level': None,
+                'catch_prob_1': None,
+                'catch_prob_2': None,
+                'catch_prob_3': None,
             }
 
             if (encounter_result is not None and 'wild_pokemon'
-                    in encounter_result['responses']['ENCOUNTER'] and account_is_adult):
+                    in encounter_result['responses']['ENCOUNTER']):
+
                 pokemon_info = encounter_result['responses'][
                     'ENCOUNTER']['wild_pokemon']['pokemon_data']
+
+                probs = encounter_result['responses'][
+                    'ENCOUNTER']['capture_probability']['capture_probability']
+
+                pokemon_level = calc_pokemon_level(pokemon_info)
+
+
                 pokemon[p['encounter_id']].update({
-                    'individual_attack': pokemon_info.get(
-                        'individual_attack', 0),
-                    'individual_defense': pokemon_info.get(
-                        'individual_defense', 0),
-                    'individual_stamina': pokemon_info.get(
-                        'individual_stamina', 0),
-                    'move_1': pokemon_info['move_1'],
-                    'move_2': pokemon_info['move_2'],
-                    'height': pokemon_info['height_m'],
-                    'weight': pokemon_info['weight_kg'],
                     'gender': pokemon_info['pokemon_display']['gender'],
-                })
+                    'worker_level': worker_level,
+                    })
+
+                # Account Lv25 Get IVs & Moves
+                if account_is_adult:
+                    pokemon[p['encounter_id']].update({
+                        'individual_attack': pokemon_info.get(
+                            'individual_attack', 0),
+                        'individual_defense': pokemon_info.get(
+                            'individual_defense', 0),
+                        'individual_stamina': pokemon_info.get(
+                            'individual_stamina', 0),
+                        'move_1': pokemon_info['move_1'],
+                        'move_2': pokemon_info['move_2'],
+                        'height': pokemon_info['height_m'],
+                        'weight': pokemon_info['weight_kg'],
+                    })
+
+                # Account Lv30 Get CPs & Catch Chance
+                if account_is_adult2:
+                    pokemon[p['encounter_id']].update({
+                        'cp': pokemon_info['cp'],
+                        'pokemon_level': pokemon_level,
+                        'catch_prob_1': probs[0],
+                        'catch_prob_2': probs[1],
+                        'catch_prob_3': probs[2],
+                    })
 
             # Catch pokemon to check for Ditto if --ditto enabled
             # Thanks to voxx!
@@ -2094,7 +2134,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'seconds_until_despawn': seconds_until_despawn,
                         'spawn_start': start_end[0],
                         'spawn_end': start_end[1],
-                        'player_level': level
+                        'player_level': worker_level
                     })
                     wh_update_queue.put(('pokemon', wh_poke))
 
@@ -2842,7 +2882,9 @@ def database_migrate(db, old_ver):
         migrate(
             migrator.add_column('pokemon', 'cp',
                                 IntegerField(null=True)),
-            migrator.add_column('pokemon', 'level',
+            migrator.add_column('pokemon', 'pokemon_level',
+                                SmallIntegerField(null=True)),
+            migrator.add_column('pokemon', 'worker_level',
                                 SmallIntegerField(null=True)),
             migrator.add_column('pokemon', 'catch_prob_1',
                                 DoubleField(null=True)),

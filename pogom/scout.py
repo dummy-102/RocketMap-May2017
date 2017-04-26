@@ -49,11 +49,11 @@ def has_captcha(request_result):
 def calc_pokemon_level(pokemon_info):
     cpm = pokemon_info["cp_multiplier"]
     if cpm < 0.734:
-        level = 58.35178527 * cpm * cpm - 2.838007664 * cpm + 0.8539209906
+        pokemon_level = 58.35178527 * cpm * cpm - 2.838007664 * cpm + 0.8539209906
     else:
-        level = 171.0112688 * cpm - 95.20425243
-    level = (round(level) * 2) / 2.0
-    return level
+        pokemon_level = 171.0112688 * cpm - 95.20425243
+    pokemon_level = (round(pokemon_level) * 2) / 2.0
+    return pokemon_level
 
 
 def scout_error(error_msg):
@@ -80,12 +80,12 @@ def parse_scout_result(request_result, encounter_id, pokemon_name):
 
     pokemon_info = encounter_result['wild_pokemon']['pokemon_data']
     cp = pokemon_info["cp"]
-    level = calc_pokemon_level(pokemon_info)
-    trainer_level = get_player_level(request_result)
+    pokemon_level = calc_pokemon_level(pokemon_info)
+    worker_level = get_player_level(request_result)
     response = {
         'cp': cp,
-        'level': level,
-        'trainer_level': trainer_level,
+        'pokemon_level': pokemon_level,
+        'worker_level': worker_level,
         'atk': pokemon_info.get('individual_attack', 0),
         'def': pokemon_info.get('individual_defense', 0),
         'sta': pokemon_info.get('individual_stamina', 0),
@@ -95,7 +95,7 @@ def parse_scout_result(request_result, encounter_id, pokemon_name):
         'weight': pokemon_info['weight_kg'],
         'gender': pokemon_info['pokemon_display']['gender']
     }
-    log.info(u"Found level {} {} with CP {} for trainer level {}.".format(level, pokemon_name, cp, trainer_level))
+    log.info(u"Found level {} {} with CP {} for trainer level {}.".format(pokemon_level, pokemon_name, cp, worker_level))
 
     if 'capture_probability' in encounter_result:
         probs = encounter_result['capture_probability']['capture_probability']
@@ -120,7 +120,7 @@ def perform_scout(p, db_updates_queue):
     # Check cache once in a non-blocking way
     if p.encounter_id in encounter_cache:
         result = encounter_cache[p.encounter_id]
-        log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["level"], pokemon_name, result["cp"]))
+        log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["pokemon_level"], pokemon_name, result["cp"]))
         return result
 
     scoutLock.acquire()
@@ -128,7 +128,7 @@ def perform_scout(p, db_updates_queue):
         # Check cache again after mutually exclusive access
         if p.encounter_id in encounter_cache:
             result = encounter_cache[p.encounter_id]
-            log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["level"], pokemon_name, result["cp"]))
+            log.info(u"Cached scout-result: level {} {} with CP {}.".format(result["pokemon_level"], pokemon_name, result["cp"]))
             return result
 
         # Delay scouting
@@ -184,7 +184,8 @@ def perform_scout(p, db_updates_queue):
                 'weight': result['weight'],
                 'gender': result['gender'],
                 'cp': result['cp'],
-                'level': result['level'],
+                'pokemon_level': result['pokemon_level'],
+                'worker_level': result['worker_level'],
                 'catch_prob_1': result['catch_prob_1'],
                 'catch_prob_2': result['catch_prob_2'],
                 'catch_prob_3': result['catch_prob_3']
