@@ -542,7 +542,7 @@ function build_probs_div(encounterIdLong, prob1, prob2, prob3) {
     prob3 = prob3 * 100
     return `
         <div id="pkmProbs${encounterIdLong}">
-            Pokeball: ${prob1.toFixed(1)}% | Great Ball: ${prob2.toFixed(1)}% | Ultra Ball: ${prob3.toFixed(1)}%
+            Pokeball: ${prob1.toFixed(1)}% | GreatBall: ${prob2.toFixed(1)}% | UltraBall: ${prob3.toFixed(1)}%
         </div>
         `
 }
@@ -986,7 +986,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
             if (Store.get('playSound')) {
                 audio.play()
             }
-            sendNotification(getNotifyText(item).fav_title, getNotifyText(item).fav_text, 'static/icons/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
+            sendNotification(getNotifyText(item).fav_title, getNotifyText(item).fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
         }
         if (marker.animationDisabled !== true) {
             marker.setAnimation(google.maps.Animation.BOUNCE)
@@ -1006,7 +1006,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
                 if (Store.get('playSound')) {
                     audio.play()
                 }
-                sendNotification(getNotifyText(item).fav_title, getNotifyText(item).fav_text, 'static/icons/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
+                sendNotification(getNotifyText(item).fav_title, getNotifyText(item).fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
             }
             if (marker.animationDisabled !== true) {
                 marker.setAnimation(google.maps.Animation.BOUNCE)
