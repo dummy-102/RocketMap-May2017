@@ -474,6 +474,9 @@ def get_args():
     parser.add_argument('-prs', '--pre-scout', action='append', default=[],
                         help=('List of Pokemon to scout immediately for ' +
                               'IV, moves and CP.'))
+    parser.add_argument('-prsf', '--pre-scout-file', default=None,
+                        help=('File of Pokemon names to scout immediately for ' +
+                              'IV, moves and CP.'))
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
@@ -715,7 +718,12 @@ def get_args():
                                       args.webhook_blacklist]
             args.webhook_whitelist = [int(i) for i in
                                       args.webhook_whitelist]
+
         args.pre_scout = [int(i) for i in args.pre_scout]
+        if args.pre_scout_file:
+            with open(args.pre_scout_file) as f:
+                args.pre_scout = [get_pokemon_id(name) for name in
+                                  f.read().splitlines()]
 
         # Decide which scanning mode to use.
         if args.spawnpoint_scanning:

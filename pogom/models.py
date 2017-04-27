@@ -2209,9 +2209,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     }))
 
                 # Spin Pokestop to gain XP if account is below level 25
-                #if not account_is_adult and pokestop_spinnable(f, step_location):
-                #     cleanup_inventory(api, inventory)
-                #     spin_pokestop(api, f, step_location, inventory)
+                if not account_is_adult and pokestop_spinnable(f, step_location):
+                    cleanup_inventory(api, inventory)
+                    spin_pokestop(api, f, step_location, inventory)
 
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):
