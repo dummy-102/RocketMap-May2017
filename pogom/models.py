@@ -2187,7 +2187,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             if scan_for_ditto:
                 pid = p['pokemon_data']['pokemon_id']
                 pname = get_pokemon_name(pid)
-                prevoious_id = p['pokemon_data']['pokemon_id']
+                previous_id = p['pokemon_data']['pokemon_id']
 
                 log.info('%s may be a ditto. Triggering catch logic!', pname)
 
@@ -2197,7 +2197,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                              'data with new pokemon_id and movesets.', pname)
                     pokemon[p['encounter_id']]['pokemon_id'] = 132
                     pokemon[p['encounter_id']].update({
-                        'prevoious_id': pid
+                        'previous_id': previous_id
                     })
                     if account_is_adult:
                         pokemon[p['encounter_id']].update({
@@ -2224,7 +2224,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'spawn_start': start_end[0],
                         'spawn_end': start_end[1],
                         'player_level': worker_level,
-                        'prevoious_id': p['pokemon_data']['prevoious_id']
                     })
                     wh_update_queue.put(('pokemon', wh_poke))
 
