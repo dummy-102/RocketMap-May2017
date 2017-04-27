@@ -69,7 +69,8 @@ var gymTypes = ['Uncontested', 'Mystic', 'Valor', 'Instinct']
 var gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000]
 var audio = new Audio('static/sounds/ding.mp3')
 
-var GenderType = ['♂', '♀', '⚪']
+var genderType = ['♂', '♀', '⚲']
+var unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '!', '?']
 
 
 /*
@@ -477,6 +478,7 @@ function getDateStr(t) {
     return dateStr
 }
 
+<<<<<<< HEAD
 function build_iv_div(encounterIdLong, atk, def, sta) {
     var iv = getIv(atk, def, sta)
     return `
@@ -519,6 +521,28 @@ function build_weight_div(encounterIdLong, weight) {
         </div>
         `
 }
+=======
+function pokemonLabel(item) {
+    var name = item['pokemon_name']
+    var rarityDisplay = item['pokemon_rarity'] ? '(' + item['pokemon_rarity'] + ')' : ''
+    var types = item['pokemon_types']
+    var typesDisplay = ''
+    var encounterId = item['encounter_id']
+    var id = item['pokemon_id']
+    var latitude = item['latitude']
+    var longitude = item['longitude']
+    var disappearTime = item['disappear_time']
+    var disappearDate = new Date(disappearTime)
+    var atk = item['individual_attack']
+    var def = item['individual_defense']
+    var sta = item['individual_stamina']
+    var pMove1 = (moves[item['move_1']] !== undefined) ? i8ln(moves[item['move_1']]['name']) : 'gen/unknown'
+    var pMove2 = (moves[item['move_2']] !== undefined) ? i8ln(moves[item['move_2']]['name']) : 'gen/unknown'
+    var weight = item['weight']
+    var height = item['height']
+    var gender = item['gender']
+    var form = item['form']
+>>>>>>> refs/remotes/RocketMap/develop
 
 function build_cp_div(encounterIdLong, cp, pokemon_level) {
     return `
@@ -554,6 +578,7 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
     $.each(types, function (index, type) {
         typesDisplay += getTypeSpan(type)
     })
+<<<<<<< HEAD
     var encounterIdLong = atob(encounterId)
 
     var details = ''
@@ -575,6 +600,27 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
     }
     if (prob1 != null) {
         details += build_probs_div(encounterIdLong, prob1, prob2, prob3)
+=======
+
+    var details = ''
+    if (atk !== null && def !== null && sta !== null) {
+        var iv = getIv(atk, def, sta)
+        details = `
+            <div>
+                IV: ${iv.toFixed(1)}% (${atk}/${def}/${sta})
+            </div>
+            <div>
+                Moves: ${pMove1} / ${pMove2}
+            </div>
+            `
+    }
+    if (gender !== null && weight !== null && height !== null) {
+        details += `
+            <div>
+                Gender: ${genderType[gender - 1]} | Weight: ${weight.toFixed(2)}kg | Height: ${height.toFixed(2)}m
+            </div>
+            `
+>>>>>>> refs/remotes/RocketMap/develop
     }
     if (worker_level != null) {
         details += build_worker_level_div(encounterIdLong, worker_level)
@@ -582,8 +628,11 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
     var scoutLink = cp == null ? `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>` : ""
     var contentstring = `
         <div>
-            <b>${name}</b>
-            <span> - </span>
+            <b>${name}</b>`
+    if (id === 201 && form !== null && form > 0) {
+        contentstring += ` (${unownForm[item['form']]})`
+    }
+    contentstring += `<span> - </span>
             <small>
                 <a href='http://www.pokemon.com/us/pokedex/${id}' target='_blank' title='View in Pokedex'>#${id}</a>
             </small>
@@ -977,7 +1026,11 @@ function customizePokemonMarker(marker, item, skipNotification) {
     }
 
     marker.infoWindow = new google.maps.InfoWindow({
+<<<<<<< HEAD
         content: pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id'], item['individual_attack'], item['individual_defense'], item['individual_stamina'], item['move_1'], item['move_2'], item['weight'], item['height'], item['gender'], item['cp'], item['pokemon_level'], item['worker_level'], item['catch_prob_1'], item['catch_prob_2'], item['catch_prob_3']),
+=======
+        content: pokemonLabel(item),
+>>>>>>> refs/remotes/RocketMap/develop
         disableAutoPan: true
     })
 

@@ -46,7 +46,8 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 18
+
+db_schema_version = 19
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -120,8 +121,7 @@ class Pokemon(BaseModel):
     catch_prob_2 = DoubleField(null=True)
     catch_prob_3 = DoubleField(null=True)
     previous_id = SmallIntegerField(index=True)
-    last_modified = DateTimeField(
-        null=True, index=True, default=datetime.utcnow)
+    form = SmallIntegerField(null=True)
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
@@ -2139,6 +2139,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'catch_prob_2': None,
                 'catch_prob_3': None,
                 'previous_id' :None,
+                'form': None
             }
 
             if (encounter_result is not None and 'wild_pokemon'
@@ -2159,6 +2160,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'catch_prob_3': probs[2],
                     'worker_level': worker_level,
                     })
+
+                # Check for Unown's alphabetic character.
+                if pokemon_info['pokemon_id'] == 201:
+                    pokemon[p['encounter_id']]['form'] = pokemon_info[
+                        'pokemon_display'].get('form', None)
 
                 # Account Lv25 Get IVs & Moves
                 if account_is_adult:
@@ -3121,4 +3127,10 @@ def database_migrate(db, old_ver):
                                 SmallIntegerField(null=True))
         )
 
-        log.info('Schema upgrade complete.')
+    if old_ver < 19:
+        migrate(
+            migrator.add_column('pokemon', 'form',
+                                SmallIntegerField(null=True))
+        )
+    # Always log that we're done.
+    log.info('Schema upgrade complete.')
