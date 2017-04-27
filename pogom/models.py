@@ -10,6 +10,9 @@ import gc
 import time
 import geopy
 import math
+import random
+import pprint
+
 from peewee import InsertQuery, \
     Check, CompositeKey, PrimaryKeyField, ForeignKeyField, \
     SmallIntegerField, IntegerField, CharField, DoubleField, BooleanField, \
@@ -528,6 +531,32 @@ class Pokestop(BaseModel):
             if args.china:
                 p['latitude'], p['longitude'] = \
                     transform_from_wgs_to_gcj(p['latitude'], p['longitude'])
+
+            # Add Pokestop details
+            query_details = (PokestopDetails.select(
+                    PokestopDetails.pokestop_id, PokestopDetails.name,
+                    PokestopDetails.description, PokestopDetails.url,
+                    PokestopDetails.item_id, PokestopDetails.deployer,
+                    PokestopDetails.expires))
+            query_details = (query_details.where(
+                PokestopDetails.pokestop_id == p['pokestop_id']).dicts())
+            #log.debug(
+            #    'PokestopDetails query from DB: \n\r{}'.format(
+            #        pprint.PrettyPrinter(indent=4).pformat(query_details)))
+
+            details = {}
+            for d in query_details:
+                #log.debug(
+                #    'Detail from query: \n\r{}'.format(
+                #        pprint.PrettyPrinter(indent=4).pformat(d)))
+                details = d
+                #log.debug(
+                #    'Pokestop with details from DB: \n\r{}'.format(
+                #        pprint.PrettyPrinter(indent=4).pformat(p)))
+
+            if len(details) > 0:
+                p['details'] = details
+
             pokestops.append(p)
 
         # Re-enable the GC.
@@ -635,12 +664,16 @@ class Gym(BaseModel):
             details = (GymDetails
                        .select(
                            GymDetails.gym_id,
-                           GymDetails.name)
+                           GymDetails.name,
+                           GymDetails.description,
+                           GymDetails.url)
                        .where(GymDetails.gym_id << gym_ids)
                        .dicts())
 
             for d in details:
                 gyms[d['gym_id']]['name'] = d['name']
+                gyms[d['gym_id']]['description'] = d['description']
+                gyms[d['gym_id']]['url'] = d['url']
 
         # Re-enable the GC.
         gc.enable()
@@ -654,6 +687,7 @@ class Gym(BaseModel):
                           Gym.team_id,
                           GymDetails.name,
                           GymDetails.description,
+                          GymDetails.url,
                           Gym.guard_pokemon_id,
                           Gym.gym_points,
                           Gym.latitude,
@@ -1725,6 +1759,17 @@ class GymDetails(BaseModel):
     last_scanned = DateTimeField(default=datetime.utcnow)
 
 
+class PokestopDetails(BaseModel):
+    pokestop_id = CharField(primary_key=True, max_length=50)
+    name = CharField()
+    description = TextField(null=True)
+    url = CharField()
+    item_id = SmallIntegerField(null=True)
+    deployer = CharField(null=True, max_length=50)
+    expires = DateTimeField(default=datetime.utcnow)
+    last_scanned = DateTimeField(default=datetime.utcnow)
+
+
 class Account(BaseModel):
     last_modified = DateTimeField(
         index=True, default=datetime.utcnow)
@@ -2191,12 +2236,17 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                      datetime(1970, 1, 1)).total_seconds())) for f in query]
 
         for f in forts:
-            if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops.
+            if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops
+                get_details = False
                 if 'active_fort_modifier' in f:
+                    #log.debug('Lured Pokestop: \n\r{}'.format(
+                    #    pprint.PrettyPrinter(indent=4).pformat(f)))
                     lure_expiration = (datetime.utcfromtimestamp(
                         f['last_modified_timestamp_ms'] / 1000.0) +
                         timedelta(minutes=args.lure_duration))
                     active_fort_modifier = f['active_fort_modifier']
+                    get_details = True
+
                     if args.webhooks and args.webhook_updates_only:
                         wh_update_queue.put(('pokestop', {
                             'pokestop_id': b64encode(str(f['id'])),
@@ -2211,6 +2261,26 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         }))
                 else:
                     lure_expiration, active_fort_modifier = None, None
+
+                # Get detailed informations about Pokestops
+                if args.pokestop_info:
+                    if not get_details:
+                        try:  # No need to get known info
+                            PokestopDetails.get(pokestop_id=f['id'])
+                            get_details = False
+                        except PokestopDetails.DoesNotExist:  # Let's get it
+                            get_details = True
+
+                    if get_details:
+                        time.sleep(random.random() + 2)
+                        fort_details_response = fort_details_request(api, f)
+                        if fort_details_response:
+                            pokestop_details = parse_pokestop_details(
+                                fort_details_response, db_update_queue)
+                            log.info(
+                                'Parsed pokestop details: \n\r{}'.format(
+                                    pprint.PrettyPrinter(indent=4).pformat(
+                                        pokestop_details)))
 
                 # Send all pokestops to webhooks.
                 if args.webhooks and not args.webhook_updates_only:
@@ -2370,6 +2440,70 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     }
 
 
+def fort_details_request(api, f):
+    try:
+        log.debug('Getting details for pokestop @ %f/%f',
+                  f['latitude'], f['longitude'])
+        req = api.create_request()
+        x = req.fort_details(
+            fort_id=f['id'],
+            latitude=f['latitude'],
+            longitude=f['longitude'])
+        x = req.check_challenge()
+        x = req.get_hatched_eggs()
+        x = req.get_inventory()
+        x = req.check_awarded_badges()
+        x = req.download_settings()
+        x = req.get_buddy_walked()
+        x = req.call()
+        # Print pretty(x).
+        log.info('Fort Details: \n\r{}'.format(
+            pprint.PrettyPrinter(indent=4).pformat(
+                x['responses']['FORT_DETAILS'])))
+
+        return x
+
+    except Exception as e:
+        log.warning('Exception while downloading fort details: %s', repr(e))
+        return False
+
+
+def parse_pokestop_details(fort_details_response, db_update_queue):
+    pokestop_details = {}
+    fort_details = fort_details_response['responses']['FORT_DETAILS']
+    pokestop_id = fort_details['fort_id']
+    pokestop_details[pokestop_id] = {
+        'pokestop_id': pokestop_id,
+        'name': fort_details['name'],
+        'description': fort_details.get('description'),
+        'url': fort_details['image_urls'][0]
+    }
+
+    if 'modifiers' in fort_details:
+        modifiers = fort_details.get('modifiers', None)
+        log.info('========== LURE PROVIDER %s =========', modifiers[0]['deployer_player_codename'])
+        pokestop_details[pokestop_id].update({
+            'item_id': modifiers[0]['item_id'],
+            'deployer': modifiers[0]['deployer_player_codename'],
+            'expires': datetime.utcfromtimestamp(
+                modifiers[0]['expiration_timestamp_ms'] / 1000.0)
+        })
+
+    # Upsert all the models.
+    if pokestop_details:
+        db_update_queue.put((PokestopDetails, pokestop_details))
+
+    with flaskDb.database.transaction():
+        # Get rid of all the forts, we're going to insert new records.
+        if pokestop_details:
+            DeleteQuery(PokestopDetails).where(
+                PokestopDetails.pokestop_id <<
+                pokestop_details.keys()).execute()
+
+    log.info('Upserted forts: %d', len(pokestop_details))
+    return pokestop_details
+
+
 def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
     gym_details = {}
     gym_members = {}
@@ -2385,7 +2519,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
             'gym_id': gym_id,
             'name': g['name'],
             'description': g.get('description'),
-            'url': g['urls'][0],
+            'url': g['urls'][0]
         }
 
         if args.webhooks:
@@ -2702,7 +2836,7 @@ def bulk_upsert(cls, data, db):
 def create_tables(db):
     db.connect()
     verify_database_schema(db)
-    tables = [Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
+    tables = [Pokemon, Pokestop, PokestopDetails, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
               Token, LocationAltitude, Account, Geofences]
@@ -2712,12 +2846,11 @@ def create_tables(db):
             db.create_tables([table], safe=True)
         else:
             log.debug('Skipping table %s, it already exists.', table.__name__)
-
     db.close()
 
 
 def drop_tables(db):
-    tables = [Pokemon, Pokestop, Gym, ScannedLocation, Versions,
+    tables = [Pokemon, Pokestop, PokestopDetails, Gym, ScannedLocation, Versions,
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude,

@@ -383,6 +383,10 @@ def get_args():
                         help=('Get all details about gyms (causes an ' +
                               'additional API hit for every gym).'),
                         action='store_true', default=False)
+    parser.add_argument('-pi', '--pokestop-info',
+                        help=('Get all details about pokestops (causes an ' +
+                              'additional API hit for every pokestop).'),
+                        action='store_true', default=False)
     parser.add_argument('--disable-clean', help='Disable clean db loop.',
                         action='store_true', default=False)
     parser.add_argument('--webhook-updates-only',
