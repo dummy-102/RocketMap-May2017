@@ -1,9 +1,9 @@
 import logging
+import time
 from base64 import b64decode
 from threading import Lock
 
-import time
-
+import requests
 import sys
 from pgoapi import PGoApi
 
@@ -26,17 +26,17 @@ encounter_cache = {}
 
 def encounter_request(encounter_id, spawnpoint_id, latitude, longitude):
     req = api.create_request()
-    encounter_result = req.encounter(
+    req.encounter(
         encounter_id=encounter_id,
         spawn_point_id=spawnpoint_id,
         player_latitude=latitude,
         player_longitude=longitude)
-    encounter_result = req.check_challenge()
-    encounter_result = req.get_hatched_eggs()
-    encounter_result = req.get_inventory()
-    encounter_result = req.check_awarded_badges()
-    encounter_result = req.download_settings()
-    encounter_result = req.get_buddy_walked()
+    req.check_challenge()
+    req.get_hatched_eggs()
+    req.get_inventory()
+    req.check_awarded_badges()
+    req.download_settings()
+    req.get_buddy_walked()
     return req.call()
 
 
@@ -58,7 +58,11 @@ def calc_pokemon_level(pokemon_info):
 
 def scout_error(error_msg):
     log.error(error_msg)
-    return {"msg": error_msg}
+    return {
+        'success': False,
+        'msg': error_msg,
+        'error': error_msg
+    }
 
 
 def parse_scout_result(request_result, encounter_id, pokemon_name):
@@ -83,6 +87,7 @@ def parse_scout_result(request_result, encounter_id, pokemon_name):
     level = calc_pokemon_level(pokemon_info)
     trainer_level = get_player_level(request_result)
     response = {
+        'success': True,
         'cp': cp,
         'level': level,
         'trainer_level': trainer_level,
@@ -109,7 +114,7 @@ def parse_scout_result(request_result, encounter_id, pokemon_name):
     return response
 
 
-def perform_scout(p, db_updates_queue):
+def perform_scout(p, db_updates_queue=None):
     global api, last_scout_timestamp, encounter_cache
 
     if not args.scout_account_username:
@@ -166,7 +171,7 @@ def perform_scout(p, db_updates_queue):
         scoutLock.release()
 
     result = parse_scout_result(request_result, p.encounter_id, pokemon_name)
-    if 'cp' in result:
+    if 'cp' in result and db_updates_queue:
         update_data = {
             p.encounter_id: {
                 'encounter_id': p.encounter_id,
@@ -192,3 +197,59 @@ def perform_scout(p, db_updates_queue):
         }
         db_updates_queue.put((Pokemon, update_data))
     return result
+
+
+def perform_scout_via_service(p, db_updates_queue=None):
+    params = {
+        'pokemon_id': p.pokemon_id,
+        'encounter_id': p.encounter_id,
+        'spawn_point_id': p.spawnpoint_id,
+        'latitude': p.latitude,
+        'longitude': p.longitude
+    }
+    try:
+        r = requests.get(args.scout_service_url, params=params)
+    except:
+        return scout_error("Exception during scout: {}".format(repr(sys.exc_info()[1])))
+
+    if r.status_code != 200:
+        return scout_error("Got error {} from scout service.")
+
+    response = r.json()
+    if response['success']:
+        # Update database
+        if db_updates_queue:
+            update_data = {
+                p.encounter_id: {
+                    'encounter_id': p.encounter_id,
+                    'spawnpoint_id': p.spawnpoint_id,
+                    'pokemon_id': p.pokemon_id,
+                    'latitude': p.latitude,
+                    'longitude': p.longitude,
+                    'disappear_time': p.disappear_time,
+                    'individual_attack': response['iv_attack'],
+                    'individual_defense': response['iv_defense'],
+                    'individual_stamina': response['iv_stamina'],
+                    'move_1': response['move_1'],
+                    'move_2': response['move_2'],
+                    'height': response['height'],
+                    'weight': response['weight'],
+                    'gender': response['gender'],
+                    'cp': response['cp'],
+                    'level': response['level'],
+                    'catch_prob_1': response['catch_prob_1'],
+                    'catch_prob_2': response['catch_prob_2'],
+                    'catch_prob_3': response['catch_prob_3']
+                }
+            }
+            db_updates_queue.put((Pokemon, update_data))
+
+        # TODO: use same dict fields everywhere
+        response['atk'] = response['iv_attack']
+        response['def'] = response['iv_defense']
+        response['sta'] = response['iv_stamina']
+    else:
+        # TODO: use same dict fields everywhere
+        response['msg'] = response['error']
+
+    return response

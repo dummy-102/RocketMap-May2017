@@ -426,7 +426,7 @@ function scout(encounterId) {
                     ivEl = $("#pkmIV" + encounterIdLong)
                 }
                 if (movesEl.length == 0) {
-                    ivEl.after(build_moves_div(encounterIdLong, data.move_1, data.move_2))
+                    ivEl.after(build_moves_div(encounterIdLong, data.move_1, data.move_2, data.rating_attack, data.rating_defense))
                     movesEl = $("#pkmMoves" + encounterIdLong)
                 }
                 if (genderEl.length == 0) {
@@ -482,12 +482,12 @@ function build_iv_div(encounterIdLong, atk, def, sta) {
         `
 }
 
-function build_moves_div(encounterIdLong, move1, move2) {
+function build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense) {
     var pMove1 = (moves[move1] !== undefined) ? i8ln(moves[move1]['name']) : 'gen/unknown'
     var pMove2 = (moves[move2] !== undefined) ? i8ln(moves[move2]['name']) : 'gen/unknown'
     return `
         <div id="pkmMoves${encounterIdLong}">
-            Moves: <b>${pMove1}</b> / <b>${pMove2}</b>
+            Moves: <b>${pMove1}</b> / <b>${pMove2}</b> | (Att:<b>${rating_attack}</b> Def:<b>${rating_defense}</b>)
         </div>
         `
 }
@@ -519,7 +519,7 @@ function build_probs_div(encounterIdLong, prob1, prob2, prob3) {
         `
 }
 
-function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId, atk, def, sta, move1, move2, weight, height, gender, cp, level, prob1, prob2, prob3) {
+function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId, atk, def, sta, move1, move2, rating_attack, rating_defense, weight, height, gender, cp, level, prob1, prob2, prob3) {
     var disappearDate = new Date(disappearTime)
     var rarityDisplay = rarity ? '(' + rarity + ')' : ''
     var typesDisplay = ''
@@ -531,7 +531,7 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
     var details = ''
     if (atk != null) {
         details += build_iv_div(encounterIdLong, atk, def, sta)
-        details += build_moves_div(encounterIdLong, move1, move2)
+        details += build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense)
     }
     if (gender != null) {
         details += build_gender_div(encounterIdLong, weight, height, gender)
@@ -839,7 +839,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
     }
 
     marker.infoWindow = new google.maps.InfoWindow({
-        content: pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id'], item['individual_attack'], item['individual_defense'], item['individual_stamina'], item['move_1'], item['move_2'], item['weight'], item['height'], item['gender'], item['cp'], item['level'], item['catch_prob_1'], item['catch_prob_2'], item['catch_prob_3']),
+        content: pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id'], item['individual_attack'], item['individual_defense'], item['individual_stamina'], item['move_1'], item['move_2'], item['rating_attack'], item['rating_defense'], item['weight'], item['height'], item['gender'], item['cp'], item['level'], item['catch_prob_1'], item['catch_prob_2'], item['catch_prob_3']),
         disableAutoPan: true
     })
 
