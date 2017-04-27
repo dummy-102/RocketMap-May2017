@@ -46,7 +46,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 17
+db_schema_version = 18
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -119,6 +119,7 @@ class Pokemon(BaseModel):
     catch_prob_1 = DoubleField(null=True)
     catch_prob_2 = DoubleField(null=True)
     catch_prob_3 = DoubleField(null=True)
+    previous_id = SmallIntegerField(index=True)
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
 
@@ -2137,6 +2138,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'catch_prob_1': None,
                 'catch_prob_2': None,
                 'catch_prob_3': None,
+                'previous_id' :None,
             }
 
             if (encounter_result is not None and 'wild_pokemon'
@@ -2150,9 +2152,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                 pokemon_level = calc_pokemon_level(pokemon_info)
 
-
                 pokemon[p['encounter_id']].update({
                     'gender': pokemon_info['pokemon_display']['gender'],
+                    'catch_prob_1': probs[0],
+                    'catch_prob_2': probs[1],
+                    'catch_prob_3': probs[2],
                     'worker_level': worker_level,
                     })
 
@@ -2176,9 +2180,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     pokemon[p['encounter_id']].update({
                         'cp': pokemon_info['cp'],
                         'pokemon_level': pokemon_level,
-                        'catch_prob_1': probs[0],
-                        'catch_prob_2': probs[1],
-                        'catch_prob_3': probs[2],
                     })
 
             # Catch pokemon to check for Ditto if --ditto enabled
@@ -2186,6 +2187,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             if scan_for_ditto:
                 pid = p['pokemon_data']['pokemon_id']
                 pname = get_pokemon_name(pid)
+                prevoious_id = p['pokemon_data']['pokemon_id']
 
                 log.info('%s may be a ditto. Triggering catch logic!', pname)
 
@@ -2193,8 +2195,10 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 if caught.get('catch_status', None) == 'success' and 'pid' in caught and int(caught['pid']) == 132:
                     log.info('%s is a Ditto! Updating encounter ' +
                              'data with new pokemon_id and movesets.', pname)
-
                     pokemon[p['encounter_id']]['pokemon_id'] = 132
+                    pokemon[p['encounter_id']].update({
+                        'prevoious_id': pid
+                    })
                     if account_is_adult:
                         pokemon[p['encounter_id']].update({
                             'move_1': caught['m1'],
@@ -2219,7 +2223,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'seconds_until_despawn': seconds_until_despawn,
                         'spawn_start': start_end[0],
                         'spawn_end': start_end[1],
-                        'player_level': worker_level
+                        'player_level': worker_level,
+                        'prevoious_id': p['pokemon_data']['prevoious_id']
                     })
                     wh_update_queue.put(('pokemon', wh_poke))
 
@@ -3093,7 +3098,6 @@ def database_migrate(db, old_ver):
             migrate(
                 migrator.add_index('pokestop', ('last_updated',), False)
             )
-        log.info('Schema upgrade complete.')
 
     if old_ver < 17:
         migrate(
@@ -3110,3 +3114,11 @@ def database_migrate(db, old_ver):
             migrator.add_column('pokemon', 'catch_prob_3',
                                 DoubleField(null=True)),
         )
+
+    if old_ver < 18:
+        migrate(
+            migrator.add_column('pokemon', 'previous_id',
+                                SmallIntegerField(null=True))
+        )
+
+        log.info('Schema upgrade complete.')

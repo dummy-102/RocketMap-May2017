@@ -531,7 +531,7 @@ function build_cp_div(encounterIdLong, cp, pokemon_level) {
 function build_worker_level_div(encounterIdLong, worker_level) {
     return `
         <div id="pkmCP${encounterIdLong}">
-			Trainer Level: <b>${worker_level}</b>
+			Worker Level: <b>${worker_level}</b>
         </div>
         `
 }
@@ -561,9 +561,6 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
         details += build_iv_div(encounterIdLong, atk, def, sta)
         details += build_moves_div(encounterIdLong, move1, move2)
     }
-    if (gender != null) {
-        details += build_gender_div(encounterIdLong, gender)
-    }
     if (height != null) {
         details += build_height_div(encounterIdLong, height)
     }
@@ -572,6 +569,11 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
     }
     if (cp != null) {
         details += build_cp_div(encounterIdLong, cp, pokemon_level)
+    }
+    if (gender != null) {
+        details += build_gender_div(encounterIdLong, gender)
+    }
+    if (prob1 != null) {
         details += build_probs_div(encounterIdLong, prob1, prob2, prob3)
     }
     if (worker_level != null) {
@@ -629,22 +631,32 @@ function gymLabel(item) {
     }
 
     var nameStr = (item['name'] ? `<div>${item['name']}</div>` : '')
+    var descriptionStr = (item['description'] ? `<div>${item['description']}</div>` : '')
 
     var gymColor = ['0, 0, 0, .4', '74, 138, 202, .6', '240, 68, 58, .6', '254, 217, 40, .6']
     var str
     if (item['team_id'] === 0) {
         str = `
+            <style>
+              .circle2 {width: 100px; height: 100px; background-size: cover; display: block; border-radius: 50px; margin: auto;)}
+            </style>
             <div>
                 <center>
+                      <div style='padding-bottom: 2px'>
+                      <div>
+                        ${nameStr}
+                      </div>
+                      <div>
+                        ${descriptionStr}
+                      </div>
                     <div>
-                        <b style='color:rgba(${gymColor[item['team_id']]})'>${gymTypes[item['team_id']]}</b><br>`
-        if (item['url']) {
-            str += `<img height='70px' width='70px' style='padding: 5px;' src='${item['url']}'>`
-        } else {
-            str += `<img height='70px' style='padding: 5px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'>`
-        }
+                    <b style='color:rgba(${gymColor[item['team_id']]})'>${gymTypes[item['team_id']]}</b><br>`
+                    if (item['url']) {
+                      str += `<div style="border: 5px solid rgba(${gymColor[item['team_id']]}); width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto;"><img class='circle2' height=100 width=100 src='${item['url']}'>`
+                    } else {
+                      str += `<img height='70px' style='padding: 5px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'>`
+                    }
         str += `    </div>
-                    ${nameStr}
                     <div>
                         Location: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
                     </div>
@@ -660,22 +672,28 @@ function gymLabel(item) {
     } else {
         var gymLevel = getGymLevel(item['gym_points'])
         str = `
+            <style>
+              .circle2 {width: 100px; height: 100px; background-size: cover; display: block; border-radius: 50px; margin: auto;)}
+            </style>
             <div>
                 <center>
                     <div style='padding-bottom: 2px'>
-                        Gym owned by:
+                    <div>
+                      ${nameStr}
                     </div>
                     <div>
-                        <b style='color:rgba(${gymColor[item['team_id']]})'>Team ${gymTypes[item['team_id']]}</b><br>`
-        if (item['url']) {
-            str += `<img height='70px' width='70px' style='padding: 5px;' src='${item['url']}'>`
-        } else {
-            str += `<img height='70px' style='padding: 5px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'>`
-        }
+                      ${descriptionStr}
+                    </div>
+                  <div>
+                    </div>
+                    <div>
+                    <b style='color:rgba(${gymColor[item['team_id']]})'>Team ${gymTypes[item['team_id']]}</b><br>`
+                    if (item['url']) {
+                      str += `<div style="border: 5px solid rgba(${gymColor[item['team_id']]}); width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto;"><img class='circle2' height=100 width=100 src='${item['url']}'>`
+                    } else {
+                      str += `<img height='70px' style='padding: 5px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'>`
+                    }
         str += `
-                    </div>
-                    <div>
-                        ${nameStr}
                     </div>
                     <div>
                         Level: ${gymLevel} | Prestige: ${item['gym_points']}/${gymPrestige[gymLevel - 1] || 50000}
@@ -713,61 +731,85 @@ function pokestopLabel(item) {
     var str
     if (item['lure_expiration']) {
         var expireDate = new Date(item['lure_expiration'])
-
         if (item['details']) {
             str = `
+            <style>
+              .circle1 {width: 100px; height: 100px; background-size: cover; display: block; border-radius: 50px; margin: auto;)};
+            </style>
+            <center>
                 <div>
-                    <img src="${item['details']['url']}" style="float:left; width:30px; height:30px; margin-right: 3px">
                     <b>Lured Pokéstop</b>
                     <br>
-                    ${item['details']['name']}
+                      ${item['details']['name']}
+                    <br>
+                      ${item['details']['description']}
+                    <br>
+                </div>
+                <div style="text-align: center; width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto; border: 5px solid #dd24c7;">
+                      <img class="circle1"; src="${item['details']['url']}" style="float:top; width=100; height=100;">
+                      <br>
                 </div>
                 <div>
-                Lured by ${item['details']['deployer']}`
+                    Lured Provided By: ${item['details']['deployer']}
+                <div>
+            </center>`
         } else {
             str = `
+            <center>
                 <div>
                     <b>Lured Pokéstop</b>
                 </div>
-                <div>`
+            </center>`
         }
-
         str += `
+            <center>
                 Lure expires at ${pad(expireDate.getHours())}:${pad(expireDate.getMinutes())}:${pad(expireDate.getSeconds())}
                 <span class='label-countdown' disappears-at='${item['lure_expiration']}'>(00m00s)</span>
             </div>
             <div>
-                Location: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+                GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
             </div>
             <div>
                 <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
-            </div>`
+            </div>
+            </center>`
     } else {
         if (item['details']) {
             str = `
-                <div>
-                    <img src="${item['details']['url']}" style="float:left; width: 30px; height:30px; margin-right: 3px">
-                    <b>Pokéstop</b>
-                    <br>
-                    ${item['details']['name']}
+            <style>
+              .circle1 {width: 100px; height: 100px; background-size: cover; display: block; border-radius: 50px; margin: auto;)};
+            </style>
+            <center>
+            <div>
+                <b>Pokéstop</b>
+                <br>
+                  ${item['details']['name']}
+                <br>
+                  ${item['details']['description']}
+                <br>
+            </div>
+                <div style="text-align: center; width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto; border: 5px solid #36b1fe;">
+                  <img class="circle1"; src="${item['details']['url']}" style="float:top; width=100; height=100;">
                 </div>
-                <div>`
+            </center>`
         } else {
             str = `
+            <center>
                 <div>
                     <b>Pokéstop</b>
                 </div>
-                <div>`
+            </center>`
         }
-
         str += `
-                Location: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
-            </div>
-            <div>
-                <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
-            </div>`
+            <center>
+                <div>
+                  GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+                </div>
+                <div>
+                  <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
+                </div>
+            </center>`
     }
-
     return str
 }
 
