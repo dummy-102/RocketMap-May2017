@@ -122,6 +122,8 @@ class Pokemon(BaseModel):
     catch_prob_3 = DoubleField(null=True)
     previous_id = SmallIntegerField(index=True)
     form = SmallIntegerField(null=True)
+    last_modified = DateTimeField(
+        null=True, index=True, default=datetime.utcnow)
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
