@@ -489,7 +489,7 @@ function build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_de
     var pMove2 = (moves[move2] !== undefined) ? i8ln(moves[move2]['name']) : 'gen/unknown'
     return `
         <div id="pkmMoves${encounterIdLong}">
-            Moves: <b>${pMove1}</b> / <b>${pMove2}</b> | (Att:<b>${rating_attack}</b> Def:<b>${rating_defense}</b>)
+            Moves: <b>${pMove1}</b> / <b>${pMove2}</b> | Rating: <b title="Moveset Attack Rating">${rating_attack}</b> / <b title="Moveset Defense Rating">${rating_defense}</b>
         </div>
         `
 }
@@ -505,7 +505,7 @@ function build_gender_div(encounterIdLong, weight, height, gender) {
 function build_cp_div(encounterIdLong, cp, level) {
     return `
         <div id="pkmCP${encounterIdLong}">
-            Level: <b>${level}</b> | CP: <b>${cp}</b>
+            Level: <b title="Maximum Level is 30">${level}</b> | CP: <b>${cp}</b>
         </div>
         `
 }
