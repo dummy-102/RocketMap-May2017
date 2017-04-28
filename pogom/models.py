@@ -37,7 +37,8 @@ from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, \
     clear_dict_response
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
-from .account import get_player_inventory, pokestop_spinnable, spin_pokestop, cleanup_inventory, get_player_level
+from .account import (get_player_inventory, pokestop_spinnable, spin_pokestop,
+    cleanup_inventory, get_player_level, check_login, setup_api)
 from .geofence import parse_geofences
 
 log = logging.getLogger(__name__)
@@ -111,6 +112,7 @@ class Pokemon(BaseModel):
     individual_stamina = SmallIntegerField(null=True)
     move_1 = SmallIntegerField(null=True)
     move_2 = SmallIntegerField(null=True)
+    cp = SmallIntegerField(null=True)
     weight = FloatField(null=True)
     height = FloatField(null=True)
     gender = SmallIntegerField(null=True)
@@ -1925,7 +1927,7 @@ def perform_pre_scout(p):
 
 # todo: this probably shouldn't _really_ be in "models" anymore, but w/e.
 def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
-              api, now_date, account):
+              key_scheduler, api, status, now_date, account, account_sets):
     pokemon = {}
     pokestops = {}
     gyms = {}
@@ -1951,6 +1953,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     # Get the level for the pokestop spin, and to send to webhook.
     worker_level = get_player_level(map_dict)
+    # Use separate level indicator for our L30 encounters.
+    encounter_level = worker_level
 
     # Helping out the GC.
     if 'GET_INVENTORY' in map_dict['responses']:
@@ -2132,6 +2136,151 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'rating_defense': None,
             }
 
+            # Scan for IVs/CP and moves.
+            pokemon_id = p['pokemon_data']['pokemon_id']
+            encounter_result = None
+
+            if args.encounter and (pokemon_id in args.enc_whitelist):
+                time.sleep(args.encounter_delay)
+
+                hlvl_account = None
+                hlvl_api = None
+                using_accountset = False
+
+                # If the host has L30s in the regular account pool, we
+                # can just use the current account.
+                if worker_level >= 10:
+                    hlvl_account = account
+                    hlvl_api = api
+                else:
+                    # Get account to use for IV or CP scanning.
+                    if pokemon_id in args.enc_whitelist:
+                        hlvl_account = account_sets.next('30', step_location)
+
+                # If we don't have an API object yet, it means we didn't re-use
+                # an old one, so we're using AccountSet.
+                using_accountset = not hlvl_api
+
+                # If we didn't get an account, we can't encounter.
+                if hlvl_account:
+                    # Logging.
+                    log.debug('Encountering Pokémon ID %s with account %s'
+                              + ' at %s, %s.',
+                              pokemon_id,
+                              hlvl_account['username'],
+                              step_location[0],
+                              step_location[1])
+
+                    # If not args.no_api_store is enabled, we need to
+                    # re-use an old API object if it's stored and we're
+                    # using an account from the AccountSet.
+                    if not args.no_api_store and using_accountset:
+                        hlvl_api = hlvl_account.get('api', None)
+
+                    # Make new API for this account if we're not using an
+                    # API that's already logged in.
+                    if not hlvl_api:
+                        hlvl_api = setup_api(args, status)
+
+                        # Hashing key.
+                        # TODO: all of this should be handled properly... all
+                        # these useless, inefficient threads passing around all
+                        # these single-use variables are making me ill.
+                        if args.hash_key:
+                            key = key_scheduler.next()
+                            log.debug('Using key %s for this encounter.', key)
+                            hlvl_api.activate_hash_server(key)
+
+                    # We have an API object now. If necessary, store it.
+                    if using_accountset and not args.no_api_store:
+                        hlvl_account['api'] = hlvl_api
+
+                    # Set location.
+                    hlvl_api.set_position(*step_location)
+
+                    # Log in.
+                    check_login(args, hlvl_account, hlvl_api, step_location,
+                                status['proxy_url'])
+
+                    # Setup encounter request envelope.
+                    req = hlvl_api.create_request()
+                    req.encounter(
+                        encounter_id=p['encounter_id'],
+                        spawn_point_id=p['spawn_point_id'],
+                        player_latitude=step_location[0],
+                        player_longitude=step_location[1])
+                    req.check_challenge()
+                    req.get_hatched_eggs()
+                    req.get_inventory()
+                    req.check_awarded_badges()
+                    req.download_settings()
+                    req.get_buddy_walked()
+                    encounter_result = req.call()
+
+                    # Readability.
+                    responses = encounter_result['responses']
+
+                    # Check for captcha
+                    captcha_url = responses['CHECK_CHALLENGE']['challenge_url']
+                    # Throw warning but finish parsing
+                    if len(captcha_url) > 1:
+                        # Flag account.
+                        hlvl_account['captcha'] = True
+                        log.info('Level %s account %s encountered a captcha.',
+                                 encounter_level,
+                                 hlvl_account['username'])
+                    else:
+                        # Update level indicator before we clear the response.
+                        encounter_level = get_player_level(encounter_result)
+
+                        # User error?
+                        if encounter_level < 10:
+                            raise Exception('Expected account of level 30 or'
+                                            + ' higher, but account '
+                                            + hlvl_account['username']
+                                            + ' is only level '
+                                            + encounter_level + '.')
+
+                    # We're done with the encounter. If it's from an
+                    # AccountSet, release account back to the pool.
+                    if using_accountset:
+                        account_sets.release(hlvl_account)
+
+                    # Clear the response for memory management.
+                    encounter_result = clear_dict_response(encounter_result)
+                else:
+                    log.error('No L30 accounts are available, please'
+                              + ' consider adding more. Skipping encounter.')
+
+
+            if (encounter_result is not None and 'wild_pokemon'
+                    in encounter_result['responses']['ENCOUNTER']):
+                pokemon_info = encounter_result['responses'][
+                    'ENCOUNTER']['wild_pokemon']['pokemon_data']
+                pokemon[p['encounter_id']].update({
+                    'individual_attack': pokemon_info.get(
+                        'individual_attack', 0),
+                    'individual_defense': pokemon_info.get(
+                        'individual_defense', 0),
+                    'individual_stamina': pokemon_info.get(
+                        'individual_stamina', 0),
+                    'move_1': pokemon_info['move_1'],
+                    'move_2': pokemon_info['move_2'],
+                    'height': pokemon_info['height_m'],
+                    'weight': pokemon_info['weight_kg'],
+                    'gender': pokemon_info['pokemon_display']['gender']
+                })
+
+                # Only add CP if we're level 30+.
+                if encounter_level >= 10:
+                    pokemon[p['encounter_id']][
+                        'cp'] = pokemon_info.get('cp', None)
+
+                # Check for Unown's alphabetic character.
+                if pokemon_info['pokemon_id'] == 201:
+                    pokemon[p['encounter_id']]['form'] = pokemon_info[
+                        'pokemon_display'].get('form', None)
+
             # Determine if to scan for Ditto
             # Note that scanning for Ditto requires an encounter beforehand
             is_ditto_candidate = pid in ditto_dex
@@ -2140,9 +2289,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Scan for IVs and moves.
             perform_regular_encounter = args.encounter and (
-                pid in args.encounter_whitelist
-                or pid not in args.encounter_blacklist
-                and not args.encounter_whitelist)
+                pid in args.enc_whitelist)
 
             if perform_regular_encounter or scan_for_ditto:
                 time.sleep(args.encounter_delay)
