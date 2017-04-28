@@ -486,13 +486,14 @@ def get_args():
     parser.add_argument('-scd', '--scout-cooldown-delay',
                         help='Number of seconds to wait before scout may be used again.',
                         type=int, default=10)
-    parser.add_argument('-saf', '--scout-accounts-file',
-                             default='', help='File containing a list of '
-                             'accounts >= lvl 30 for scouting')
-    parser.add_argument('-prs', '--pre-scout',
-                                action='append', default=[],
-                                help=('List of Pokemon to scout immediately for ' +
-                                      'IV, moves and CP.'))
+    parser.add_argument('-ssu', '--scout-service-url', default=None,
+                        help='URL to query Pokemon for IV/CP.')
+    parser.add_argument('-prs', '--pre-scout', action='append', default=[],
+                        help=('List of Pokemon to scout immediately for ' +
+                              'IV, moves and CP.'))
+    parser.add_argument('-prsf', '--pre-scout-file', default=None,
+                        help=('File of Pokemon names to scout immediately for ' +
+                              'IV, moves and CP.'))
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
@@ -734,7 +735,12 @@ def get_args():
                                       args.webhook_blacklist]
             args.webhook_whitelist = [int(i) for i in
                                       args.webhook_whitelist]
+
         args.pre_scout = [int(i) for i in args.pre_scout]
+        if args.pre_scout_file:
+            with open(args.pre_scout_file) as f:
+                args.pre_scout = [get_pokemon_id(name) for name in
+                                  f.read().splitlines()]
 
         if args.webhook_whitelist_file:
             with open(args.webhook_whitelist_file) as f:

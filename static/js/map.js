@@ -405,9 +405,12 @@ function scout(encounterId) {
     var infoEl = $("#scoutInfo" + encounterIdLong)
     var ivEl = $("#pkmIV" + encounterIdLong)
     var movesEl = $("#pkmMoves" + encounterIdLong)
+    var weightEl = $("#pkmWeight" + encounterIdLong)
+    var heightEl = $("#pkmHeight" + encounterIdLong)
     var genderEl = $("#pkmGender" + encounterIdLong)
     var cpEl = $("#pkmCP" + encounterIdLong)
     var probsEl = $("#pkmProbs" + encounterIdLong)
+    var workerEl = $("#pkmWorker" + encounterIdLong)
 
     $.ajax({
         url: 'scout',
@@ -431,11 +434,19 @@ function scout(encounterId) {
                     ivEl = $("#pkmIV" + encounterIdLong)
                 }
                 if (movesEl.length == 0) {
-                    ivEl.after(build_moves_div(encounterIdLong, data.move_1, data.move_2))
+                    ivEl.after(build_moves_div(encounterIdLong, data.move_1, data.move_2, data.rating_attack, data.rating_defense))
                     movesEl = $("#pkmMoves" + encounterIdLong)
                 }
+                if (weightEl.length == 0) {
+                    movesEl.after(build_weight_div(encounterIdLong, data.weight))
+                    weightEl = $("#pkmWeight" + encounterIdLong)
+                }
+                if (heightEl.length == 0) {
+                    weightEl.after(build_height_div(encounterIdLong, data.height))
+                    heightEl = $("#pkmHeight" + encounterIdLong)
+                }
                 if (genderEl.length == 0) {
-                    movesEl.after(build_gender_div(encounterIdLong, data.weight, data.height, data.gender))
+                    heightEl.after(build_gender_div(encounterIdLong, data.gender))
                     genderEl = $("#pkmGender" + encounterIdLong)
                 }
                 if (cpEl.length == 0) {
@@ -444,6 +455,10 @@ function scout(encounterId) {
                 }
                 if (probsEl.length == 0) {
                     cpEl.after(build_probs_div(encounterIdLong, data.catch_prob_1, data.catch_prob_2, data.catch_prob_3))
+                    probEl = $("#pkmProbs" + encounterIdLong)
+                }
+                if (workerEl.length == 0) {
+                    probsEl.after(build_worker_level_div(encounterIdLong, data.worker_level))
                 }
                 infoEl.hide()
 
@@ -462,6 +477,7 @@ function scout(encounterId) {
                 pkm['catch_prob_1'] = data.catch_prob_1
                 pkm['catch_prob_2'] = data.catch_prob_2
                 pkm['catch_prob_3'] = data.catch_prob_3
+                pkm['worker_level'] = data.worker_level
             } else {
                 infoEl.text(data.msg)
             }
@@ -478,7 +494,6 @@ function getDateStr(t) {
     return dateStr
 }
 
-<<<<<<< HEAD
 function build_iv_div(encounterIdLong, atk, def, sta) {
     var iv = getIv(atk, def, sta)
     return `
@@ -488,12 +503,12 @@ function build_iv_div(encounterIdLong, atk, def, sta) {
         `
 }
 
-function build_moves_div(encounterIdLong, move1, move2) {
+function build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense) {
     var pMove1 = (moves[move1] !== undefined) ? i8ln(moves[move1]['name']) : 'gen/unknown'
     var pMove2 = (moves[move2] !== undefined) ? i8ln(moves[move2]['name']) : 'gen/unknown'
     return `
         <div id="pkmMoves${encounterIdLong}">
-            Moves: <b>${pMove1}</b> / <b>${pMove2}</b>
+            Moves: <b>${pMove1}</b> / <b>${pMove2}</b> | (Att:<b>${rating_attack}</b> Def:<b>${rating_defense}</b>)
         </div>
         `
 }
@@ -508,7 +523,7 @@ function build_gender_div(encounterIdLong, gender) {
 
 function build_height_div(encounterIdLong, height) {
     return `
-        <div id="pkmGender${encounterIdLong}">
+        <div id="pkmHeight${encounterIdLong}">
             Height: ${height.toFixed(2)}m
         </div>
         `
@@ -516,33 +531,11 @@ function build_height_div(encounterIdLong, height) {
 
 function build_weight_div(encounterIdLong, weight) {
     return `
-        <div id="pkmGender${encounterIdLong}">
+        <div id="pkmWeight${encounterIdLong}">
             Weight: ${weight.toFixed(2)}kg
         </div>
         `
 }
-=======
-function pokemonLabel(item) {
-    var name = item['pokemon_name']
-    var rarityDisplay = item['pokemon_rarity'] ? '(' + item['pokemon_rarity'] + ')' : ''
-    var types = item['pokemon_types']
-    var typesDisplay = ''
-    var encounterId = item['encounter_id']
-    var id = item['pokemon_id']
-    var latitude = item['latitude']
-    var longitude = item['longitude']
-    var disappearTime = item['disappear_time']
-    var disappearDate = new Date(disappearTime)
-    var atk = item['individual_attack']
-    var def = item['individual_defense']
-    var sta = item['individual_stamina']
-    var pMove1 = (moves[item['move_1']] !== undefined) ? i8ln(moves[item['move_1']]['name']) : 'gen/unknown'
-    var pMove2 = (moves[item['move_2']] !== undefined) ? i8ln(moves[item['move_2']]['name']) : 'gen/unknown'
-    var weight = item['weight']
-    var height = item['height']
-    var gender = item['gender']
-    var form = item['form']
->>>>>>> refs/remotes/RocketMap/develop
 
 function build_cp_div(encounterIdLong, cp, pokemon_level) {
     return `
@@ -554,7 +547,7 @@ function build_cp_div(encounterIdLong, cp, pokemon_level) {
 
 function build_worker_level_div(encounterIdLong, worker_level) {
     return `
-        <div id="pkmCP${encounterIdLong}">
+        <div id="pkmWorker${encounterIdLong}">
 			Worker Level: <b>${worker_level}</b>
         </div>
         `
@@ -571,20 +564,45 @@ function build_probs_div(encounterIdLong, prob1, prob2, prob3) {
         `
 }
 
-function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitude, encounterId, atk, def, sta, move1, move2, weight, height, gender, cp, pokemon_level, worker_level, prob1, prob2, prob3) {
-    var disappearDate = new Date(disappearTime)
-    var rarityDisplay = rarity ? '(' + rarity + ')' : ''
+function pokemonLabel(item) {
+    var name = item['pokemon_name']
+    var rarityDisplay = item['pokemon_rarity'] ? '(' + item['pokemon_rarity'] + ')' : ''
+    var types = item['pokemon_types']
     var typesDisplay = ''
+    var encounterId = item['encounter_id']
+    var id = item['pokemon_id']
+    var latitude = item['latitude']
+    var longitude = item['longitude']
+    var disappearTime = item['disappear_time']
+    var disappearDate = new Date(disappearTime)
+    var atk = item['individual_attack']
+    var def = item['individual_defense']
+    var sta = item['individual_stamina']
+    var move1 = item['move_1']
+    var move2 = item['move_2']
+    var weight = item['weight']
+    var height = item['height']
+    var gender = item['gender']
+    var form = item['form']
+    var cp = item['cp']
+    var pokemon_level = item['pokemon_level']
+    var prob1 = item['catch_prob_1']
+    var prob2 = item['catch_prob_2']
+    var prob3 = item['catch_prob_3']
+    var worker_level = item['worker_level']
+    var previous_id = item['previous_id']
+    var rating_attack = item['rating_attack']
+    var rating_defense = item['rating_defense']
+
     $.each(types, function (index, type) {
         typesDisplay += getTypeSpan(type)
     })
-<<<<<<< HEAD
     var encounterIdLong = atob(encounterId)
 
     var details = ''
     if (atk != null) {
         details += build_iv_div(encounterIdLong, atk, def, sta)
-        details += build_moves_div(encounterIdLong, move1, move2)
+        details += build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense)
     }
     if (height != null) {
         details += build_height_div(encounterIdLong, height)
@@ -592,35 +610,14 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
     if (weight != null) {
         details += build_weight_div(encounterIdLong, weight)
     }
-    if (cp != null) {
-        details += build_cp_div(encounterIdLong, cp, pokemon_level)
-    }
     if (gender != null) {
         details += build_gender_div(encounterIdLong, gender)
     }
+    if (cp != null) {
+        details += build_cp_div(encounterIdLong, cp, pokemon_level)
+    }
     if (prob1 != null) {
         details += build_probs_div(encounterIdLong, prob1, prob2, prob3)
-=======
-
-    var details = ''
-    if (atk !== null && def !== null && sta !== null) {
-        var iv = getIv(atk, def, sta)
-        details = `
-            <div>
-                IV: ${iv.toFixed(1)}% (${atk}/${def}/${sta})
-            </div>
-            <div>
-                Moves: ${pMove1} / ${pMove2}
-            </div>
-            `
-    }
-    if (gender !== null && weight !== null && height !== null) {
-        details += `
-            <div>
-                Gender: ${genderType[gender - 1]} | Weight: ${weight.toFixed(2)}kg | Height: ${height.toFixed(2)}m
-            </div>
-            `
->>>>>>> refs/remotes/RocketMap/develop
     }
     if (worker_level != null) {
         details += build_worker_level_div(encounterIdLong, worker_level)
@@ -634,7 +631,7 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
     }
     contentstring += `<span> - </span>
             <small>
-                <a href='http://www.pokemon.com/us/pokedex/${id}' target='_blank' title='View in Pokedex'>#${id}</a>
+                <a href='http://www.pokehamilton.com/pokemon/${id}' target='_blank' title='View in Pokedex'>#${id}</a>
             </small>
             <span> ${rarityDisplay}</span>
             <span> - </span>
@@ -1026,11 +1023,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
     }
 
     marker.infoWindow = new google.maps.InfoWindow({
-<<<<<<< HEAD
-        content: pokemonLabel(item['pokemon_name'], item['pokemon_rarity'], item['pokemon_types'], item['disappear_time'], item['pokemon_id'], item['latitude'], item['longitude'], item['encounter_id'], item['individual_attack'], item['individual_defense'], item['individual_stamina'], item['move_1'], item['move_2'], item['weight'], item['height'], item['gender'], item['cp'], item['pokemon_level'], item['worker_level'], item['catch_prob_1'], item['catch_prob_2'], item['catch_prob_3']),
-=======
         content: pokemonLabel(item),
->>>>>>> refs/remotes/RocketMap/develop
         disableAutoPan: true
     })
 

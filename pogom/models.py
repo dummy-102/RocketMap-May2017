@@ -47,7 +47,7 @@ flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
 
-db_schema_version = 19
+db_schema_version = 20
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -122,6 +122,9 @@ class Pokemon(BaseModel):
     catch_prob_3 = DoubleField(null=True)
     previous_id = SmallIntegerField(index=True)
     form = SmallIntegerField(null=True)
+    rating_attack = CharField(null=True, max_length=1)
+    rating_defense = CharField(null=True, max_length=1)
+
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
 
@@ -1905,6 +1908,21 @@ def calc_pokemon_level(pokemon_info):
     pokemon_level = (round(pokemon_level) * 2) / 2.0
     return pokemon_level
 
+def perform_pre_scout(p):
+    from pogom.scout import perform_scout_via_service, perform_scout
+
+    args = get_args()
+
+    # Prepare Pokemon object
+    pkm = Pokemon()
+    pkm.pokemon_id = p['pokemon_id']
+    pkm.encounter_id = p['encounter_id']
+    pkm.spawnpoint_id = p['spawnpoint_id']
+    pkm.latitude = p['latitude']
+    pkm.longitude = p['longitude']
+    return perform_scout_via_service(pkm) if args.scout_service_url else perform_scout(pkm)
+
+
 # todo: this probably shouldn't _really_ be in "models" anymore, but w/e.
 def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
               api, now_date, account):
@@ -1925,8 +1943,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     sp_id_list = []
     captcha_url = ''
     ditto_dex = [16, 19, 41, 129, 161, 163, 193]
-    account_is_adult = account.get('level', 0) >= 25
-    account_is_adult2 = account.get('level', 0) >= 30
+    account_is_adult = account.get('level', 0) >= 30
     inventory = account['inventory']
 
     # Consolidate the individual lists in each cell into two lists of Pokemon
@@ -2085,39 +2102,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             printPokemon(p['pokemon_data']['pokemon_id'], p[
                          'latitude'], p['longitude'], disappear_time)
 
-            # Determine if to scan for Ditto
-            is_ditto_candidate = p['pokemon_data']['pokemon_id'] in ditto_dex
-            have_balls = inventory.get('balls', 0) > 0
-            scan_for_ditto = not account_is_adult and args.ditto and is_ditto_candidate and have_balls
-
-            # Scan for IVs and moves.
-            encounter_result = None
-            if (args.encounter and (p['pokemon_data']['pokemon_id']
-                                    in args.encounter_whitelist or
-                                    p['pokemon_data']['pokemon_id']
-                                    not in args.encounter_blacklist and
-                                    not args.encounter_whitelist)) or scan_for_ditto:
-                time.sleep(args.encounter_delay)
-                # Setup encounter request envelope.
-                req = api.create_request()
-                encounter_result = req.encounter(
-                    encounter_id=p['encounter_id'],
-                    spawn_point_id=p['spawn_point_id'],
-                    player_latitude=step_location[0],
-                    player_longitude=step_location[1])
-                req.check_challenge()
-                req.get_hatched_eggs()
-                req.get_inventory()
-                req.check_awarded_badges()
-                req.download_settings()
-                req.get_buddy_walked()
-                encounter_result = req.call()
-                encounter_result = clear_dict_response(encounter_result)
-
-                captcha_url = encounter_result['responses']['CHECK_CHALLENGE'][
-                    'challenge_url']  # Check for captcha
-                if len(captcha_url) > 1:  # Throw warning but finish parsing
-                    log.debug('Account encountered a reCaptcha.')
+            pid = p['pokemon_data']['pokemon_id']
+            pname = get_pokemon_name(pid)
 
             pokemon[p['encounter_id']] = {
                 'encounter_id': b64encode(str(p['encounter_id'])),
@@ -2141,35 +2127,51 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'catch_prob_2': None,
                 'catch_prob_3': None,
                 'previous_id' :None,
-                'form': None
+                'form': None,
+                'rating_attack': None,
+                'rating_defense': None,
             }
 
-            if (encounter_result is not None and 'wild_pokemon'
-                    in encounter_result['responses']['ENCOUNTER']):
+            # Determine if to scan for Ditto
+            # Note that scanning for Ditto requires an encounter beforehand
+            is_ditto_candidate = pid in ditto_dex
+            have_balls = inventory.get('balls', 0) > 0
+            scan_for_ditto = not account_is_adult and args.ditto and is_ditto_candidate and have_balls
 
-                pokemon_info = encounter_result['responses'][
-                    'ENCOUNTER']['wild_pokemon']['pokemon_data']
+            # Scan for IVs and moves.
+            perform_regular_encounter = args.encounter and (
+                pid in args.encounter_whitelist
+                or pid not in args.encounter_blacklist
+                and not args.encounter_whitelist)
 
-                probs = encounter_result['responses'][
-                    'ENCOUNTER']['capture_probability']['capture_probability']
+            if perform_regular_encounter or scan_for_ditto:
+                time.sleep(args.encounter_delay)
+                # Setup encounter request envelope.
+                req = api.create_request()
+                req.encounter(
+                    encounter_id=p['encounter_id'],
+                    spawn_point_id=p['spawn_point_id'],
+                    player_latitude=step_location[0],
+                    player_longitude=step_location[1])
+                req.check_challenge()
+                req.get_hatched_eggs()
+                req.get_inventory()
+                req.check_awarded_badges()
+                req.download_settings()
+                req.get_buddy_walked()
+                encounter_result = req.call()
+                encounter_result = clear_dict_response(encounter_result)
 
-                pokemon_level = calc_pokemon_level(pokemon_info)
+                captcha_url = encounter_result['responses']['CHECK_CHALLENGE'][
+                    'challenge_url']  # Check for captcha
+                if len(captcha_url) > 1:  # Throw warning but finish parsing
+                    log.debug('Account encountered a reCaptcha.')
 
-                pokemon[p['encounter_id']].update({
-                    'gender': pokemon_info['pokemon_display']['gender'],
-                    'catch_prob_1': probs[0],
-                    'catch_prob_2': probs[1],
-                    'catch_prob_3': probs[2],
-                    'worker_level': worker_level,
-                    })
+                if ('wild_pokemon' in encounter_result['responses']['ENCOUNTER']
+                    and account_is_adult):
 
-                # Check for Unown's alphabetic character.
-                if pokemon_info['pokemon_id'] == 201:
-                    pokemon[p['encounter_id']]['form'] = pokemon_info[
-                        'pokemon_display'].get('form', None)
-
-                # Account Lv25 Get IVs & Moves
-                if account_is_adult:
+                    pokemon_info = encounter_result['responses'][
+                        'ENCOUNTER']['wild_pokemon']['pokemon_data']
                     pokemon[p['encounter_id']].update({
                         'individual_attack': pokemon_info.get(
                             'individual_attack', 0),
@@ -2181,32 +2183,24 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'move_2': pokemon_info['move_2'],
                         'height': pokemon_info['height_m'],
                         'weight': pokemon_info['weight_kg'],
-                    })
-
-                # Account Lv30 Get CPs & Catch Chance
-                if account_is_adult2:
-                    pokemon[p['encounter_id']].update({
-                        'cp': pokemon_info['cp'],
-                        'pokemon_level': pokemon_level,
+                        'gender': pokemon_info['pokemon_display']['gender'],
                     })
 
             # Catch pokemon to check for Ditto if --ditto enabled
             # Thanks to voxx!
             if scan_for_ditto:
-                pid = p['pokemon_data']['pokemon_id']
-                pname = get_pokemon_name(pid)
-                previous_id = p['pokemon_data']['pokemon_id']
-
                 log.info('%s may be a ditto. Triggering catch logic!', pname)
-
                 caught = catch(api, p['encounter_id'], p['spawn_point_id'], pid, inventory)
                 if caught.get('catch_status', None) == 'success' and 'pid' in caught and int(caught['pid']) == 132:
+                    previous_id = p['pokemon_data']['pokemon_id']
                     log.info('%s is a Ditto! Updating encounter ' +
                              'data with new pokemon_id and movesets.', pname)
                     pokemon[p['encounter_id']]['pokemon_id'] = 132
                     pokemon[p['encounter_id']].update({
                         'previous_id': previous_id
                     })
+                    pid = 132
+                    pname = "Ditto"
                     if account_is_adult:
                         pokemon[p['encounter_id']].update({
                             'move_1': caught['m1'],
@@ -2215,6 +2209,35 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             'weight': caught['weight'],
                             'gender': caught['gender']
                         })
+
+            # Pre-Scout certain Pokemon
+            if pid in args.pre_scout:
+                log.info("Pre-scouting a {}".format(pname))
+                scouted_pkm = pokemon[p['encounter_id']]
+                scout_result = perform_pre_scout(scouted_pkm)
+                if scout_result['success']:
+                    log.info("Successfully pre-scouted a level {} {} with CP {} with level {} scout.".format(
+                        scout_result['pokemon_level'], pname,
+                        scout_result['cp'], scout_result['worker_level']))
+                    # Updating Pokemon data
+                    scouted_pkm['individual_attack'] = scout_result['atk']
+                    scouted_pkm['individual_defense'] = scout_result['def']
+                    scouted_pkm['individual_stamina'] = scout_result['sta']
+                    scouted_pkm['move_1'] = scout_result['move_1']
+                    scouted_pkm['move_2'] = scout_result['move_2']
+                    scouted_pkm['rating_attack'] = scout_result['rating_attack']
+                    scouted_pkm['rating_defense'] = scout_result['rating_defense']
+                    scouted_pkm['height'] = scout_result['height']
+                    scouted_pkm['weight'] = scout_result['weight']
+                    scouted_pkm['gender'] = scout_result['gender']
+                    scouted_pkm['cp'] = scout_result['cp']
+                    scouted_pkm['pokemon_level'] = scout_result['pokemon_level']
+                    scouted_pkm['worker_level'] = scout_result['worker_level']
+                    scouted_pkm['catch_prob_1'] = scout_result['catch_prob_1']
+                    scouted_pkm['catch_prob_2'] = scout_result['catch_prob_2']
+                    scouted_pkm['catch_prob_3'] = scout_result['catch_prob_3']
+                else:
+                    log.warning("Failed pre-scouting {}: {}".format(pname, scout_result['error']))
 
             if args.webhooks:
                 pokemon_id = p['pokemon_data']['pokemon_id']
@@ -3134,5 +3157,14 @@ def database_migrate(db, old_ver):
             migrator.add_column('pokemon', 'form',
                                 SmallIntegerField(null=True))
         )
+
+    if old_ver < 20:
+        migrate(
+            migrator.add_column('pokemon', 'rating_attack',
+                                CharField(null=True, max_length=1)),
+            migrator.add_column('pokemon', 'rating_defense',
+                                CharField(null=True, max_length=1))
+        )
+
     # Always log that we're done.
     log.info('Schema upgrade complete.')
