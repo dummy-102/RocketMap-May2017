@@ -425,20 +425,20 @@ function scout(encounterId) {
                     $("#pkmLoc" + encounterIdLong).after(build_iv_div(encounterIdLong, data.atk, data.def, data.sta))
                     ivEl = $("#pkmIV" + encounterIdLong)
                 }
+                if (cpEl.length == 0) {
+                    ivEl.after(build_cp_div(encounterIdLong, data.cp, data.level))
+                    cpEl = $("#pkmCP" + encounterIdLong)
+                }
                 if (movesEl.length == 0) {
-                    ivEl.after(build_moves_div(encounterIdLong, data.move_1, data.move_2, data.rating_attack, data.rating_defense))
+                    cpEl.after(build_moves_div(encounterIdLong, data.move_1, data.move_2, data.rating_attack, data.rating_defense))
                     movesEl = $("#pkmMoves" + encounterIdLong)
                 }
                 if (genderEl.length == 0) {
                     movesEl.after(build_gender_div(encounterIdLong, data.weight, data.height, data.gender))
                     genderEl = $("#pkmGender" + encounterIdLong)
                 }
-                if (cpEl.length == 0) {
-                    genderEl.after(build_cp_div(encounterIdLong, data.cp, data.level))
-                    cpEl = $("#pkmCP" + encounterIdLong)
-                }
                 if (probsEl.length == 0) {
-                    cpEl.after(build_probs_div(encounterIdLong, data.catch_prob_1, data.catch_prob_2, data.catch_prob_3))
+                    genderEl.after(build_probs_div(encounterIdLong, data.catch_prob_1, data.catch_prob_2, data.catch_prob_3))
                 }
                 infoEl.hide()
 
@@ -449,6 +449,8 @@ function scout(encounterId) {
                 pkm['individual_stamina'] = data.sta
                 pkm['move_1'] = data.move_1
                 pkm['move_2'] = data.move_2
+                pkm['rating_attack'] = data.rating_attack
+                pkm['rating_defense'] = data.rating_defense
                 pkm['weight'] = data.weight
                 pkm['height'] = data.height
                 pkm['gender'] = data.gender
@@ -503,7 +505,7 @@ function build_gender_div(encounterIdLong, weight, height, gender) {
 function build_cp_div(encounterIdLong, cp, level) {
     return `
         <div id="pkmCP${encounterIdLong}">
-            CP: <b>${cp}</b> | Pokemon Level: <b>${level}</b>
+            Level: <b>${level}</b> | CP: <b>${cp}</b>
         </div>
         `
 }
@@ -531,13 +533,17 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
     var details = ''
     if (atk != null) {
         details += build_iv_div(encounterIdLong, atk, def, sta)
+    }
+    if (cp != null) {
+        details += build_cp_div(encounterIdLong, cp, level)
+    }
+    if (move1 != null) {
         details += build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense)
     }
     if (gender != null) {
         details += build_gender_div(encounterIdLong, weight, height, gender)
     }
-    if (cp != null) {
-        details += build_cp_div(encounterIdLong, cp, level)
+    if (prob1 != null) {
         details += build_probs_div(encounterIdLong, prob1, prob2, prob3)
     }
     var scoutLink = cp == null ? `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>` : ""
