@@ -338,7 +338,7 @@ def spin_pokestop(api, fort, step_location, inventory):
             awards = get_awarded_items(spin_response['responses']['FORT_SEARCH']['items_awarded'])
             log.info('Got {} items ({} balls) from Pokestop.'.format(awards['total'], awards['balls']))
         else:
-            log.info('POKESTOP ERROR')
+            log.info('No Items, ether too far away or something else...')
         #log.info('Got {} items ({} balls) from Pokestop.'.format(awards['total'], awards['balls']))
         inventory.update(get_player_inventory(spin_response))
         return True
