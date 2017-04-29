@@ -2149,7 +2149,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                 # If the host has L30s in the regular account pool, we
                 # can just use the current account.
-                if worker_level >= 10:
+                if worker_level >= 30:
                     hlvl_account = account
                     hlvl_api = api
                 else:
@@ -2234,7 +2234,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         encounter_level = get_player_level(encounter_result)
 
                         # User error?
-                        if encounter_level < 10:
+                        if encounter_level < 30:
                             raise Exception('Expected account of level 30 or'
                                             + ' higher, but account '
                                             + hlvl_account['username']
@@ -2272,7 +2272,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 })
 
                 # Only add CP if we're level 30+.
-                if encounter_level >= 10:
+                if encounter_level >= 30:
                     pokemon[p['encounter_id']][
                         'cp'] = pokemon_info.get('cp', None)
 

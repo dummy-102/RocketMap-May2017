@@ -469,6 +469,8 @@ function scout(encounterId) {
                 pkm['individual_stamina'] = data.sta
                 pkm['move_1'] = data.move_1
                 pkm['move_2'] = data.move_2
+                pkm['rating_attack'] = data.rating_attack
+                pkm['rating_defense'] = data.rating_defense
                 pkm['weight'] = data.weight
                 pkm['height'] = data.height
                 pkm['gender'] = data.gender
@@ -508,7 +510,7 @@ function build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_de
     var pMove2 = (moves[move2] !== undefined) ? i8ln(moves[move2]['name']) : 'gen/unknown'
     return `
         <div id="pkmMoves${encounterIdLong}">
-            Moves: <b>${pMove1}</b> / <b>${pMove2}</b> | (Att:<b>${rating_attack}</b> Def:<b>${rating_defense}</b>)
+            Moves: <b>${pMove1}</b> / <b>${pMove2}</b> | Rating: <b title="Moveset Attack Rating">${rating_attack}</b> / <b title="Moveset Defense Rating">${rating_defense}</b>
         </div>
         `
 }
@@ -602,6 +604,8 @@ function pokemonLabel(item) {
     var details = ''
     if (atk != null) {
         details += build_iv_div(encounterIdLong, atk, def, sta)
+    }
+    if (move1 != null) {
         details += build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense)
     }
     if (height != null) {

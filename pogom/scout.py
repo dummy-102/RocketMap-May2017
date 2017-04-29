@@ -193,7 +193,9 @@ def perform_scout(p, db_updates_queue=None):
                 'worker_level': result['worker_level'],
                 'catch_prob_1': result['catch_prob_1'],
                 'catch_prob_2': result['catch_prob_2'],
-                'catch_prob_3': result['catch_prob_3']
+                'catch_prob_3': result['catch_prob_3'],
+                'rating_attack': '?',
+                'rating_defense': '?'
             }
         }
         db_updates_queue.put((Pokemon, update_data))
@@ -241,7 +243,9 @@ def perform_scout_via_service(p, db_updates_queue=None):
                     'worker_level': result['worker_level'],
                     'catch_prob_1': response['catch_prob_1'],
                     'catch_prob_2': response['catch_prob_2'],
-                    'catch_prob_3': response['catch_prob_3']
+                    'catch_prob_3': response['catch_prob_3'],
+                    'rating_attack': response['rating_attack'],
+                    'rating_defense': response['rating_defense']
                 }
             }
             db_updates_queue.put((Pokemon, update_data))
