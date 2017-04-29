@@ -6,7 +6,7 @@ import logging
 
 from matplotlib.path import Path
 
-from .models import Geofence  # Why you no work? :-O
+from .models import Geofence
 
 log = logging.getLogger(__name__)
 
