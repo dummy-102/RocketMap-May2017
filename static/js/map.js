@@ -1035,7 +1035,6 @@ function setupGeofencePolygon(item) {
     var randomcolor = randomColor()
     // Random with color seed randomColor({hue: 'pink'})
     // Total random '#'+Math.floor(Math.random()*16777215).toString(16);
-    console.log(item.forbidden)
     if (item.forbidden === true) {
         randomcolor = randomColor({hue: 'red'})
     } else {

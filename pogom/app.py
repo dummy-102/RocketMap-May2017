@@ -17,7 +17,7 @@ from bisect import bisect_left
 
 from . import config
 from .models import (Pokemon, Gym, Pokestop, ScannedLocation,
-                     MainWorker, WorkerStatus, Token, Geofences)
+                     MainWorker, WorkerStatus, Token, Geofence)
 from .utils import now, dottedQuadToNum, get_blacklist
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -377,7 +377,7 @@ class Pogom(Flask):
                             oNeLat=oNeLat, oNeLng=oNeLng))
 
         if request.args.get('geofences', 'true') == 'true':
-            geofences_db = Geofences.get_geofences()
+            geofences_db = Geofence.get_geofences()
             log.debug('d[geofences]: \n\r{}'.format(geofences_db))
 
             d['geofences'] = {}

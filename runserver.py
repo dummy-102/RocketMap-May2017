@@ -22,8 +22,9 @@ from pogom.utils import get_args, now, extract_sprites
 from pogom.altitude import get_gmaps_altitude
 
 from pogom.search import search_overseer_thread
-from pogom.models import (init_database, create_tables, drop_tables,
-                          Pokemon, db_updater, clean_db_loop, write_geofences)
+from pogom.models import (init_database, create_tables, drop_tables, Pokemon,
+                          Geofence, db_updater, clean_db_loop)
+from pogom.geofence import Geofences
 from pogom.webhook import wh_updater
 
 from pogom.proxy import check_proxies, proxies_refresher
@@ -273,6 +274,9 @@ def main():
         t.daemon = True
         t.start()
 
+    # Create Geofences object and save into args
+    args.geofences = Geofences(args, Geofence, db_updates_queue)
+
     if not args.only_server:
 
         # Processing proxies if set (load from file, check and overwrite old
@@ -310,10 +314,6 @@ def main():
                                name='search-overseer', args=argset)
         search_thread.daemon = True
         search_thread.start()
-
-    if args.geofence_file or args.forbidden_area is not None:
-        write_geofences(
-            args.geofence_file, args.forbidden_area, db_updates_queue)
 
     if args.cors:
         CORS(app)
