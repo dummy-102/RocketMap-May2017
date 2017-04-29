@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import copy
 import time
 import logging
 
@@ -130,8 +129,11 @@ class Geofences:
         log.info('Found %d cells to geofence.', len(results))
         if self.geofences:
             startTime = time.time()
-            for i in range(len(results)-1,-1, -1):
-                point = {'lat': results[i][0], 'lon': results[i][1]}
+            for i in range(len(results)-1, -1, -1):
+                point = {
+                    'lat': results[i][0],
+                    'lon': results[i][1]
+                }
                 for geofence in self.geofences:
                     if not self.geofences[geofence]['forbidden']:  # Geofences
                         if not self.args.no_matplotlib:  # Matlplotlib
@@ -145,7 +147,7 @@ class Geofences:
                                     self.geofences[geofence]['polygon']):
                                 del results[i]
                     else:  # Forbidden areas
-                        if not self.args.no_matplotlib: # Matlplotlib
+                        if not self.args.no_matplotlib:  # Matlplotlib
                             if self.point_in_polygon_matplotlib(
                                     point,
                                     self.geofences[geofence]['polygon']):
@@ -164,9 +166,49 @@ class Geofences:
 
         return results
 
+    def geofence_ss_locations(self, locations):
+        log.info('Found %d spawnpoints to geofence.', len(locations))
+        if self.geofences:
+            startTime = time.time()
+            for i in range(len(locations)-1, -1, -1):
+                point = {
+                    'lat': locations[i]['lat'],
+                    'lon': locations[i]['lng']
+                }
+                for geofence in self.geofences:
+                    if not self.geofences[geofence]['forbidden']:  # Geofences
+                        if not self.args.no_matplotlib:  # Matlplotlib
+                            if not self.point_in_polygon_matplotlib(
+                                    point,
+                                    self.geofences[geofence]['polygon']):
+                                del locations[i]
+                        else:  # Don't use matplotlib
+                            if not self.point_in_polygon_custom(
+                                    point,
+                                    self.geofences[geofence]['polygon']):
+                                del locations[i]
+                    else:  # Forbidden areas
+                        if not self.args.no_matplotlib:  # Matlplotlib
+                            if self.point_in_polygon_matplotlib(
+                                    point,
+                                    self.geofences[geofence]['polygon']):
+                                del locations[i]
+                        else:  # Don't use matplotlib
+                            if self.point_in_polygon_custom(
+                                    point,
+                                    self.geofences[geofence]['polygon']):
+                                del locations[i]
+
+            endTime = time.time()
+            elapsedTime = endTime - startTime
+            log.info(
+                'Geofenced to %s spawnpoints in %.2f s',
+                len(locations), elapsedTime)
+
+        return locations
+
     def push_db_geofences(self):
         db_geofences = {}
-
         key = 0
         id = 0
         for key in range(1, len(self.geofences) + 1):
@@ -186,8 +228,20 @@ class Geofences:
         log.debug('Upserted %d geofence entries.', len(db_geofences))
 
     @staticmethod
-    def point_in_polygon_custom(point, polygon):
+    def point_in_polygon_matplotlib(point, polygon):
+        pointTouple = (point['lat'], point['lon'])
+        polygonToupleList = []
+        for c in polygon:
+            coordinateTouple = (c['lat'], c['lon'])
+            polygonToupleList.append(coordinateTouple)
 
+        polygonToupleList.append(polygonToupleList[0])
+        path = Path(polygonToupleList)
+
+        return path.contains_point(pointTouple)
+
+    @staticmethod
+    def point_in_polygon_custom(point, polygon):
         # Initialize first coordinate as default.
         maxLat = polygon[0]['lat']
         minLat = polygon[0]['lat']
@@ -223,16 +277,3 @@ class Geofences:
             lat1, lon1 = lat2, lon2
 
         return inside
-
-    @staticmethod
-    def point_in_polygon_matplotlib(point, polygon):
-        pointTouple = (point['lat'], point['lon'])
-        polygonToupleList = []
-        for c in polygon:
-            coordinateTouple = (c['lat'], c['lon'])
-            polygonToupleList.append(coordinateTouple)
-
-        polygonToupleList.append(polygonToupleList[0])
-        path = Path(polygonToupleList)
-
-        return path.contains_point(pointTouple)

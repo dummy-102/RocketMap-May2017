@@ -1071,8 +1071,10 @@ function polygonCenter(polygon) {
     var Y = 0
     var Z = 0
     polygon.getPath().forEach(function (vertex, inex) {
-        var lat = vertex.lat()
-        var lng = vertex.lng()
+        var lat
+        var lng
+        lat = vertex.lat()
+        lng = vertex.lng()
         lat = lat * Math.PI / 180
         lng = lng * Math.PI / 180
         X += Math.cos(lat) * Math.cos(lng)
@@ -1535,7 +1537,9 @@ function updateGeofences(geofences) {
         geofencesSet = false
         return false
     } else if (Store.get('showGeofences') && geofencesSet === false) {
-        for (var key in geofences) {
+        var key
+        i = 0
+        for (key in geofences) {
             polygons[i] = setupGeofencePolygon(geofences[key])
             i++
         }

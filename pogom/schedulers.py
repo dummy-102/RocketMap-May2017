@@ -278,7 +278,6 @@ class HexSearch(BaseScheduler):
         # Geofence results.
         if self.args.geofences.is_enabled():
             results = self.args.geofences.geofence_results(results)
-            log.debug('Geofenced results (%s): %s', len(results), results)
 
         # Add the required appear and disappear times.
         locationsZeroed = []
@@ -380,6 +379,15 @@ class SpawnScan(BaseScheduler):
             log.debug('Loading spawn points from database')
             self.locations = Pokemon.get_spawnpoints_in_hex(
                 self.scan_location, self.args.step_limit)
+
+        # Geofence spawnpoints
+        if self.args.geofences.is_enabled():
+            self.locations = self.args.geofences.geofence_ss_locations(
+                self.locations)
+            log.debug(
+                'Geofenced spawns (%s): %s',
+                len(self.locations),
+                self.locations)
 
         # Well shit...
         # if not self.locations:
@@ -595,7 +603,6 @@ class SpeedScan(HexSearch):
         # Geofence results
         if self.args.geofences.is_enabled():
             results = self.args.geofences.geofence_results(results)
-            log.debug('Geofenced results (%s): %s', len(results), results)
 
         generated_locations = []
         for step, location in enumerate(results):
