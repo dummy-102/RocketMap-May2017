@@ -377,26 +377,27 @@ class Pogom(Flask):
             geofence = {}
             lastGeofenceID = 0
 
-            for g in geofences_db:
-                if (g['geofence_id'] != lastGeofenceID):
-                    if (lastGeofenceID > 0):
-                        # Push current geofence, we start a new one after.
-                        d['geofences'][geofence['name']] = geofence
+            if geofences_db:
+                for g in geofences_db:
+                    if (g['geofence_id'] != lastGeofenceID):
+                        if (lastGeofenceID > 0):
+                            # Push current geofence, we start a new one after.
+                            d['geofences'][geofence['name']] = geofence
 
-                    geofence = {
-                        'forbidden': g['forbidden'],
-                        'name': g['name'],
-                        'coordinates': []
+                        geofence = {
+                            'forbidden': g['forbidden'],
+                            'name': g['name'],
+                            'coordinates': []
+                        }
+
+                    coordinate = {
+                        'lat': g['latitude'],
+                        'lng': g['longitude']
                     }
+                    geofence['coordinates'].append(coordinate)
+                    lastGeofenceID = g['geofence_id']
 
-                coordinate = {
-                    'lat': g['latitude'],
-                    'lng': g['longitude']
-                }
-                geofence['coordinates'].append(coordinate)
-                lastGeofenceID = g['geofence_id']
-
-            d['geofences'][geofence['name']] = geofence
+                d['geofences'][geofence['name']] = geofence
 
         if request.args.get('status', 'false') == 'true':
             args = get_args()

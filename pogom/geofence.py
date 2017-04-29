@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import copy
 import time
 import logging
 
@@ -14,17 +15,19 @@ log = logging.getLogger(__name__)
 class Geofences:
     def __init__(self, args, db_model, db_updates_queue):
         self.args = args
+        self.geofences = {}
+        self.db_model = db_model
+        self.db_updates_queue = db_updates_queue
 
-        if self.args.geofence_file or self.args.forbidden_area is not None:
+        self.db_model.clear_all()  # Remove old geofences from DB.
+
+        # Initialize object
+        if self.args.geofence_file or self.args.forbidden_file:
             self.geofence_file = self.args.geofence_file
             self.forbidden_file = self.args.forbidden_file
-            self.db_model = db_model
-            self.db_updates_queue = db_updates_queue
 
             self.parse_geofences()
             self.push_db_geofences()
-        else:
-            self.geofences = {}
 
     def get_geofences(self):
         return self.geofences
@@ -38,6 +41,7 @@ class Geofences:
 
     def parse_geofences(self):
         geofence_data = {}
+        lenGeofenceData = 0
         name = ''
         log.info('Looking for geofenced or forbidden areas')
 
@@ -124,42 +128,41 @@ class Geofences:
 
     def geofence_results(self, results):
         log.info('Found %d cells to geofence.', len(results))
-        results_geofenced = []
         if self.geofences:
             startTime = time.time()
-            for result in results:
-                point = {'lat': result[0], 'lon': result[1]}
+            for i in range(len(results)-1,-1, -1):
+                point = {'lat': results[i][0], 'lon': results[i][1]}
                 for geofence in self.geofences:
-                    if not self.geofences[geofence]['forbidden']:
-                        if not self.args.no_matplotlib:
+                    if not self.geofences[geofence]['forbidden']:  # Geofences
+                        if not self.args.no_matplotlib:  # Matlplotlib
+                            if not self.point_in_polygon_matplotlib(
+                                    point,
+                                    self.geofences[geofence]['polygon']):
+                                del results[i]
+                        else:  # Don't use matplotlib
+                            if not self.point_in_polygon_custom(
+                                    point,
+                                    self.geofences[geofence]['polygon']):
+                                del results[i]
+                    else:  # Forbidden areas
+                        if not self.args.no_matplotlib: # Matlplotlib
                             if self.point_in_polygon_matplotlib(
                                     point,
                                     self.geofences[geofence]['polygon']):
-                                results_geofenced.append(result)
-                        else:
+                                del results[i]
+                        else:  # Don't use matplotlib
                             if self.point_in_polygon_custom(
                                     point,
                                     self.geofences[geofence]['polygon']):
-                                results_geofenced.append(result)
-                    if self.geofences[geofence]['forbidden']:
-                        if not self.args.no_matplotlib:
-                            if self.point_in_polygon_matplotlib(
-                                    point,
-                                    self.geofences[geofence]['polygon']):
-                                results_geofenced.pop(len(results_geofenced)-1)
-                        else:
-                            if self.point_in_polygon_custom(
-                                    point,
-                                    self.geofences[geofence]['polygon']):
-                                results_geofenced.pop(len(results_geofenced)-1)
+                                del results[i]
 
             endTime = time.time()
             elapsedTime = endTime - startTime
             log.info(
                 'Geofenced to %s cells in %.2f s',
-                len(results_geofenced), elapsedTime)
+                len(results), elapsedTime)
 
-        return results_geofenced
+        return results
 
     def push_db_geofences(self):
         db_geofences = {}
@@ -178,8 +181,6 @@ class Geofences:
                     'latitude': self.geofences[key]['polygon'][coords]['lat'],
                     'longitude': self.geofences[key]['polygon'][coords]['lon']
                 }
-
-        self.db_model.clear_all()  # Remove old geofences from DB.
 
         self.db_updates_queue.put((self.db_model, db_geofences))
         log.debug('Upserted %d geofence entries.', len(db_geofences))
