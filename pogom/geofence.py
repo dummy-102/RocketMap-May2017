@@ -6,19 +6,18 @@ import logging
 
 from matplotlib.path import Path
 
-# from .models import Geofence  # Why you no work? :-O
+from .models import Geofence  # Why you no work? :-O
 
 log = logging.getLogger(__name__)
 
 
 class Geofences:
-    def __init__(self, args, db_model, db_updates_queue):
+    def __init__(self, args, db_updates_queue):
         self.args = args
         self.geofences = {}
-        self.db_model = db_model
         self.db_updates_queue = db_updates_queue
 
-        self.db_model.clear_all()  # Remove old geofences from DB.
+        Geofence.clear_all()  # Remove old geofences from DB.
 
         # Initialize object
         if self.args.geofence_file or self.args.forbidden_file:
@@ -224,7 +223,7 @@ class Geofences:
                     'longitude': self.geofences[key]['polygon'][coords]['lon']
                 }
 
-        self.db_updates_queue.put((self.db_model, db_geofences))
+        self.db_updates_queue.put((Geofence, db_geofences))
         log.debug('Upserted %d geofence entries.', len(db_geofences))
 
     @staticmethod

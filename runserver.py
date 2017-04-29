@@ -22,8 +22,8 @@ from pogom.utils import get_args, now, extract_sprites
 from pogom.altitude import get_gmaps_altitude
 
 from pogom.search import search_overseer_thread
-from pogom.models import (init_database, create_tables, drop_tables, Pokemon,
-                          Geofence, db_updater, clean_db_loop)
+from pogom.models import (init_database, create_tables, drop_tables,
+                          Pokemon, db_updater, clean_db_loop)
 from pogom.geofence import Geofences
 from pogom.webhook import wh_updater
 
@@ -274,7 +274,7 @@ def main():
         t.start()
 
     # Create Geofences object and save into args
-    args.geofences = Geofences(args, Geofence, db_updates_queue)
+    args.geofences = Geofences(args, db_updates_queue)
 
     if not args.only_server:
 
