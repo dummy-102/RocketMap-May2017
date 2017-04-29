@@ -2136,11 +2136,17 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'rating_defense': None,
             }
 
+            # Determine if to scan for Ditto
+            # Note that scanning for Ditto requires an encounter beforehand
+            is_ditto_candidate = pid in ditto_dex
+            have_balls = inventory.get('balls', 0) > 0
+            scan_for_ditto = not account_is_adult and args.ditto and is_ditto_candidate and have_balls
+
             # Scan for IVs/CP and moves.
             pokemon_id = p['pokemon_data']['pokemon_id']
             encounter_result = None
 
-            if args.encounter and (pokemon_id in args.enc_whitelist):
+            if args.encounter or (pokemon_id in args.enc_whitelist) or scan_for_ditto:
                 time.sleep(args.encounter_delay)
 
                 hlvl_account = None
@@ -2149,13 +2155,13 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                 # If the host has L30s in the regular account pool, we
                 # can just use the current account.
-                if worker_level >= 30:
+                if worker_level >= 1:
                     hlvl_account = account
                     hlvl_api = api
                 else:
                     # Get account to use for IV or CP scanning.
-                    if pokemon_id in args.enc_whitelist:
-                        hlvl_account = account_sets.next('30', step_location)
+                    #if pokemon_id in args.enc_whitelist:
+                    hlvl_account = account_sets.next('30', step_location)
 
                 # If we don't have an API object yet, it means we didn't re-use
                 # an old one, so we're using AccountSet.
@@ -2164,9 +2170,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # If we didn't get an account, we can't encounter.
                 if hlvl_account:
                     # Logging.
-                    log.debug('Encountering Pokémon ID %s with account %s'
+                    log.info('Encountering  %s with account %s'
                               + ' at %s, %s.',
-                              pokemon_id,
+                              pname,
                               hlvl_account['username'],
                               step_location[0],
                               step_location[1])
@@ -2221,104 +2227,50 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     responses = encounter_result['responses']
 
                     # Check for captcha
-                    captcha_url = responses['CHECK_CHALLENGE']['challenge_url']
-                    # Throw warning but finish parsing
+                    captcha_url = encounter_result['responses'][
+                            'CHECK_CHALLENGE']['challenge_url']
                     if len(captcha_url) > 1:
-                        # Flag account.
-                        hlvl_account['captcha'] = True
-                        log.info('Level %s account %s encountered a captcha.',
-                                 encounter_level,
-                                 hlvl_account['username'])
-                    else:
-                        # Update level indicator before we clear the response.
-                        encounter_level = get_player_level(encounter_result)
-
-                        # User error?
-                        if encounter_level < 30:
-                            raise Exception('Expected account of level 30 or'
-                                            + ' higher, but account '
-                                            + hlvl_account['username']
-                                            + ' is only level '
-                                            + encounter_level + '.')
-
-                    # We're done with the encounter. If it's from an
-                    # AccountSet, release account back to the pool.
+                        return {
+                            'count': 0,
+                            'bad_scan': True,
+                            'captcha': True,
+                            'failed': 'Encounter'
+                        }
                     if using_accountset:
                         account_sets.release(hlvl_account)
 
-                    # Clear the response for memory management.
-                    encounter_result = clear_dict_response(encounter_result)
-                else:
-                    log.error('No L30 accounts are available, please'
-                              + ' consider adding more. Skipping encounter.')
-
-
             if (encounter_result is not None and 'wild_pokemon'
                     in encounter_result['responses']['ENCOUNTER']):
+
+                # Get Pokemon Info
                 pokemon_info = encounter_result['responses'][
                     'ENCOUNTER']['wild_pokemon']['pokemon_data']
+
+                # Get Prob Chances
+                probs = encounter_result['responses'][
+                    'ENCOUNTER']['capture_probability']['capture_probability']
+
+                # Get Pokemon Level Via CP
+                pokemon_level = calc_pokemon_level(pokemon_info)
+
+                # Check For Standard Information
                 pokemon[p['encounter_id']].update({
-                    'individual_attack': pokemon_info.get(
-                        'individual_attack', 0),
-                    'individual_defense': pokemon_info.get(
-                        'individual_defense', 0),
-                    'individual_stamina': pokemon_info.get(
-                        'individual_stamina', 0),
-                    'move_1': pokemon_info['move_1'],
-                    'move_2': pokemon_info['move_2'],
                     'height': pokemon_info['height_m'],
                     'weight': pokemon_info['weight_kg'],
-                    'gender': pokemon_info['pokemon_display']['gender']
+                    'gender': pokemon_info['pokemon_display']['gender'],
+                    'catch_prob_1': probs[0],
+                    'catch_prob_2': probs[1],
+                    'catch_prob_3': probs[2],
+                    'worker_level': worker_level,
                 })
 
-                # Only add CP if we're level 30+.
-                if encounter_level >= 30:
-                    pokemon[p['encounter_id']][
-                        'cp'] = pokemon_info.get('cp', None)
-
-                # Check for Unown's alphabetic character.
+                # Check For Unown's Alphabetic Character.
                 if pokemon_info['pokemon_id'] == 201:
                     pokemon[p['encounter_id']]['form'] = pokemon_info[
                         'pokemon_display'].get('form', None)
 
-            # Determine if to scan for Ditto
-            # Note that scanning for Ditto requires an encounter beforehand
-            is_ditto_candidate = pid in ditto_dex
-            have_balls = inventory.get('balls', 0) > 0
-            scan_for_ditto = not account_is_adult and args.ditto and is_ditto_candidate and have_balls
-
-            # Scan for IVs and moves.
-            perform_regular_encounter = args.encounter and (
-                pid in args.enc_whitelist)
-
-            if perform_regular_encounter or scan_for_ditto:
-                time.sleep(args.encounter_delay)
-                # Setup encounter request envelope.
-                req = api.create_request()
-                req.encounter(
-                    encounter_id=p['encounter_id'],
-                    spawn_point_id=p['spawn_point_id'],
-                    player_latitude=step_location[0],
-                    player_longitude=step_location[1])
-                req.check_challenge()
-                req.get_hatched_eggs()
-                req.get_inventory()
-                req.check_awarded_badges()
-                req.download_settings()
-                req.get_buddy_walked()
-                encounter_result = req.call()
-                encounter_result = clear_dict_response(encounter_result)
-
-                captcha_url = encounter_result['responses']['CHECK_CHALLENGE'][
-                    'challenge_url']  # Check for captcha
-                if len(captcha_url) > 1:  # Throw warning but finish parsing
-                    log.debug('Account encountered a reCaptcha.')
-
-                if ('wild_pokemon' in encounter_result['responses']['ENCOUNTER']
-                    and account_is_adult):
-
-                    pokemon_info = encounter_result['responses'][
-                        'ENCOUNTER']['wild_pokemon']['pokemon_data']
+                # Check For IV/CP If Account Is 30 Plus
+                if encounter_level >= 30:
                     pokemon[p['encounter_id']].update({
                         'individual_attack': pokemon_info.get(
                             'individual_attack', 0),
@@ -2331,21 +2283,25 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'height': pokemon_info['height_m'],
                         'weight': pokemon_info['weight_kg'],
                         'gender': pokemon_info['pokemon_display']['gender'],
+                        'catch_prob_1': probs[0],
+                        'catch_prob_2': probs[1],
+                        'catch_prob_3': probs[2],
+                        'cp': pokemon_info['cp'],
+                        'worker_level': worker_level,
                     })
 
             # Catch pokemon to check for Ditto if --ditto enabled
             # Thanks to voxx!
             if scan_for_ditto:
                 log.info('%s may be a ditto. Triggering catch logic!', pname)
-                caught = catch(api, p['encounter_id'], p['spawn_point_id'], pid, inventory)
+                caught = catch(hlvl_api, p['encounter_id'], p['spawn_point_id'], pid, inventory)
                 if caught.get('catch_status', None) == 'success' and 'pid' in caught and int(caught['pid']) == 132:
-                    previous_id = p['pokemon_data']['pokemon_id']
                     log.info('%s is a Ditto! Updating encounter ' +
                              'data with new pokemon_id and movesets.', pname)
-                    pokemon[p['encounter_id']]['pokemon_id'] = 132
                     pokemon[p['encounter_id']].update({
-                        'previous_id': previous_id
+                        'previous_id': p['pokemon_data']['pokemon_id']
                     })
+                    pokemon[p['encounter_id']]['pokemon_id'] = 132
                     pid = 132
                     pname = "Ditto"
                     if account_is_adult:
@@ -2385,6 +2341,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     scouted_pkm['catch_prob_3'] = scout_result['catch_prob_3']
                 else:
                     log.warning("Failed pre-scouting {}: {}".format(pname, scout_result['error']))
+
+            # Clear the response for memory management.
+            encounter_result = clear_dict_response(encounter_result)
 
             if args.webhooks:
                 pokemon_id = p['pokemon_data']['pokemon_id']

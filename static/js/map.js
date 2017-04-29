@@ -649,6 +649,7 @@ function pokemonLabel(item) {
             Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
         </div>
         ${details}
+        ${previous_id}
         <div id="scoutInfo${encounterIdLong}" style="display:none;"></div>
         <div>
             <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
