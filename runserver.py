@@ -247,7 +247,6 @@ def main():
     # Thread(s) to process database updates.
     for i in range(args.db_threads):
         log.debug('Starting db-updater worker thread %d', i)
-        log.debug('db_updates_queue: %s', db_updates_queue)
         t = Thread(target=db_updater, name='db-updater-{}'.format(i),
                    args=(args, db_updates_queue, db))
         t.daemon = True
