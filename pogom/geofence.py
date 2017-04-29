@@ -154,7 +154,6 @@ class Geofences:
             log.info(
                 'Geofenced to %s cells in %.2f s',
                 len(results_geofenced), elapsedTime)
-            log.debug('Geofenced results: \n\r{}'.format(results_geofenced))
 
         return results_geofenced
 
@@ -175,36 +174,26 @@ class Geofences:
                     'latitude': self.geofences[key]['polygon'][coords]['lat'],
                     'longitude': self.geofences[key]['polygon'][coords]['lon']
                 }
-                log.debug('Parsed geofence dict entry: \n\r{}'.format(
-                    db_geofences[id]))
 
         self.db_model.clear_all()  # Remove old geofences from DB
 
         self.db_updates_queue.put((self.db_model, db_geofences))
-        log.debug('Parsed geofence dict: \n\r{}'.format(db_geofences))
-        log.debug('Upserted geofence  %d entries.', len(db_geofences))
+        log.debug('Upserted %d geofence entries.', len(db_geofences))
 
     @staticmethod
     def point_in_polygon_custom(point, polygon):
-        log.debug('Point: %s', point)
-        log.debug('Polygon: \n\r{}'.format(polygon))
 
+        # Initialize first coordinate as default.
         maxLat = polygon[0]['lat']
         minLat = polygon[0]['lat']
         maxLon = polygon[0]['lon']
         minLon = polygon[0]['lon']
-        log.debug(
-            'Default Max/Min Lat and Lon: %s/%s, %s/%s',
-            maxLat, minLat, maxLon, minLon)
 
         for coords in polygon:
             maxLat = max(coords['lat'], maxLat)
             minLat = min(coords['lat'], minLat)
             maxLon = max(coords['lon'], maxLon)
             minLon = min(coords['lon'], minLon)
-        log.debug(
-            'Max/Min Lat and Lon: %s/%s, %s/%s',
-            maxLat, minLat, maxLon, minLon)
 
         # Quickcheck
         if ((point['lat'] > maxLat) or (point['lat'] < minLat) or

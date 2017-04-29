@@ -370,6 +370,9 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
     '''
     account_sets.create_set('30', args.accounts_L30)
 
+    # Debug.
+    log.debug('Added %s accounts to the L30 pool.', args.accounts_L30)
+
     # Create a list for failed accounts.
     account_failures = []
     # Create a double-ended queue for captcha'd accounts

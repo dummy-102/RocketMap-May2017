@@ -219,7 +219,6 @@ class Pogom(Flask):
         lastslocs = request.args.get('lastslocs')
         lastspawns = request.args.get('lastspawns')
         lastgeofences = request.args.get('lastgeofences')
-        log.debug('Argument lastgeofences: \n\r{}'.format(lastgeofences))
 
         if request.args.get('luredonly', 'true') == 'true':
             luredonly = True
@@ -244,7 +243,6 @@ class Pogom(Flask):
 
         if request.args.get('geofences', 'true') == 'true':
             d['lastgeofences'] = request.args.get('geofences', 'true')
-            log.debug('d[lastgeofences]: \n\r{}'.format(d['lastgeofences']))
 
         # If old coords are not equal to current coords we have moved/zoomed!
         if (oSwLng < swLng and oSwLat < swLat and
@@ -378,20 +376,16 @@ class Pogom(Flask):
 
         if request.args.get('geofences', 'true') == 'true':
             geofences_db = Geofence.get_geofences()
-            log.debug('d[geofences]: \n\r{}'.format(geofences_db))
 
             d['geofences'] = {}
             geofence = {}
             lastGeofenceID = 0
 
             for g in geofences_db:
-                log.debug('g: \n\r{}'.format(g))
                 if (g['geofence_id'] != lastGeofenceID):
                     if (lastGeofenceID > 0):
-                        # Push current geofence, we start a new one after
+                        # Push current geofence, we start a new one after.
                         d['geofences'][geofence['name']] = geofence
-                        log.debug('d[geofences]: \n\r{}'.format(
-                            d['geofences']))
 
                     geofence = {
                         'forbidden': g['forbidden'],
@@ -406,8 +400,7 @@ class Pogom(Flask):
                 geofence['coordinates'].append(coordinate)
                 lastGeofenceID = g['geofence_id']
 
-            d['geofences'][geofence['name']] = geofence  # Push last geofence
-            log.debug('d[geofences]: \n\r{}'.format(d['geofences']))
+            d['geofences'][geofence['name']] = geofence
 
         if request.args.get('status', 'false') == 'true':
             args = get_args()
