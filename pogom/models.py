@@ -1765,7 +1765,7 @@ class Geofence(BaseModel):
 
     @staticmethod
     def clear_all():
-        query = DeleteQuery(Geofence).execute()
+        DeleteQuery(Geofence).execute()
 
     @staticmethod
     def get_geofences():

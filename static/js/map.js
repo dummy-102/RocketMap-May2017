@@ -1049,7 +1049,7 @@ function setupGeofencePolygon(item) {
         strokeWeight: 2,
         fillColor: randomcolor,
         fillOpacity: 0.5
-    });
+    })
 
     var markerPosition = polygonCenter(polygon)
 
@@ -1064,30 +1064,29 @@ function setupGeofencePolygon(item) {
     return polygon
 }
 
-function polygonCenter(polygon){
+function polygonCenter(polygon) {
     var hyp, Lat, Lng
 
     var X = 0
     var Y = 0
     var Z = 0
-	polygon.getPath().forEach(function (vertex, inex) {
-        var lat,lng,
-        lat = vertex.lat()
-		lng = vertex.lng()
-	    lat = lat * Math.PI/180
-		lng = lng * Math.PI/180
-		X += Math.cos(lat) * Math.cos(lng)
-		Y += Math.cos(lat) * Math.sin(lng)
-		Z += Math.sin(lat)
-	})
+    polygon.getPath().forEach(function (vertex, inex) {
+        var lat = vertex.lat()
+        var lng = vertex.lng()
+        lat = lat * Math.PI / 180
+        lng = lng * Math.PI / 180
+        X += Math.cos(lat) * Math.cos(lng)
+        Y += Math.cos(lat) * Math.sin(lng)
+        Z += Math.sin(lat)
+    })
 
-	hyp = Math.sqrt(X * X + Y * Y)
-	Lat = Math.atan2(Z, hyp)
-	Lng = Math.atan2(Y, X)
-	Lat = Lat * 180/Math.PI
-	Lng = Lng * 180/Math.PI
+    hyp = Math.sqrt(X * X + Y * Y)
+    Lat = Math.atan2(Z, hyp)
+    Lng = Math.atan2(Y, X)
+    Lat = Lat * 180 / Math.PI
+    Lng = Lng * 180 / Math.PI
 
-	return new google.maps.LatLng(Lat, Lng)
+    return new google.maps.LatLng(Lat, Lng)
 }
 
 function clearSelection() {
@@ -1527,18 +1526,16 @@ function updateSpawnPoints() {
 }
 
 function updateGeofences(geofences) {
+    var i
     if (!Store.get('showGeofences') && geofencesSet === true) {
-        var i
         for (i = 0; i < polygons.length; i++) {
             polygons[i].setMap(null)
         }
         polygons = []
         geofencesSet = false
         return false
-    } else if(Store.get('showGeofences') && geofencesSet === false) {
-        var key
-        var i = 0
-        for (key in geofences) {
+    } else if (Store.get('showGeofences') && geofencesSet === false) {
+        for (var key in geofences) {
             polygons[i] = setupGeofencePolygon(geofences[key])
             i++
         }
@@ -2477,7 +2474,7 @@ $(function () {
         }
     })
 
-    $('#geofences-switch').change(function() {
+    $('#geofences-switch').change(function () {
         Store.set('showGeofences', this.checked)
         updateMap()
     })

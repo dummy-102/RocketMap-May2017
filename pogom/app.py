@@ -218,7 +218,6 @@ class Pogom(Flask):
         lastpokemon = request.args.get('lastpokemon')
         lastslocs = request.args.get('lastslocs')
         lastspawns = request.args.get('lastspawns')
-        lastgeofences = request.args.get('lastgeofences')
 
         if request.args.get('luredonly', 'true') == 'true':
             luredonly = True
@@ -240,9 +239,6 @@ class Pogom(Flask):
 
         if request.args.get('spawnpoints', 'false') == 'true':
             d['lastspawns'] = request.args.get('spawnpoints', 'false')
-
-        if request.args.get('geofences', 'true') == 'true':
-            d['lastgeofences'] = request.args.get('geofences', 'true')
 
         # If old coords are not equal to current coords we have moved/zoomed!
         if (oSwLng < swLng and oSwLat < swLat and

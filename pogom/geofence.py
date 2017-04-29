@@ -6,7 +6,7 @@ import logging
 
 from matplotlib.path import Path
 
-#from .models import Geofence  # Why you no work? :-O
+# from .models import Geofence  # Why you no work? :-O
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class Geofences:
         else:
             self.geofences = {}
 
-    def get_geofences():
+    def get_geofences(self):
         return self.geofences
 
     def is_enabled(self):
@@ -46,12 +46,12 @@ class Geofences:
             j = 0
             startTime = time.time()
 
-            # Read coordinates of geofences from file
+            # Read coordinates of geofences from file.
             with open(self.geofence_file) as f:
                 for line in f:
                     if len(line.strip()) == 0:
                         continue
-                    elif line.startswith("["):  # Find new areas through comments
+                    elif line.startswith("["):
                         i = i + 1
                         nameLine = line.strip()
                         nameLine = nameLine.replace("[", "")
@@ -85,12 +85,12 @@ class Geofences:
             j = 0
             startTime = time.time()
 
-            # Read coordinates of forbidden areas from file
+            # Read coordinates of forbidden areas from file.
             with open(self.forbidden_file) as f:
                 for line in f:
                     if len(line.strip()) == 0:
                         continue
-                    elif line.startswith("["):  # Find new areas through comments
+                    elif line.startswith("["):
                         i = i + 1
                         nameLine = line.strip()
                         nameLine = nameLine.replace("[", "")
@@ -131,22 +131,26 @@ class Geofences:
                 point = {'lat': result[0], 'lon': result[1]}
                 for geofence in self.geofences:
                     if not self.geofences[geofence]['forbidden']:
-                        if not self.args.no_matplotlib:  # Argument matplotlib
+                        if not self.args.no_matplotlib:
                             if self.point_in_polygon_matplotlib(
-                                    point, self.geofences[geofence]['polygon']):
+                                    point,
+                                    self.geofences[geofence]['polygon']):
                                 results_geofenced.append(result)
                         else:
                             if self.point_in_polygon_custom(
-                                    point, self.geofences[geofence]['polygon']):
+                                    point,
+                                    self.geofences[geofence]['polygon']):
                                 results_geofenced.append(result)
                     if self.geofences[geofence]['forbidden']:
-                        if not self.args.no_matplotlib:  # Argument matplotlib
+                        if not self.args.no_matplotlib:
                             if self.point_in_polygon_matplotlib(
-                                    point, self.geofences[geofence]['polygon']):
+                                    point,
+                                    self.geofences[geofence]['polygon']):
                                 results_geofenced.pop(len(results_geofenced)-1)
                         else:
                             if self.point_in_polygon_custom(
-                                    point, self.geofences[geofence]['polygon']):
+                                    point,
+                                    self.geofences[geofence]['polygon']):
                                 results_geofenced.pop(len(results_geofenced)-1)
 
             endTime = time.time()
@@ -175,7 +179,7 @@ class Geofences:
                     'longitude': self.geofences[key]['polygon'][coords]['lon']
                 }
 
-        self.db_model.clear_all()  # Remove old geofences from DB
+        self.db_model.clear_all()  # Remove old geofences from DB.
 
         self.db_updates_queue.put((self.db_model, db_geofences))
         log.debug('Upserted %d geofence entries.', len(db_geofences))
@@ -195,7 +199,6 @@ class Geofences:
             maxLon = max(coords['lon'], maxLon)
             minLon = min(coords['lon'], minLon)
 
-        # Quickcheck
         if ((point['lat'] > maxLat) or (point['lat'] < minLat) or
                 (point['lon'] > maxLon) or (point['lon'] < minLon)):
             return False
