@@ -400,6 +400,15 @@ function openMapDirections(lat, lng) { // eslint-disable-line no-unused-vars
     window.open(url, '_blank')
 }
 
+// Converts timestamp to readable String
+function getDateStr(t) {
+    var dateStr = 'Unknown'
+    if (t) {
+        dateStr = moment(t).format('YYYY-MM-DD hh:mm:ss A')
+    }
+    return dateStr
+}
+
 function scout(encounterId) {
     var encounterIdLong = atob(encounterId)
     var infoEl = $("#scoutInfo" + encounterIdLong)
@@ -487,15 +496,6 @@ function scout(encounterId) {
     })
 }
 
-// Converts timestamp to readable String
-function getDateStr(t) {
-    var dateStr = 'Unknown'
-    if (t) {
-        dateStr = moment(t).format('YYYY-MM-DD HH:mm:ss')
-    }
-    return dateStr
-}
-
 function build_iv_div(encounterIdLong, atk, def, sta) {
     var iv = getIv(atk, def, sta)
     return `
@@ -566,6 +566,58 @@ function build_probs_div(encounterIdLong, prob1, prob2, prob3) {
         `
 }
 
+function build_previous_id_div(encounterIdLong, previous_id) {
+    if (previous_id == 16) {
+      return `
+          <div id="pkmWorker${encounterIdLong}">
+            <font size="0.5">(Pidgy)</font>
+          </div>
+          `
+    }
+    if (previous_id == 19) {
+      return `
+          <div id="pkmWorker${encounterIdLong}">
+            <font size="0.5">(Pidgy)</font>
+          </div>
+          `
+    }
+    if (previous_id == 41) {
+      return `
+          <div id="pkmWorker${encounterIdLong}">
+            <font size="0.5">(Rattata)</font>
+          </div>
+          `
+    }
+    if (previous_id == 129) {
+      return `
+          <div id="pkmWorker${encounterIdLong}">
+            <font size="0.5">(Zubat)</font>
+          </div>
+          `
+    }
+    if (previous_id == 161) {
+      return `
+          <div id="pkmWorker${encounterIdLong}">
+            <font size="0.5">(Magikarp)</font>
+          </div>
+          `
+    }
+    if (previous_id == 163) {
+      return `
+          <div id="pkmWorker${encounterIdLong}">
+            <font size="0.5">(Hoothoot)</font>
+          </div>
+          `
+    }
+    if (previous_id == 193) {
+      return `
+          <div id="pkmWorker${encounterIdLong}">
+            <font size="0.5">(Sentret)</font>
+          </div>
+          `
+    }
+}
+
 function pokemonLabel(item) {
     var name = item['pokemon_name']
     var rarityDisplay = item['pokemon_rarity'] ? '(' + item['pokemon_rarity'] + ')' : ''
@@ -577,6 +629,7 @@ function pokemonLabel(item) {
     var longitude = item['longitude']
     var disappearTime = item['disappear_time']
     var disappearDate = new Date(disappearTime)
+    var disappearStr = getDateStr(disappearDate)
     var atk = item['individual_attack']
     var def = item['individual_defense']
     var sta = item['individual_stamina']
@@ -626,6 +679,10 @@ function pokemonLabel(item) {
     if (worker_level != null) {
         details += build_worker_level_div(encounterIdLong, worker_level)
     }
+    if (id === 132 && previous_id != null) {
+        details += build_previous_id_div(encounterIdLong, previous_id)
+    }
+
     var scoutLink = cp == null ? `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>` : ""
     var contentstring = `
         <div>
@@ -642,14 +699,13 @@ function pokemonLabel(item) {
             <small>${typesDisplay}</small>
         </div>
         <div>
-            Disappears at ${pad(disappearDate.getHours())}:${pad(disappearDate.getMinutes())}:${pad(disappearDate.getSeconds())}
+            ${disappearStr}
             <span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span>
         </div>
         <div id="pkmLoc${encounterIdLong}">
             Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
         </div>
-        ${details}
-        ${previous_id}
+          ${details}
         <div id="scoutInfo${encounterIdLong}" style="display:none;"></div>
         <div>
             <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
@@ -780,6 +836,9 @@ function getGymLevel(points) {
 
 function pokestopLabel(item) {
     var str
+    var lastUpdatedStr = getDateStr(item['last_updated'])
+    var lastModifiedStr = getDateStr(item['last_modified'])
+
     if (item['lure_expiration']) {
         var expireDate = new Date(item['lure_expiration'])
         if (item['details']) {
@@ -821,6 +880,12 @@ function pokestopLabel(item) {
                 GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
             </div>
             <div>
+                Last Updated: ${lastUpdatedStr}
+            </div>
+            <div>
+                Last Modified: ${lastModifiedStr}
+            </div>
+            <div>
                 <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
             </div>
             </center>`
@@ -855,6 +920,12 @@ function pokestopLabel(item) {
             <center>
                 <div>
                   GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+                </div>
+                <div>
+                    Last Updated: ${lastUpdatedStr}
+                </div>
+                <div>
+                    Last Modified: ${lastModifiedStr}
                 </div>
                 <div>
                   <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
