@@ -98,6 +98,7 @@ def parse_scout_result(request_result, encounter_id, pokemon_name):
         'height': pokemon_info['height_m'],
         'weight': pokemon_info['weight_kg'],
         'gender': pokemon_info['pokemon_display']['gender'],
+        'previous_id': pokemon_info['pokemon_id'],
         'worker_level': worker_level
     }
     log.info(u"Found level {} {} with CP {} for worker level {}.".format(pokemon_level, pokemon_name, cp, worker_level))
@@ -194,8 +195,9 @@ def perform_scout(p, db_updates_queue=None):
                 'catch_prob_1': result['catch_prob_1'],
                 'catch_prob_2': result['catch_prob_2'],
                 'catch_prob_3': result['catch_prob_3'],
-                'rating_attack': '?',
-                'rating_defense': '?'
+                'previous_id': result['previous_id'],
+                'rating_attack': None,
+                'rating_defense': None,
             }
         }
         db_updates_queue.put((Pokemon, update_data))

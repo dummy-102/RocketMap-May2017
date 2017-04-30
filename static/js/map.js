@@ -392,7 +392,7 @@ function pad(number) {
 }
 
 function getTypeSpan(type) {
-    return `<span style='padding: 2px 5px; text-transform: uppercase; color: white; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
+    return `<span style='padding: 2px 5px; text-transform: uppercase; color: black; margin-right: 2px; border-radius: 4px; font-size: 0.8em; vertical-align: text-bottom; background-color: ${type['color']}'>${type['type']}</span>`
 }
 
 function openMapDirections(lat, lng) { // eslint-disable-line no-unused-vars
@@ -446,20 +446,12 @@ function scout(encounterId) {
                     ivEl.after(build_moves_div(encounterIdLong, data.move_1, data.move_2, data.rating_attack, data.rating_defense))
                     movesEl = $("#pkmMoves" + encounterIdLong)
                 }
-                if (weightEl.length == 0) {
-                    movesEl.after(build_weight_div(encounterIdLong, data.weight))
-                    weightEl = $("#pkmWeight" + encounterIdLong)
-                }
                 if (heightEl.length == 0) {
-                    weightEl.after(build_height_div(encounterIdLong, data.height))
+                    ivEl.after(build_height_div(encounterIdLong, data.height, data.weight, data.gender))
                     heightEl = $("#pkmHeight" + encounterIdLong)
                 }
-                if (genderEl.length == 0) {
-                    heightEl.after(build_gender_div(encounterIdLong, data.gender))
-                    genderEl = $("#pkmGender" + encounterIdLong)
-                }
                 if (cpEl.length == 0) {
-                    genderEl.after(build_cp_div(encounterIdLong, data.cp, data.pokemon_level))
+                    heightEl.after(build_cp_div(encounterIdLong, data.cp, data.pokemon_level))
                     cpEl = $("#pkmCP" + encounterIdLong)
                 }
                 if (probsEl.length == 0) {
@@ -485,10 +477,11 @@ function scout(encounterId) {
                 pkm['gender'] = data.gender
                 pkm['cp'] = data.cp
                 pkm['pokemon_level'] = data.pokemon_level
+                pkm['worker_level'] = data.worker_level
                 pkm['catch_prob_1'] = data.catch_prob_1
                 pkm['catch_prob_2'] = data.catch_prob_2
                 pkm['catch_prob_3'] = data.catch_prob_3
-                pkm['worker_level'] = data.worker_level
+                pkm['previous_id'] = data.previous_id
             } else {
                 infoEl.text(data.msg)
             }
@@ -508,33 +501,26 @@ function build_iv_div(encounterIdLong, atk, def, sta) {
 function build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense) {
     var pMove1 = (moves[move1] !== undefined) ? i8ln(moves[move1]['name']) : 'gen/unknown'
     var pMove2 = (moves[move2] !== undefined) ? i8ln(moves[move2]['name']) : 'gen/unknown'
+    if (rating_attack != null || rating_defense != null) {
+      return `
+          <div id="pkmMoves${encounterIdLong}">
+              Moves: <b>${pMove1}</b> / <b>${pMove2}</b> | Rating: <b title="Moveset Attack Rating">${rating_attack}</b> / <b title="Moveset Defense Rating">${rating_defense}</b>
+              </div>
+              `
+    }
+    else {
     return `
         <div id="pkmMoves${encounterIdLong}">
-            Moves: <b>${pMove1}</b> / <b>${pMove2}</b> | Rating: <b title="Moveset Attack Rating">${rating_attack}</b> / <b title="Moveset Defense Rating">${rating_defense}</b>
+            Moves: <b>${pMove1}</b> / <b>${pMove2}</b>
         </div>
         `
+    }
 }
 
-function build_gender_div(encounterIdLong, gender) {
-    return `
-        <div id="pkmGender${encounterIdLong}">
-            Gender: ${GenderType[gender - 1]}
-        </div>
-        `
-}
-
-function build_height_div(encounterIdLong, height) {
+function build_height_div(encounterIdLong, height, weight, gender) {
     return `
         <div id="pkmHeight${encounterIdLong}">
-            Height: ${height.toFixed(2)}m
-        </div>
-        `
-}
-
-function build_weight_div(encounterIdLong, weight) {
-    return `
-        <div id="pkmWeight${encounterIdLong}">
-            Weight: ${weight.toFixed(2)}kg
+            Gender: <b>${GenderType[gender - 1]}</b> Height: <b>${height.toFixed(2)}m</b> Weight: <b>${weight.toFixed(2)}kg</b>
         </div>
         `
 }
@@ -561,7 +547,7 @@ function build_probs_div(encounterIdLong, prob1, prob2, prob3) {
     prob3 = prob3 * 100
     return `
         <div id="pkmProbs${encounterIdLong}">
-            Pokeball: ${prob1.toFixed(1)}% | GreatBall: ${prob2.toFixed(1)}% | UltraBall: ${prob3.toFixed(1)}%
+            Pokeball: <b>${prob1.toFixed(1)}%</b> GreatBall: <b>${prob2.toFixed(1)}%</b> UltraBall: <b>${prob3.toFixed(1)}%</b>
         </div>
         `
 }
@@ -570,49 +556,49 @@ function build_previous_id_div(encounterIdLong, previous_id) {
     if (previous_id == 16) {
       return `
           <div id="pkmWorker${encounterIdLong}">
-            <font size="0.5">(Pidgy)</font>
+            (Pidgy)
           </div>
           `
     }
     if (previous_id == 19) {
       return `
           <div id="pkmWorker${encounterIdLong}">
-            <font size="0.5">(Pidgy)</font>
+            (Rattata)
           </div>
           `
     }
     if (previous_id == 41) {
       return `
           <div id="pkmWorker${encounterIdLong}">
-            <font size="0.5">(Rattata)</font>
+            (Zubat)
           </div>
           `
     }
     if (previous_id == 129) {
       return `
           <div id="pkmWorker${encounterIdLong}">
-            <font size="0.5">(Zubat)</font>
+           (Magikarp)
           </div>
           `
     }
     if (previous_id == 161) {
       return `
           <div id="pkmWorker${encounterIdLong}">
-            <font size="0.5">(Magikarp)</font>
+            (Sentret)
           </div>
           `
     }
     if (previous_id == 163) {
       return `
           <div id="pkmWorker${encounterIdLong}">
-            <font size="0.5">(Hoothoot)</font>
+            (Hoothoot)
           </div>
           `
     }
     if (previous_id == 193) {
       return `
           <div id="pkmWorker${encounterIdLong}">
-            <font size="0.5">(Sentret)</font>
+            (Yanma)
           </div>
           `
     }
@@ -648,72 +634,76 @@ function pokemonLabel(item) {
     var previous_id = item['previous_id']
     var rating_attack = item['rating_attack']
     var rating_defense = item['rating_defense']
-
     $.each(types, function (index, type) {
         typesDisplay += getTypeSpan(type)
     })
     var encounterIdLong = atob(encounterId)
-
     var details = ''
-    if (atk != null) {
-        details += build_iv_div(encounterIdLong, atk, def, sta)
-    }
-    if (move1 != null) {
-        details += build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense)
-    }
     if (height != null) {
-        details += build_height_div(encounterIdLong, height)
-    }
-    if (weight != null) {
-        details += build_weight_div(encounterIdLong, weight)
-    }
-    if (gender != null) {
-        details += build_gender_div(encounterIdLong, gender)
-    }
-    if (cp != null) {
-        details += build_cp_div(encounterIdLong, cp, pokemon_level)
+        details += build_height_div(encounterIdLong, height, weight, gender)
     }
     if (prob1 != null) {
         details += build_probs_div(encounterIdLong, prob1, prob2, prob3)
     }
+    if (atk != null) {
+        details += build_iv_div(encounterIdLong, atk, def, sta)
+    }
+    if (cp != null) {
+        details += build_cp_div(encounterIdLong, cp, pokemon_level)
+    }
+    if (move1 != null) {
+        details += build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense)
+    }
     if (worker_level != null) {
         details += build_worker_level_div(encounterIdLong, worker_level)
     }
+    var ditto = ''
     if (id === 132 && previous_id != null) {
-        details += build_previous_id_div(encounterIdLong, previous_id)
+        ditto += build_previous_id_div(encounterIdLong, previous_id)
     }
-
     var scoutLink = cp == null ? `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>` : ""
     var contentstring = `
+      <center>
         <div>
-            <b>${name}</b>`
-    if (id === 201 && form !== null && form > 0) {
-        contentstring += ` (${unownForm[item['form']]})`
-    }
-    contentstring += `<span> - </span>
-            <small>
-                <a href='http://www.pokehamilton.com/pokemon/${id}' target='_blank' title='View in Pokedex'>#${id}</a>
-            </small>
-            <span> ${rarityDisplay}</span>
-            <span> - </span>
-            <small>${typesDisplay}</small>
+            <div>
+              <font size="3"><b>${name}</b></font>
+            </div>
+            <div>
+              <img style="vertical-align:top" width='30px' height='30px' src='static/sprites/${id}.png'>
+            </div>
+            <div>
+              <font size="0.5"><b>${ditto}</b></font>
+            </div>`
+            if (id === 201 && form !== null && form > 0) {
+              contentstring += ` (${unownForm[item['form']]})`
+            }
+    contentstring += `
+        <div>
+          <font size="1"><b><a href='http://www.pokehamilton.com/pokemon/${id}' target='_blank' title='View in Pokedex'>#${id}</a></b></font>
         </div>
         <div>
-            ${disappearStr}
-            <span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span>
+          <span><font size="1"><b>${rarityDisplay}</b></font></span>
         </div>
-        <div id="pkmLoc${encounterIdLong}">
-            Location: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+        <div>
+          <small>${typesDisplay}</small>
+        </div>
+        <div>
+          ${disappearStr}
+          <b><span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span></b>
         </div>
           ${details}
         <div id="scoutInfo${encounterIdLong}" style="display:none;"></div>
+        <div id="pkmLoc${encounterIdLong}">
+          GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+        </div>
         <div>
-            <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
-            <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
-            <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
-            <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>&nbsp;&nbsp
-            ${scoutLink}
-        </div>`
+          <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
+          <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
+          <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
+          <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>&nbsp;&nbsp
+          ${scoutLink}
+        </div>
+      </center>`
     return contentstring
 }
 
