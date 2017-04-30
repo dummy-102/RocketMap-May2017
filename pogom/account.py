@@ -4,6 +4,10 @@
 import logging
 import time
 import random
+# for geofence
+from matplotlib.path import Path
+from ast import literal_eval
+
 from threading import Lock
 from timeit import default_timer
 
@@ -245,18 +249,18 @@ def complete_tutorial(api, account, tutorial_state):
 
 def cleanup_inventory(api, inventory):
     # Just need to make room for 1 more item
-    if inventory['total'] >= 350:
-        items_dropped = drop_items(api, inventory, ITEM_POTION, "Potion")
-        items_dropped += drop_items(api, inventory, ITEM_SUPER_POTION, "Super Potion")
-        items_dropped += drop_items(api, inventory, ITEM_HYPER_POTION, "Hyper Potion")
-        items_dropped += drop_items(api, inventory, ITEM_MAX_POTION, "Max Potion")
-        items_dropped += drop_items(api, inventory, ITEM_REVIVE, "Revive")
-        items_dropped += drop_items(api, inventory, ITEM_MAX_REVIVE, "Max Revive")
-        items_dropped += drop_items(api, inventory, ITEM_BLUK_BERRY, "Bluk Berry")
-        items_dropped += drop_items(api, inventory, ITEM_NANAB_BERRY, "Nanab Berry")
-        items_dropped += drop_items(api, inventory, ITEM_WEPAR_BERRY, "Wepar Berry")
-        items_dropped += drop_items(api, inventory, ITEM_PINAP_BERRY, "Pinap Berry")
-        items_dropped += drop_items(api, inventory, ITEM_RAZZ_BERRY, "Razz Berry")
+    if inventory['total'] >= 100:
+        items_dropped = drop_items(api, inventory, ITEM_POTION, "Potion", 10)
+        items_dropped += drop_items(api, inventory, ITEM_SUPER_POTION, "Super Potion", 10)
+        items_dropped += drop_items(api, inventory, ITEM_HYPER_POTION, "Hyper Potion", 10)
+        items_dropped += drop_items(api, inventory, ITEM_MAX_POTION, "Max Potion", 10)
+        items_dropped += drop_items(api, inventory, ITEM_REVIVE, "Revive", 10)
+        items_dropped += drop_items(api, inventory, ITEM_MAX_REVIVE, "Max Revive", 10)
+        items_dropped += drop_items(api, inventory, ITEM_BLUK_BERRY, "Bluk Berry", 10)
+        items_dropped += drop_items(api, inventory, ITEM_NANAB_BERRY, "Nanab Berry", 10)
+        items_dropped += drop_items(api, inventory, ITEM_WEPAR_BERRY, "Wepar Berry", 10)
+        items_dropped += drop_items(api, inventory, ITEM_PINAP_BERRY, "Pinap Berry", 10)
+        items_dropped += drop_items(api, inventory, ITEM_RAZZ_BERRY, "Razz Berry", 10)
 
         # Throw away balls if necessary
         if inventory['total'] >= 350:
@@ -268,6 +272,42 @@ def cleanup_inventory(api, inventory):
             if items_dropped < need_to_drop:
                 need_to_drop -= items_dropped
                 drop_items(api, inventory, ITEM_ULTRA_BALL, "Great Ball", need_to_drop)
+
+def drop_items(api, inventory, item_id, item_name, drop_count=-1):
+    item_count = inventory.get(item_id, 0)
+    drop_count = item_count if drop_count == -1 else min(item_count, drop_count)
+    if drop_count > 0:
+        result = drop_items_request(api, item_id, drop_count, inventory)
+        if result == 1:
+            log.info("Dropped {} {}s.".format(drop_count, item_name))
+            inventory[item_id] -= drop_count
+            inventory['total'] -= drop_count
+            return drop_count
+        else:
+            log.warning("Failed dropping {} {}s.".format(drop_count, item_name))
+    return 0
+
+
+def drop_items_request(api, item_id, amount, inventory):
+    time.sleep(random.uniform(2, 4))
+    try:
+        req = api.create_request()
+        req.recycle_inventory_item(item_id=item_id,
+                                   count=amount)
+        req.check_challenge()
+        req.get_hatched_eggs()
+        req.get_inventory()
+        req.check_awarded_badges()
+        req.download_settings()
+        req.get_buddy_walked()
+        response_dict = req.call()
+        inventory.update(get_player_inventory(response_dict))
+        if ('responses' in response_dict) and ('RECYCLE_INVENTORY_ITEM' in response_dict['responses']):
+            drop_details = response_dict['responses']['RECYCLE_INVENTORY_ITEM']
+            return drop_details.get('result', -1)
+    except Exception as e:
+        log.warning('Exception while dropping items: %s', repr(e))
+        return False
 
 
 def get_player_level(map_dict):
@@ -294,7 +334,7 @@ def get_player_inventory(map_dict):
     inventory = {}
     no_item_ids = (
         ITEM_UNKNOWN,
-        ITEM_TROY_DISK,
+        #ITEM_TROY_DISK,
         ITEM_X_ATTACK,
         ITEM_X_DEFENSE,
         ITEM_X_MIRACLE,
@@ -316,6 +356,7 @@ def get_player_inventory(map_dict):
                 total_items += 1
     inventory['balls'] = inventory.get(ITEM_POKE_BALL, 0) + inventory.get(ITEM_GREAT_BALL, 0) + inventory.get(
         ITEM_ULTRA_BALL, 0) + inventory.get(ITEM_MASTER_BALL, 0)
+    inventory['totalDisks'] = inventory.get(ITEM_TROY_DISK, 0)
     inventory['total'] = total_items
     return inventory
 
@@ -335,7 +376,7 @@ def spin_pokestop(api, fort, step_location, inventory):
     spin_result = spin_response['responses']['FORT_SEARCH']['result']
     if spin_result is 1:
         awards = get_awarded_items(spin_response['responses']['FORT_SEARCH']['items_awarded'])
-        log.info('Got {} items ({} balls) from Pokestop.'.format(awards['total'], awards['balls']))
+        log.info('++++++++++++++++++++++++++++ Got {} items ({} balls) from Pokestop.'.format(awards['total'], awards['balls']))
         inventory.update(get_player_inventory(spin_response))
         return True
     elif spin_result is 2:
@@ -380,6 +421,7 @@ def pokestop_spinnable(fort, step_location):
 
 def spin_pokestop_request(api, fort, step_location, inventory):
     try:
+        log.warning('++++++++++++++++++++++++++++ SPINNING POKESTOP')
         req = api.create_request()
         req.fort_search(
             fort_id=fort['id'],
@@ -400,43 +442,90 @@ def spin_pokestop_request(api, fort, step_location, inventory):
         log.warning('Exception while spinning Pokestop: %s', repr(e))
         return False
 
-
-def drop_items(api, inventory, item_id, item_name, drop_count=-1):
-    item_count = inventory.get(item_id, 0)
-    drop_count = item_count if drop_count == -1 else min(item_count, drop_count)
-    if drop_count > 0:
-        result = drop_items_request(api, item_id, drop_count, inventory)
-        if result == 1:
-            log.info("Dropped {} {}s.".format(drop_count, item_name))
-            inventory[item_id] -= drop_count
-            inventory['total'] -= drop_count
-            return drop_count
+def geofence(step_location, geofence_file, forbidden=False):
+    geofence = []
+    with open(geofence_file) as f:
+        for line in f:
+            if len(line.strip()) == 0 or line.startswith('#'):
+                continue
+            geofence.append(literal_eval(line.strip()))
+        if forbidden:
+             log.info('Loaded %d geofence-forbidden coordinates. ' +
+                      'Applying...', len(geofence))
         else:
-            log.warning("Failed dropping {} {}s.".format(drop_count, item_name))
-    return 0
+             log.info('Loaded %d geofence coordinates. Applying...',
+                    len(geofence))
+    #log.info(geofence)
+    p = Path(geofence)
+    step_location_geofenced = []
+    result_x, result_y, result_z = step_location
+    if p.contains_point([step_location[0], step_location[1]]) ^ forbidden:
+        step_location_geofenced.append((result_x, result_y, result_z))
+        log.warning('FOUND IN THE GEOFENCE, LURING: %s, %s', result_x, result_y)
+    return step_location_geofenced
 
+def lure_pokestop(api, fort, step_location, inventory):
+    if 'active_fort_modifier' not in fort:
+        spinning_radius = 0.04
+        totalDisks = inventory['totalDisks']
+        log.warning('++++++++++++++++++++++++++++ DETECTING %s LURES', totalDisks)
+        in_range = in_radius((fort['latitude'], fort['longitude']), step_location,
+                                 spinning_radius)
+        if in_range:
+            if args.lureFence is not None:
+                allowed = geofence(step_location, args.lureFence)
+                log.warning('FENCE: %s', allowed)
+                if allowed == []:
+                    log.warning('STOP IS FORBIDDEN')
+                    forbidden = True
+                else:
+                    log.warning('STOP IS GOOD')
+                    forbidden = False
+            if args.nolureFence is not None:
+                forbidden = geofence(step_location, args.nolureFence, forbidden=True)
+                log.warning('DI-ALLOWFENCE: %s', forbidden)
+                if forbidden == []:
+                    log.warning('STOP IS GOOD')
+                    forbidden = False
+                else:
+                    forbidden = True
+                    log.warning('STOP IS FORBIDDEN')
+            lure_status = None
+            lure_id = 501
+            if totalDisks == 0:
+                forbidden = True
+            while lure_status is None and totalDisks > 0:
+                req = api.create_request()
+                lure_request = req.add_fort_modifier(modifier_type=lure_id,
+                                                     fort_id=fort['id'],
+                                                     player_latitude=step_location[0],
+                                                     player_longitude=step_location[1])
+                time.sleep(4.20)
+                lure_request = req.call()
+                #log.warning('@@@LURE RESPONSE@@@ %s', lure_request['responses'])
+                # Check for reCaptcha
+                captcha_url = spin_response['responses']['CHECK_CHALLENGE']['challenge_url']
+                if len(captcha_url) > 1:
+                    log.debug('Account encountered a reCaptcha.')
+                    return False
+                lure_status = lure_request['responses']['ADD_FORT_MODIFIER']['result']
+                if lure_status is 0:
+                    log.warning('xxxxxxxxxxxxxxxxxxxxxxxxxxxx Lure unset!')
+                    lure_status = 'Failed'
+                elif lure_status is 1:
+                    log.warning('++++++++++++++++++++++++++++ Lure Successfully Set!')
+                    lure_status = 'Successful'
+                elif lure_status is 2:
+                    log.warning('xxxxxxxxxxxxxxxxxxxxxxxxxxxx Stop already has lure!')
+                    lure_status = 'Panic'
+                elif lure_status is 3:
+                    log.warning('xxxxxxxxxxxxxxxxxxxxxxxxxxxx Out of range to set lure!')
+                    lure_status = 'Range'
+                elif lure_status is 4:
+                    log.warning('---------------------------- Account has no lures!')
+                    lure_status = 'Empty'
 
-def drop_items_request(api, item_id, amount, inventory):
-    time.sleep(random.uniform(2, 4))
-    try:
-        req = api.create_request()
-        req.recycle_inventory_item(item_id=item_id,
-                                   count=amount)
-        req.check_challenge()
-        req.get_hatched_eggs()
-        req.get_inventory()
-        req.check_awarded_badges()
-        req.download_settings()
-        req.get_buddy_walked()
-        response_dict = req.call()
-        inventory.update(get_player_inventory(response_dict))
-        if ('responses' in response_dict) and ('RECYCLE_INVENTORY_ITEM' in response_dict['responses']):
-            drop_details = response_dict['responses']['RECYCLE_INVENTORY_ITEM']
-            return drop_details.get('result', -1)
-    except Exception as e:
-        log.warning('Exception while dropping items: %s', repr(e))
-        return False
-
+                log.warning('@@@ LURE STATUS @@@ %s', lure_status)
 
 # Send LevelUpRewards request to check for and accept level up rewards.
 # @Returns

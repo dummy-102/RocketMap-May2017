@@ -322,7 +322,7 @@ def print_account_stats(rows, thread_status, account_queue,
 
     # Print table header.
     row_tmpl = '{:7} | {:' + str(userlen) + '} | {:5} | {:>8} | {:10} | {:6}' \
-                                   ' | {:8} | {:9} | {:5} | {:>10}'
+                                   ' | {:8} | {:10} | {:5} | {:>10}'
     rows.append(row_tmpl.format('Status', 'User', 'Level', 'XP',
                                      'Encounters', 'Throws',
                                      'Captures', 'Inventory', 'Spins', 'Walked'))
@@ -352,7 +352,7 @@ def print_account_stats(rows, thread_status, account_queue,
         inv_str = ''
         inv = account.get('inventory', {})
         if inv:
-            inv_str = '{}B/{}T'.format(inv.get('balls', 0), inv.get('total', 0))
+            inv_str = '{}B/{}T/{}L'.format(inv.get('balls', 0), inv.get('total', 0), inv.get('totalDisks', 0))
 
         rows.append(row_tmpl.format(
             status,

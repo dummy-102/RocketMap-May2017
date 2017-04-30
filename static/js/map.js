@@ -839,10 +839,14 @@ function getGymLevel(points) {
 }
 
 function pokestopLabel(item) {
-    var str
     var lastUpdatedStr = getDateStr(item['last_updated'])
     var lastModifiedStr = getDateStr(item['last_modified'])
+    var lastScannedStr = getDateStr(item['last_scanned'])
+    var expiredStr = PokegetDateStr(item['lure_expiration'])
 
+    var descriptionStr = (item['description'] ? `<div>${item['description']}</div>` : '')
+
+    var str
     if (item['lure_expiration']) {
         var expireDate = new Date(item['lure_expiration'])
         if (item['details']) {
@@ -852,47 +856,51 @@ function pokestopLabel(item) {
             </style>
             <center>
                 <div>
-                    <b>Lured Pokéstop</b>
-                    <br>
-                      ${item['details']['name']}
-                    <br>
-                      ${item['details']['description']}
-                    <br>
-                </div>
-                <div style="text-align: center; width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto; border: 5px solid #dd24c7;">
-                      <img class="circle1"; src="${item['details']['url']}" style="float:top; width=100; height=100;">
-                      <br>
-                </div>
-                <div>
-                    Lured Provided By: ${item['details']['deployer']}
-                <div>
-            </center>`
+                  <div>
+                    <font size="3"><b>${item['details']['name']}</b></font>
+                  </div>
+                  <div>
+                    <img height='15px' style='padding: 1px;' src='static/forts/PstopLured.png'><font size="3"><b>Lured Pokéstop</b></font>
+                  </div>
+                  <div style="text-align: center; width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto; border: 5px solid #dd24c7;">
+                    <img class="circle1"; src="${item['details']['url']}" style="float:top; width=100; height=100;">
+                  </div>
+                  <div>
+                    <font size="0.5"><b>${descriptionStr}</b></font>
+                  </div>
+                  <div>
+                    Lure Provided By: <b>${item['details']['deployer']}</b>
+                  </div>`
         } else {
             str = `
             <center>
                 <div>
-                    <b>Lured Pokéstop</b>
-                </div>
-            </center>`
+                    <img height='15px' style='padding: 1px;' src='static/forts/PstopLured.png'><font size="3"><b>Lured Pokéstop</b></font>
+                </div>`
         }
         str += `
-            <center>
-                Lure expires at ${pad(expireDate.getHours())}:${pad(expireDate.getMinutes())}:${pad(expireDate.getSeconds())}
-                <span class='label-countdown' disappears-at='${item['lure_expiration']}'>(00m00s)</span>
-            </div>
-            <div>
-                GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
-            </div>
-            <div>
-                Last Updated: ${lastUpdatedStr}
-            </div>
-            <div>
-                Last Modified: ${lastModifiedStr}
-            </div>
-            <div>
-                <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
-            </div>
-            </center>`
+                  <div>
+                    Lure expires at ${expiredStr}
+                    <b><span class='label-countdown' disappears-at='${item['lure_expiration']}'>(00m00s)</span></b>
+                  </div>
+                  <div>
+                    GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+                  </div>
+                  <div>
+                    <font size="0.5"><b>Updated: ${lastUpdatedStr}</b></font>
+                  </div>
+                  <div>
+                    <font size="0.5"><b>Modified: ${lastModifiedStr}</b></font>
+                  </div>
+                  <div>
+                    <font size="0.5"><b>Scanned: ${lastScannedStr}</b></font>
+                  </div>
+                  <div>
+                    <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
+                  </div>
+                </div>
+              </center>
+            `
     } else {
         if (item['details']) {
             str = `
@@ -901,35 +909,37 @@ function pokestopLabel(item) {
             </style>
             <center>
             <div>
-                <b>Pokéstop</b>
-                <br>
-                  ${item['details']['name']}
-                <br>
-                  ${item['details']['description']}
-                <br>
-            </div>
+                <div>
+                  <font size="3"><b>${item['details']['name']}</font></b>
+                </div>
+                <div>
+                  <img height='15px' style='padding: 1px;' src='static/forts/Pstop.png'><font size="3"><b>Pokéstop</b></font>
+                </div>
                 <div style="text-align: center; width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto; border: 5px solid #36b1fe;">
                   <img class="circle1"; src="${item['details']['url']}" style="float:top; width=100; height=100;">
                 </div>
-            </center>`
+                <div>
+                  <font size="0.5"><b>${descriptionStr}</font></b>
+                </div>`
         } else {
             str = `
             <center>
                 <div>
                     <b>Pokéstop</b>
-                </div>
-            </center>`
+                </div>`
         }
         str += `
-            <center>
                 <div>
                   GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
                 </div>
                 <div>
-                    Last Updated: ${lastUpdatedStr}
+                    <font size="0.5"><b>Updated: ${lastUpdatedStr}</b></font>
                 </div>
                 <div>
-                    Last Modified: ${lastModifiedStr}
+                    <font size="0.5"><b>Modified: ${lastModifiedStr}</b></font>
+                </div>
+                <div>
+                  <font size="0.5"><b>Scanned: ${lastScannedStr}</b></font>
                 </div>
                 <div>
                   <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>

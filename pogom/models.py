@@ -38,7 +38,7 @@ from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, \
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
 from .account import (get_player_inventory, pokestop_spinnable, spin_pokestop,
-    cleanup_inventory, get_player_level, check_login, setup_api)
+    cleanup_inventory, get_player_level, check_login, setup_api, lure_pokestop)
 from .geofence import parse_geofences
 
 log = logging.getLogger(__name__)
@@ -468,11 +468,20 @@ class Pokestop(BaseModel):
     def get_stops(swLat, swLng, neLat, neLng, timestamp=0, oSwLat=None,
                   oSwLng=None, oNeLat=None, oNeLng=None, lured=False):
 
-        query = Pokestop.select(Pokestop.active_fort_modifier,
+        #query = Pokestop.select(Pokestop.active_fort_modifier,
+        #                        Pokestop.enabled, Pokestop.latitude,
+        #                        Pokestop.longitude, Pokestop.last_updated,
+        #                        Pokestop.last_modified, Pokestop.lure_expiration,
+        #                        Pokestop.pokestop_id)
+        query = (Pokestop.select(Pokestop.active_fort_modifier,
                                 Pokestop.enabled, Pokestop.latitude,
                                 Pokestop.longitude, Pokestop.last_updated,
                                 Pokestop.last_modified, Pokestop.lure_expiration,
-                                Pokestop.pokestop_id)
+                                Pokestop.pokestop_id, PokestopDetails.name,
+                                PokestopDetails.description, PokestopDetails.url,
+                                PokestopDetails.item_id, PokestopDetails.deployer,
+                                PokestopDetails.expires, PokestopDetails.last_scanned)
+                                .join(PokestopDetails, JOIN.LEFT_OUTER, on=(PokestopDetails.pokestop_id == Pokestop.pokestop_id)) .dicts())
 
         if not (swLat and swLng and neLat and neLng):
             query = (query
@@ -535,6 +544,7 @@ class Pokestop(BaseModel):
         # (potentially) large dict with append().
         gc.disable()
 
+        # todo Rerwite/Use Main Function Instead
         pokestops = []
         for p in query:
             if args.china:
@@ -549,6 +559,7 @@ class Pokestop(BaseModel):
                     PokestopDetails.expires))
             query_details = (query_details.where(
                 PokestopDetails.pokestop_id == p['pokestop_id']).dicts())
+
             #log.debug(
             #    'PokestopDetails query from DB: \n\r{}'.format(
             #        pprint.PrettyPrinter(indent=4).pformat(query_details)))
@@ -2420,10 +2431,10 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         if fort_details_response:
                             pokestop_details = parse_pokestop_details(
                                 fort_details_response, db_update_queue)
-                            log.info(
-                                'Parsed pokestop details: \n\r{}'.format(
-                                    pprint.PrettyPrinter(indent=4).pformat(
-                                        pokestop_details)))
+                            #log.info(
+                            #    'Parsed pokestop details: \n\r{}'.format(
+                            #        pprint.PrettyPrinter(indent=4).pformat(
+                            #            pokestop_details)))
 
                 # Send all pokestops to webhooks.
                 if args.webhooks and not args.webhook_updates_only:
@@ -2447,8 +2458,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                 # Spin Pokestop to gain XP if account is below level 25
                 if not account_is_adult and pokestop_spinnable(f, step_location):
-                    cleanup_inventory(api, inventory)
-                    spin_pokestop(api, f, step_location, inventory)
+                    if args.spinstop:
+                        cleanup_inventory(api, inventory)
+                        spin_pokestop(api, f, step_location, inventory)
+                    if args.lurestop:
+                        lure_pokestop(api, f, step_location, inventory)
 
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):
@@ -2600,9 +2614,9 @@ def fort_details_request(api, f):
         x = req.get_buddy_walked()
         x = req.call()
         # Print pretty(x).
-        log.info('Fort Details: \n\r{}'.format(
-            pprint.PrettyPrinter(indent=4).pformat(
-                x['responses']['FORT_DETAILS'])))
+        #log.info('Fort Details: \n\r{}'.format(
+        #    pprint.PrettyPrinter(indent=4).pformat(
+        #        x['responses']['FORT_DETAILS'])))
 
         return x
 
@@ -2897,6 +2911,11 @@ def clean_db_loop(args):
                      .update(lure_expiration=None, active_fort_modifier=None)
                      .where(Pokestop.lure_expiration < datetime.utcnow()))
             query.execute()
+
+            #query = (PokestopDetails
+            #         .update(item_id=None, deployer=None)
+            #         .where(PokestopDetails.expires < datetime.utcnow()))
+            #query.execute()
 
             # Remove old (unusable) captcha tokens
             query = (Token
