@@ -847,27 +847,27 @@ var StoreTypes = {
 // set the default parameters for you map here
 var StoreOptions = {
     'map_style': {
-        default: 'roadmap', // roadmap, satellite, hybrid, nolabels_style, dark_style, style_light2, style_pgo, dark_style_nl, style_pgo_day, style_pgo_night, style_pgo_dynamic
+        default: 'style_pgo_dynamic', // roadmap, satellite, hybrid, nolabels_style, dark_style, style_light2, style_pgo, dark_style_nl, style_pgo_day, style_pgo_night, style_pgo_dynamic
         type: StoreTypes.String
     },
     'remember_select_exclude': {
-        default: [],
+        default: [10,13,16,19,21,41,96,177,194,220],
         type: StoreTypes.JSON
     },
     'remember_select_notify': {
-        default: [],
+        default: [1,2,4,5,7,8,25,27,37,58,77,88,95,102,138,140,152,153,155,156,158,159,218,228],
         type: StoreTypes.JSON
     },
     'remember_select_rarity_notify': {
-        default: [], // Common, Uncommon, Rare, Very Rare, Ultra Rare
+        default: ["Very Rare","Ultra Rare"], // Common, Uncommon, Rare, Very Rare, Ultra Rare
         type: StoreTypes.JSON
     },
     'remember_text_perfection_notify': {
-        default: '',
+        default: '90',
         type: StoreTypes.Number
     },
     'showGyms': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'useGymSidebar': {
@@ -903,7 +903,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showLuredPokestopsOnly': {
-        default: 0,
+        default: 1,
         type: StoreTypes.Number
     },
     'showScanned': {
@@ -919,7 +919,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showGeofences': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'playSound': {
@@ -935,7 +935,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'startAtUserLocation': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'followMyLocation': {
@@ -963,15 +963,15 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'searchMarkerStyle': {
-        default: 'google',
-        type: StoreTypes.String
-    },
-    'locationMarkerStyle': {
         default: 'none',
         type: StoreTypes.String
     },
+    'locationMarkerStyle': {
+        default: 'google',
+        type: StoreTypes.String
+    },
     'gymMarkerStyle': {
-        default: 'shield',
+        default: 'ingame',
         type: StoreTypes.String
     },
     'zoomLevel': {
