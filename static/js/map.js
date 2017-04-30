@@ -409,6 +409,15 @@ function getDateStr(t) {
     return dateStr
 }
 
+// Converts timestamp to readable String
+function PokegetDateStr(t) {
+    var dateStr = 'Unknown'
+    if (t) {
+        dateStr = moment(t).format('hh:mm:ss A')
+    }
+    return dateStr
+}
+
 function scout(encounterId) {
     var encounterIdLong = atob(encounterId)
     var infoEl = $("#scoutInfo" + encounterIdLong)
@@ -536,7 +545,7 @@ function build_cp_div(encounterIdLong, cp, pokemon_level) {
 function build_worker_level_div(encounterIdLong, worker_level) {
     return `
         <div id="pkmWorker${encounterIdLong}">
-			Worker Level: <b>${worker_level}</b>
+			<font size="0.5">Worker Level: <b>${worker_level}</b></font>
         </div>
         `
 }
@@ -604,6 +613,14 @@ function build_previous_id_div(encounterIdLong, previous_id) {
     }
 }
 
+function build_latitude_longitude_div(encounterIdLong, latitude, longitude) {
+    return `
+          <div id="pkmLoc${encounterIdLong}">
+            GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+          </div>
+          `
+}
+
 function pokemonLabel(item) {
     var name = item['pokemon_name']
     var rarityDisplay = item['pokemon_rarity'] ? '(' + item['pokemon_rarity'] + ')' : ''
@@ -615,7 +632,7 @@ function pokemonLabel(item) {
     var longitude = item['longitude']
     var disappearTime = item['disappear_time']
     var disappearDate = new Date(disappearTime)
-    var disappearStr = getDateStr(disappearDate)
+    var disappearStr = PokegetDateStr(disappearDate)
     var atk = item['individual_attack']
     var def = item['individual_defense']
     var sta = item['individual_stamina']
@@ -638,6 +655,10 @@ function pokemonLabel(item) {
         typesDisplay += getTypeSpan(type)
     })
     var encounterIdLong = atob(encounterId)
+    var ditto = ''
+    if (id === 132 && previous_id != null) {
+        ditto += build_previous_id_div(encounterIdLong, previous_id)
+    }
     var details = ''
     if (height != null) {
         details += build_height_div(encounterIdLong, height, weight, gender)
@@ -654,35 +675,31 @@ function pokemonLabel(item) {
     if (move1 != null) {
         details += build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense)
     }
+    if (latitude != null || longitude  != null) {
+        details += build_latitude_longitude_div(encounterIdLong, latitude, longitude)
+    }
     if (worker_level != null) {
         details += build_worker_level_div(encounterIdLong, worker_level)
-    }
-    var ditto = ''
-    if (id === 132 && previous_id != null) {
-        ditto += build_previous_id_div(encounterIdLong, previous_id)
     }
     var scoutLink = cp == null ? `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>` : ""
     var contentstring = `
       <center>
         <div>
             <div>
+              <font size="0.5"><b>${ditto}</b></font>
+            </div>
+            <div>
               <font size="3"><b>${name}</b></font>
             </div>
             <div>
-              <img style="vertical-align:top" width='30px' height='30px' src='static/sprites/${id}.png'>
-            </div>
-            <div>
-              <font size="0.5"><b>${ditto}</b></font>
+              <img style="vertical-align:top" width='50px' height='50px' src='static/sprites/${id}.png'>
             </div>`
             if (id === 201 && form !== null && form > 0) {
               contentstring += ` (${unownForm[item['form']]})`
             }
     contentstring += `
         <div>
-          <font size="1"><b><a href='http://www.pokehamilton.com/pokemon/${id}' target='_blank' title='View in Pokedex'>#${id}</a></b></font>
-        </div>
-        <div>
-          <span><font size="1"><b>${rarityDisplay}</b></font></span>
+          <font size="1"><b><a href='http://www.pokehamilton.com/pokemon/${id}' target='_blank' title='View in Pokedex'>#${id}</a></b></font> <span><font size="1"><b>${rarityDisplay}</b></font></span>
         </div>
         <div>
           <small>${typesDisplay}</small>
@@ -693,9 +710,6 @@ function pokemonLabel(item) {
         </div>
           ${details}
         <div id="scoutInfo${encounterIdLong}" style="display:none;"></div>
-        <div id="pkmLoc${encounterIdLong}">
-          GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
-        </div>
         <div>
           <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
           <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
