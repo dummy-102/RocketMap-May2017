@@ -903,7 +903,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showLuredPokestopsOnly': {
-        default: 1,
+        default: 0,
         type: StoreTypes.Number
     },
     'showScanned': {
