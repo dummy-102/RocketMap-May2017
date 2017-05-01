@@ -322,7 +322,7 @@ def print_account_stats(rows, thread_status, account_queue,
 
     # Print table header.
     row_tmpl = '{:7} | {:' + str(userlen) + '} | {:5} | {:>8} | {:10} | {:6}' \
-                                   ' | {:8} | {:10} | {:5} | {:>10}'
+                                   ' | {:8} | {:12} | {:5} | {:>10}'
     rows.append(row_tmpl.format('Status', 'User', 'Level', 'XP',
                                      'Encounters', 'Throws',
                                      'Captures', 'Inventory', 'Spins', 'Walked'))
@@ -487,7 +487,7 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
     account_sets.create_set('30', args.accounts_L30)
 
     # Debug.
-    log.info('Added %s accounts to the L30 pool.', args.accounts_L30)
+    log.info('Added %s accounts to the L30 pool.', len(args.accounts_L30))
 
     # Create a list for failed accounts.
     account_failures = []

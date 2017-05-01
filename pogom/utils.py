@@ -150,14 +150,17 @@ def get_args():
     parser.add_argument('-enc', '--encounter',
                         help='Start an encounter to gather IVs and moves.',
                         action='store_true', default=False)
+    parser.add_argument('-hlenc', '--high-lvl-encounter',
+                        help='Start an encounter to gather IVs and moves.',
+                        action='store_true', default=False)
     parser.add_argument('-ditto', '--ditto',
                         help='Catch certain pokemon to check for ditto.',
                         action='store_true', default=False)
     parser.add_argument('-pss', '--spinstop',
-                        help='Catch certain pokemon to check for ditto.',
+                        help='Spin Pokestops for Items and XP.',
                         action='store_true', default=False)
     parser.add_argument('-psl', '--lurestop',
-                        help='Catch certain pokemon to check for ditto.',
+                        help='Lure Pokestops for Events and Holidays.',
                         action='store_true', default=False)
     parser.add_argument('-cs', '--captcha-solving',
                         help='Enables captcha solving.',
