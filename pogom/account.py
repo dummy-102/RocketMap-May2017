@@ -438,8 +438,34 @@ def spin_pokestop_request(api, fort, step_location, inventory):
         response_dict = req.call()
         inventory.update(get_player_inventory(response_dict))
         return response_dict
+        spin_pokestop_response = req.call()
+
+        return spin_pokestop_response
+
     except Exception as e:
-        log.warning('Exception while spinning Pokestop: %s', repr(e))
+        log.error('Exception while spinning Pokestop: %s.', repr(e))
+        return False
+
+def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
+    try:
+        # Setup encounter request envelope.
+        req = api.create_request()
+        req.encounter(
+            encounter_id=encounter_id,
+            spawn_point_id=spawnpoint_id,
+            player_latitude=scan_location[0],
+            player_longitude=scan_location[1])
+        req.check_challenge()
+        req.get_hatched_eggs()
+        req.get_inventory()
+        req.check_awarded_badges()
+        req.download_settings()
+        req.get_buddy_walked()
+        encounter_result = req.call()
+
+        return encounter_result
+    except Exception as e:
+        log.error('Exception while encountering Pokémon: %s.', repr(e))
         return False
 
 def geofence(step_location, geofence_file, forbidden=False):
@@ -623,7 +649,7 @@ class AccountSet(object):
                     distance_km = equi_rect_distance(
                         old_coords,
                         coords_to_scan)
-                    cooldown_time_sec = distance_km / max_speed_kmph
+                    cooldown_time_sec = distance_km / max_speed_kmph * 3600
 
                     # Not enough time has passed for this one.
                     if seconds_passed < cooldown_time_sec:
