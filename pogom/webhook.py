@@ -188,7 +188,9 @@ def __get_key_fields(whtype):
         'pokemon': ['spawnpoint_id', 'pokemon_id', 'latitude', 'longitude',
                     'disappear_time', 'move_1', 'move_2',
                     'individual_stamina', 'individual_defense',
-                    'individual_attack', 'form', 'cp'],
+                    'individual_attack', 'height', 'weight', 'gender',
+                    'catch_prob_1', 'catch_prob_2', 'catch_prob_3', 'worker_level',
+                    'form', 'cp', 'previous_id'],
         'gym': ['team_id', 'guard_pokemon_id',
                 'gym_points', 'enabled', 'latitude', 'longitude'],
         'gym_details': ['latitude', 'longitude', 'team', 'pokemon']
