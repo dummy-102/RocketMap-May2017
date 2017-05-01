@@ -135,6 +135,10 @@ def get_args():
                               'scan. Basically this is inverted geofence. ' +
                               'Can be combined with -gf'),
                         default='')
+    parser.add_argument('-gcd', '--geofence-clear-db',
+                        help=('Deletes the existing geofences in the ' +
+                              'database before starting the Webserver.'),
+                        action='store_true', default=False)
     parser.add_argument('-nmpl', '--no-matplotlib',
                         help=('Prevents usage of matplotlib by incompatible' +
                               'hardware.'),
