@@ -127,21 +127,20 @@ def get_args():
     parser.add_argument('-st', '--step-limit', help='Steps.', type=int,
                         default=12)
     parser.add_argument('-gf', '--geofence-file',
-                        help=('Geofence file (currently only for -speed and ' +
-                              'HexSearch)'),
+                        help=('Geofence file to define outer borders of the ' +
+                              'scan area.'),
                         default='')
     parser.add_argument('-ff', '--forbidden-file',
-                        help=('File with coordinates defining area NOT to ' +
-                              'scan. Basically this is inverted geofence. ' +
-                              'Can be combined with -gf'),
+                        help=('File to define forbidden areas inside scan ' +
+                              'area. Regarded this as inverted geofence. ' +
+                              'Can be combined with geofence-file.'),
                         default='')
-    parser.add_argument('-gcd', '--geofence-clear-db',
-                        help=('Deletes the existing geofences in the ' +
-                              'database before starting the Webserver.'),
+    parser.add_argument('-pgd', '--purge-geofence-data',
+                        help=('Removes old geofence data from the database.'),
                         action='store_true', default=False)
     parser.add_argument('-nmpl', '--no-matplotlib',
-                        help=('Prevents usage of matplotlib by incompatible' +
-                              'hardware.'),
+                        help=('Prevents the usage of matplotlib when ' +
+                              'running on incompatible hardware.'),
                         action='store_true', default=False)
     parser.add_argument('-sd', '--scan-delay',
                         help='Time delay between requests in scan threads.',
