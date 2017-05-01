@@ -967,7 +967,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'hideTimersAtZoomLevel': {
-        default: 18,
+        default: 16,
         type: StoreTypes.Number
     },
     'searchMarkerStyle': {
