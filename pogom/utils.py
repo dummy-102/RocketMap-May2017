@@ -130,14 +130,14 @@ def get_args():
                         help=('Geofence file (currently only for -speed and ' +
                               'HexSearch)'),
                         default='')
-    parser.add_argument('-fa', '--forbidden-area',
+    parser.add_argument('-ff', '--forbidden-file',
                         help=('File with coordinates defining area NOT to ' +
                               'scan. Basically this is inverted geofence. ' +
                               'Can be combined with -gf'),
                         default='')
-    parser.add_argument('-gcd', '--geofence-clear-db',
-                        help=('Deletes the existing geofences in the ' +
-                              'database before starting the Webserver.'),
+    parser.add_argument('-nmpl', '--no-matplotlib',
+                        help=('Prevents usage of matplotlib by incompatible' +
+                              'hardware.'),
                         action='store_true', default=False)
     parser.add_argument('-sd', '--scan-delay',
                         help='Time delay between requests in scan threads.',

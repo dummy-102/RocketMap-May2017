@@ -65,7 +65,6 @@ from .models import (hex_bounds, Pokemon, SpawnPoint, ScannedLocation,
                      ScanSpawnPoint)
 from .utils import now, cur_sec, cellid, equi_rect_distance
 from .altitude import get_altitude
-from .geofence import geofence_results
 
 log = logging.getLogger(__name__)
 
@@ -277,10 +276,9 @@ class HexSearch(BaseScheduler):
             else:
                 results = results[-7:] + results[:-7]
 
-        log.debug('Results (%s): %s', len(results), results)
-        if self.args.geofence_file or self.args.forbidden_area is not None:
-            results = geofence_results(results)
-            log.debug('Geofenced results (%s): %s', len(results), results)
+        # Geofence results.
+        if self.args.geofences.is_enabled():
+            results = self.args.geofences.geofence_results(results)
 
         # Add the required appear and disappear times.
         locationsZeroed = []
@@ -383,13 +381,14 @@ class SpawnScan(BaseScheduler):
             self.locations = Pokemon.get_spawnpoints_in_hex(
                 self.scan_location, self.args.step_limit)
 
-        '''# Does not work, yet, cause of index errors due to different dict
-        log.info('Locations (%s): %s', len(self.locations), self.locations)
-        if self.args.geofence_file or self.args.forbidden_area is not None:
-            self.locations = geofence_results(self.locations)
-            log.info(
-                'Geofenced locations (%s): %s',
-                len(self.locations), self.locations)'''
+        # Geofence spawnpoints
+        if self.args.geofences.is_enabled():
+            self.locations = self.args.geofences.geofence_ss_locations(
+                self.locations)
+            log.debug(
+                'Geofenced spawns (%s): %s',
+                len(self.locations),
+                self.locations)
 
         # Well shit...
         # if not self.locations:
@@ -549,14 +548,8 @@ class SpeedScan(HexSearch):
         self.scans = scans
         db_update_queue.put((ScannedLocation, initial))
         log.info('%d steps created', len(scans))
-        try:
+        if len(scans) > 0:
             self.band_spacing = int(10 * 60 / len(scans))
-        except Exception as e:
-            log.error(
-                'No cells regarded as valid for desired area: ' +
-                'Exception message: {}'.format(
-                    repr(e)))
-            os._exit(1)
 
         self.band_status()
         spawnpoints = SpawnPoint.select_in_hex_by_location(
@@ -608,10 +601,9 @@ class SpeedScan(HexSearch):
                     loc = get_new_coords(star_loc, xdist * (j), 210 + 60 * i)
                     results.append((loc[0], loc[1], 0))
 
-        log.debug('Results (%s): %s', len(results), results)
-        if self.args.geofence_file or self.args.forbidden_area is not None:
-            results = geofence_results(results)
-            log.debug('Geofenced results (%s): %s', len(results), results)
+        # Geofence results
+        if self.args.geofences.is_enabled():
+            results = self.args.geofences.geofence_results(results)
 
         generated_locations = []
         for step, location in enumerate(results):

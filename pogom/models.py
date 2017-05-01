@@ -39,7 +39,6 @@ from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
 from .account import (get_player_inventory, pokestop_spinnable, spin_pokestop,
     cleanup_inventory, get_player_level, check_login, setup_api, lure_pokestop)
-from .geofence import parse_geofences
 
 log = logging.getLogger(__name__)
 
@@ -1865,7 +1864,7 @@ class Token(flaskDb.Model):
 
 
 # Geofence DB Model
-class Geofences(BaseModel):
+class Geofence(BaseModel):
     id = PrimaryKeyField()
     geofence_id = SmallIntegerField()
     forbidden = BooleanField()
@@ -1875,12 +1874,15 @@ class Geofences(BaseModel):
     longitude = DoubleField()
 
     @staticmethod
-    def get_geofences():
+    def clear_all():
+        DeleteQuery(Geofence).execute()
 
-        query = Geofences.select(
-                Geofences.geofence_id, Geofences.forbidden, Geofences.name,
-                Geofences.coordinates_id, Geofences.latitude,
-                Geofences.longitude)
+    @staticmethod
+    def get_geofences():
+        query = Geofence.select(
+                Geofence.geofence_id, Geofence.forbidden, Geofence.name,
+                Geofence.coordinates_id, Geofence.latitude,
+                Geofence.longitude)
 
         # Send them all
         query = (query.dicts())
@@ -2852,7 +2854,6 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
              len(gym_members))
 
 
-
 def parse_player_stats(response_dict):
     inventory_items = response_dict.get('responses', {})\
         .get('GET_INVENTORY', {}).get('inventory_delta', {})\
@@ -3059,7 +3060,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, PokestopDetails, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, LocationAltitude, Account, Geofences]
+              Token, LocationAltitude, Account, Geofence]
     for table in tables:
         if not table.table_exists():
             log.info('Creating table: %s', table.__name__)
@@ -3074,7 +3075,7 @@ def drop_tables(db):
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude,
-              Token, Geofences]
+              Token, Geofence]
     db.connect()
     db.execute_sql('SET FOREIGN_KEY_CHECKS=0;')
     for table in tables:
