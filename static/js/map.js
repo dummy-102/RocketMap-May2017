@@ -684,12 +684,15 @@ function pokemonLabel(item) {
     if (worker_level != null) {
         details += build_worker_level_div(encounterIdLong, worker_level)
     }
+
+    var otime = (item['disappear_time'] - Date.now())  / 1000 / 60 / 1
+
     var scoutLink = cp == null ? `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>` : ""
     var contentstring = `
       <center>
         <div>
             <div>
-
+              ${otime}
             </div>
             <div>
               <font size="3"><b>${ditto} ${name}</b></font>`
@@ -1203,23 +1206,26 @@ function customizePokemonMarker(marker, item, skipNotification) {
             }
         }
     } else if (Store.get('showPokemonOpacity')) {
-        marker.setOpacity(minOpacity)  // Default opacity if toggle enabled
+        var otime = (item['disappear_time'] - Date.now())  / 1000 / 60 / 1
+        marker.setOpacity(otime)  // Default opacity if toggle enabled
     }
 
     addListeners(marker)
 }
 
 function setupGymMarker(item) {
+    var timeDelta = (Date.now() - item['last_scanned']) / 1000 / 2 // minutes since last scan
+    var gymSize = getGymLevel(item['gym_points']) < 5 ? 32 : (getGymLevel(item['gym_points']) < 8 ? 40 : (getGymLevel(item['gym_points']) < 10 ? 48 : 56))
+    var opacity = (timeDelta < Store.get('obsoletion1')) ? 1.0 : (timeDelta < Store.get('obsoletion2')) ? Store.get('opacity1') : (timeDelta < Store.get('obsoletion3')) ? Store.get('opacity2') : Store.get('opacity3')
+
     var marker = new google.maps.Marker({
         position: {
             lat: item['latitude'],
             lng: item['longitude']
         },
+        opacity: opacity,
         map: map,
-        icon: {
-            url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + getGymLevel(item['gym_points']) : '') + '.png',
-            scaledSize: new google.maps.Size(48, 48)
-        }
+        icon: {url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + getGymLevel(item['gym_points']) : '') + '.png', scaledSize: new google.maps.Size(gymSize, gymSize)}
     })
 
     if (!marker.rangeCircle && isRangeActive(map)) {
@@ -1266,19 +1272,20 @@ function setupGymMarker(item) {
 }
 
 function updateGymMarker(item, marker) {
-    marker.setIcon({
-        url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + getGymLevel(item['gym_points']) : '') + '.png',
-        scaledSize: new google.maps.Size(48, 48)
-    })
+    var timeDelta = (Date.now() - item['last_scanned']) / 1000 / 2 // minutes since last scan
+    var opacity = (timeDelta < Store.get('obsoletion1')) ? 1.0 : (timeDelta < Store.get('obsoletion2')) ? Store.get('opacity1') : (timeDelta < Store.get('obsoletion3')) ? Store.get('opacity2') : Store.get('opacity3')
+    var gymSize = getGymLevel(item['gym_points']) < 5 ? 32 : (getGymLevel(item['gym_points']) < 8 ? 40 : (getGymLevel(item['gym_points']) < 10 ? 48 : 56))
+
+    marker.setOpacity(opacity)
+    marker.setIcon({url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + getGymLevel(item['gym_points']) : '') + '.png', scaledSize: new google.maps.Size(gymSize, gymSize)})
     marker.infoWindow.setContent(gymLabel(item))
     return marker
 }
 
 function updateGymIcons() {
+    var gymSize = Store.get('gymMarkerSize')
     $.each(mapData.gyms, function (key, value) {
-        mapData.gyms[key]['marker'].setIcon({
-            url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[mapData.gyms[key]['team_id']] + (mapData.gyms[key]['team_id'] !== 0 ? '_' + getGymLevel(mapData.gyms[key]['gym_points']) : '') + '.png',
-            scaledSize: new google.maps.Size(48, 48)
+        mapData.gyms[key]['marker'].setIcon({url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[mapData.gyms[key]['team_id']] + (mapData.gyms[key]['team_id'] !== 0 ? '_' + getGymLevel(mapData.gyms[key]['gym_points']) : '') + '.png', scaledSize: new google.maps.Size(gymSize, gymSize)
         })
     })
 }
@@ -1310,7 +1317,7 @@ function setupPokestopMarker(item) {
 
 function getColorByDate(value) {
     // Changes the color from red to green over 15 mins
-    var diff = (Date.now() - value) / 1000 / 60 / 15
+    var diff = (Date.now() - value) / 1000 / 60 / 5
 
     if (diff > 1) {
         diff = 1

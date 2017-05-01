@@ -993,6 +993,34 @@ var StoreOptions = {
     'minPokemonOpacityPercentage': {
         default: 33,
         type: StoreTypes.Number
+    },
+    'gymMarkerSize': {
+        default: 48,
+        type: StoreTypes.Number
+    },
+    'opacity3': {
+        default: 0.17,
+        type: StoreTypes.Number
+    },
+    'opacity2': {
+        default: 0.33,
+        type: StoreTypes.Number
+    },
+    'opacity1': {
+        default: 0.75,
+        type: StoreTypes.Number
+    },
+    'obsoletion3': {
+        default: 1440,
+        type: StoreTypes.Number
+    },
+    'obsoletion2': {
+        default: 720,
+        type: StoreTypes.Number
+    },
+    'obsoletion1': {
+        default: 120,
+        type: StoreTypes.Number
     }
 }
 
@@ -1095,6 +1123,10 @@ function setupPokemonMarker(item, map, isBounceDisabled) {
             icon: icon,
             animationDisabled: animationDisabled
         })
+    }
+    if (Store.get('showPokemonOpacity')) {
+        var otime = (item['disappear_time'] - Date.now())  / 1000 / 60 / 1
+        marker.setOpacity(otime)  // Default opacity if toggle enabled
     }
     return marker
 }
