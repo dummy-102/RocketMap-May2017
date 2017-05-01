@@ -67,7 +67,7 @@ var lastUpdateTime
 
 var gymTypes = ['Uncontested', 'Mystic', 'Valor', 'Instinct']
 var gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000]
-var audio = new Audio('static/sounds/ding.mp3')
+var audio = new Audio('static/sounds/pokewho.mp3')
 
 var GenderType = ['Male ♂', 'Female ♀', 'Netural ⚪']
 var unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '!', '?']
@@ -89,7 +89,7 @@ var notifyNoIvTitle = '<pkm>'
   <dist>  - disappear time
   <udist> - time until disappear
 */
-var notifyText = 'disappears at <dist> (<udist>)'
+var notifyText = '<dist> (<udist>)'
 
 //
 // Functions
@@ -564,51 +564,51 @@ function build_probs_div(encounterIdLong, prob1, prob2, prob3) {
 function build_previous_id_div(encounterIdLong, previous_id) {
     if (previous_id == 16) {
       return `
-          <div id="pkmWorker${encounterIdLong}">
+          <span id="pkmWorker${encounterIdLong}">
             (Pidgy)
-          </div>
+          </span>
           `
     }
     if (previous_id == 19) {
       return `
-          <div id="pkmWorker${encounterIdLong}">
+          <span id="pkmWorker${encounterIdLong}">
             (Rattata)
-          </div>
+          </span>
           `
     }
     if (previous_id == 41) {
       return `
-          <div id="pkmWorker${encounterIdLong}">
+          <span id="pkmWorker${encounterIdLong}">
             (Zubat)
-          </div>
+          </span>
           `
     }
     if (previous_id == 129) {
       return `
-          <div id="pkmWorker${encounterIdLong}">
+          <span id="pkmWorker${encounterIdLong}">
            (Magikarp)
-          </div>
+          </span>
           `
     }
     if (previous_id == 161) {
       return `
-          <div id="pkmWorker${encounterIdLong}">
+          <span id="pkmWorker${encounterIdLong}">
             (Sentret)
-          </div>
+          </span>
           `
     }
     if (previous_id == 163) {
       return `
-          <div id="pkmWorker${encounterIdLong}">
+          <span id="pkmWorker${encounterIdLong}">
             (Hoothoot)
-          </div>
+          </span>
           `
     }
     if (previous_id == 193) {
       return `
-          <div id="pkmWorker${encounterIdLong}">
+          <span id="pkmWorker${encounterIdLong}">
             (Yanma)
-          </div>
+          </span>
           `
     }
 }
@@ -686,39 +686,49 @@ function pokemonLabel(item) {
       <center>
         <div>
             <div>
-              <font size="0.5"><b>${ditto}</b></font>
+
             </div>
             <div>
-              <font size="3"><b>${name}</b></font>
-            </div>
-            <div>
-              <img style="vertical-align:top" width='50px' height='50px' src='static/sprites/${id}.png'>
-            </div>`
+              <font size="3"><b>${ditto} ${name}</b></font>`
             if (id === 201 && form !== null && form > 0) {
-              contentstring += ` (${unownForm[item['form']]})`
+              contentstring += ` <font size="3"><b>[${unownForm[item['form']]}]</font></b>
+            </div>`
             }
     contentstring += `
-        <div>
-          <font size="1"><b><a href='http://www.pokehamilton.com/pokemon/${id}' target='_blank' title='View in Pokedex'>#${id}</a></b></font> <span><font size="1"><b>${rarityDisplay}</b></font></span>
-        </div>
-        <div>
-          <small>${typesDisplay}</small>
-        </div>
-        <div>
-          ${disappearStr}
-          <b><span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span></b>
-        </div>
-          ${details}
-        <div id="scoutInfo${encounterIdLong}" style="display:none;"></div>
-        <div>
-          <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
-          <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
-          <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
-          <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>&nbsp;&nbsp
-          ${scoutLink}
-        </div>
+            <div>
+              <img style="vertical-align:top" width='50px' height='50px' src='static/sprites/${id}.png'>
+            </div>
+            <div>
+              <font size="1"><b><a href='http://www.pokehamilton.com/pokemon/${id}' target='_blank' title='View in Pokedex'>#${id}</a></b></font> <span><font size="1"><b>${rarityDisplay}</b></font></span>
+            </div>
+            <div>
+              <small>${typesDisplay}</small>
+            </div>
+            <div>
+              <b>${disappearStr}</b>
+              <b><span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span></b>
+            </div>
+              ${details}
+            <div id="scoutInfo${encounterIdLong}" style="display:none;"></div>
+            <div><font size="1"><b>
+              <a href='javascript:excludePokemon(${id})'>Exclude</a>&nbsp;&nbsp
+              <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
+              <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
+              <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>&nbsp;&nbsp
+              ${scoutLink}
+              </font></b>
+            </div>
       </center>`
     return contentstring
+}
+
+function getGymLevel (points) {
+  var level = 1
+  while (points >= gymPrestige[level - 1]) {
+    level++
+  }
+
+  return level
 }
 
 function gymLabel(item) {
@@ -743,8 +753,16 @@ function gymLabel(item) {
 
     var nameStr = (item['name'] ? `<div>${item['name']}</div>` : '')
     var descriptionStr = (item['description'] ? `<div>${item['description']}</div>` : '')
+    var teamStr = item['team_id']
+    var gymLevel = getGymLevel(item['gym_points'])
+    var nextLvlPrestige = gymPrestige[gymLevel - 1] || 50000
+    var prestigePercentage = (item['gym_points'] / nextLvlPrestige) * 100
+    var pbar = ''
+        pbar += `   <span class="gym-member prestige-bar team-${teamStr}">
+                      <span class="gym-member prestige team-${teamStr}" style="width: ${prestigePercentage}%">
+                    </span>`
 
-    var gymColor = ['0, 0, 0, .4', '74, 138, 202, .6', '240, 68, 58, .6', '254, 217, 40, .6']
+    var gymColor = ['0, 0, 0, 1', '0, 0, 255, 1', '255, 0, 0, 1', '255, 255, 0, 1']
     var str
     if (item['team_id'] === 0) {
         str = `
@@ -753,31 +771,35 @@ function gymLabel(item) {
             </style>
             <div>
                 <center>
-                      <div style='padding-bottom: 2px'>
                       <div>
                         ${nameStr}
                       </div>
                       <div>
+                        <img height='15px' style='padding: 1px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'>
+                          <b style='color:rgba(${gymColor[item['team_id']]})'>${gymTypes[item['team_id']]}</b>
+                        <img height='15px' style='padding: 1px;' src='static/forts/${gymTypes[item['team_id']]}_Leader.png'>
+                      </div>`
+                      if (item['url']) {
+                        str += `<div style="border: 5px solid rgba(${gymColor[item['team_id']]}); width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto;"><img class='circle2' height=100 width=100 src='${item['url']}'></div>`
+                      } else {
+                        str += `<div><img height='70px' style='padding: 5px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'></div>`
+                      }
+        str += `
+                      <div>
                         ${descriptionStr}
                       </div>
-                    <div>
-                    <b style='color:rgba(${gymColor[item['team_id']]})'>${gymTypes[item['team_id']]}</b><br>`
-                    if (item['url']) {
-                      str += `<div style="border: 5px solid rgba(${gymColor[item['team_id']]}); width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto;"><img class='circle2' height=100 width=100 src='${item['url']}'>`
-                    } else {
-                      str += `<img height='70px' style='padding: 5px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'>`
-                    }
-        str += `    </div>
-                    <div>
-                        Location: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
-                    </div>
-                    <div>
-                        Last Scanned: ${lastScannedStr}
-                    </div>
-                    <div>
-                        Last Modified: ${lastModifiedStr}
-                    </div>
-                    ${directionsStr}
+                      <div>
+                        GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+                      </div>
+                      <div>
+                        Scanned: ${lastScannedStr}
+                      </div>
+                      <div>
+                        Modified: ${lastModifiedStr}
+                      </div>
+                      <div>
+                        <font size="1"><b>${directionsStr}</font></b>
+                      </div>
                 </center>
             </div>`
     } else {
@@ -788,44 +810,50 @@ function gymLabel(item) {
             </style>
             <div>
                 <center>
-                    <div style='padding-bottom: 2px'>
-                    <div>
-                      ${nameStr}
-                    </div>
-                    <div>
-                      ${descriptionStr}
-                    </div>
-                  <div>
-                    </div>
-                    <div>
-                    <b style='color:rgba(${gymColor[item['team_id']]})'>Team ${gymTypes[item['team_id']]}</b><br>`
-                    if (item['url']) {
-                      str += `<div style="border: 5px solid rgba(${gymColor[item['team_id']]}); width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto;"><img class='circle2' height=100 width=100 src='${item['url']}'>`
-                    } else {
-                      str += `<img height='70px' style='padding: 5px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'>`
-                    }
+                      <div>
+                        <div>
+                          <font size="3"><b>${nameStr}</font></b>
+                        </div>
+                        <div>
+                          <img height='15px' style='padding: 1px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'>
+                            <b style='color:rgba(${gymColor[item['team_id']]})'>Team ${gymTypes[item['team_id']]}</b>
+                          <img height='15px' style='padding: 1px;' src='static/forts/${gymTypes[item['team_id']]}_Leader.png'>
+                        </div>`
+                        if (item['url']) {
+                          str += `<div style="border: 5px solid rgba(${gymColor[item['team_id']]}); width: 110px; height: 110px; background-size: cover; display: block; border-radius: 55px; margin: auto;"><img class='circle2' height=100 width=100 src='${item['url']}'></div>`
+                        } else {
+                          str += `<div><img height='70px' style='padding: 5px;' src='static/forts/${gymTypes[item['team_id']]}_large.png'></div>`
+                        }
         str += `
-                    </div>
-                    <div>
-                        Level: ${gymLevel} | Prestige: ${item['gym_points']}/${gymPrestige[gymLevel - 1] || 50000}
-                    </div>
-                    <div>
-                        ${memberStr}
-                    </div>
-                    <div>
-                        Location: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
-                    </div>
-                    <div>
-                        Last Scanned: ${lastScannedStr}
-                    </div>
-                    <div>
-                        Last Modified: ${lastModifiedStr}
-                    </div>
-                    ${directionsStr}
+                        <div>
+                          <font size="0.5"><b>${descriptionStr}</font></b>
+                        </div>
+                        <div>
+                          Level: <b>${gymLevel}</b>
+                        </div>
+                        <div>
+                          Prestige: <b>${item['gym_points']}/${gymPrestige[gymLevel - 1] || 50000}</b> - <b>${prestigePercentage.toFixed(2)}%</b>
+                        </div>
+                        <div>
+                        	${pbar}
+                        </div>
+                        <div>
+                            ${memberStr}
+                        </div>
+                        <div>
+                            GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+                        </div>
+                        <div>
+                            <font size="0.5"><b>Scanned: ${lastScannedStr}</font></b>
+                        </div>
+                        <div>
+                            <font size="0.5"><b>Modified: ${lastModifiedStr}</font></b>
+                        </div>
+                        <font size="1"><b>${directionsStr}</font></b>
+                      </div>
                 </center>
             </div>`
     }
-
     return str
 }
 
@@ -896,7 +924,7 @@ function pokestopLabel(item) {
                     <font size="0.5"><b>Scanned: ${lastScannedStr}</b></font>
                   </div>
                   <div>
-                    <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
+                    <font size="1"><b><a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a></font></b>
                   </div>
                 </div>
               </center>
@@ -942,7 +970,7 @@ function pokestopLabel(item) {
                   <font size="0.5"><b>Scanned: ${lastScannedStr}</b></font>
                 </div>
                 <div>
-                  <a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a>
+                  <font size="1"><b><a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a></font></b>
                 </div>
             </center>`
     }
@@ -1088,13 +1116,36 @@ function getNotifyText(item) {
     var ntitle = repArray(((iv) ? notifyIvTitle : notifyNoIvTitle), find, replace)
     var dist = (new Date(item['disappear_time'])).toLocaleString([], {
         hour: '2-digit', minute: '2-digit',
-        second: '2-digit', hour12: false})
+        second: '2-digit', hour12: true})
     var until = getTimeUntil(item['disappear_time'])
     var udist = (until.hour > 0) ? until.hour + ':' : ''
     udist += lpad(until.min, 2, 0) + 'm' + lpad(until.sec, 2, 0) + 's'
     find = ['<dist>', '<udist>']
     replace = [dist, udist]
     var ntext = repArray(notifyText, find, replace)
+
+    //Ditto [16, 19, 41, 129, 161, 163, 193]
+    if (item.pokemon_id === 132 && item.previous_id == 16) {
+  		ntitle += ' (Pidgy)'
+    }
+    if (item.pokemon_id === 132 && item.previous_id == 19) {
+  		ntitle += ' (Rattata)'
+    }
+    if (item.pokemon_id === 132 && item.previous_id == 41) {
+  		ntitle += ' (Zubat)'
+    }
+    if (item.pokemon_id === 132 && item.previous_id == 129) {
+  		ntitle += ' (Magikarp)'
+    }
+    if (item.pokemon_id === 132 && item.previous_id == 161) {
+  		ntitle += ' (Sentret)'
+    }
+    if (item.pokemon_id === 132 && item.previous_id == 163) {
+  		ntitle += ' (Hoothoot)'
+    }
+    if (item.pokemon_id === 132 && item.previous_id == 193) {
+  		ntitle += ' (Sentret)'
+    }
 
     return {
         'fav_title': ntitle,

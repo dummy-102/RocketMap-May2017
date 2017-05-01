@@ -128,28 +128,28 @@
         font-family: 'Roboto', sans-serif;
 
         &.team-1 {
-          background-color: #4A8ACA;
+          background-color: #0000FF;
         }
 
         &.team-2 {
-          background-color: #F0443A;
+          background-color: #FF0000;
         }
 
         &.team-3 {
-          background-color: #FED928;
+          background-color: #FFFF00;
         }
       }
 
       &.team-1 {
-        border-color: darken(#4A8ACA, 10);
+        border-color: darken(#0000FF, 10);
       }
 
       &.team-2 {
-        border-color: darken(#F0443A, 10);
+        border-color: darken(#FF0000, 10);
       }
 
       &.team-3 {
-        border-color: darken(#FED928, 10);
+        border-color: darken(#FFFF00, 10);
       }
     }
 
