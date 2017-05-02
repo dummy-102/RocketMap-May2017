@@ -990,19 +990,110 @@ function formatSpawnTime(seconds) {
 }
 
 function spawnpointLabel(item) {
-    var str = `
-        <div>
-            <b>Spawn Point</b>
-        </div>
-        <div>
-            Every hour from ${formatSpawnTime(item.time)} to ${formatSpawnTime(item.time + 900)}
-        </div>`
+  var latitude = item['latitude']
+  var longitude = item['longitude']
+  var last_scanned = item['last_scanned']
+  var lastScannedStr = getDateStr(item['last_scanned'])
+  var id = item['id']
+  var kind = item['kind']
+  var links = item['links']
+  var missedcount = item['missed_count']
 
-    if (item.special) {
+  var appear_time = item['appear_time']
+  var now = new Date()
+  var seconds = now.getMinutes() * 60 + now.getSeconds()
+  var diff = (seconds - appear_time)
+  var statusStr = ''
+  var imgStr = ''
+  var hue = 275
+  // account for hour roll-over
+  if (seconds < 900 && appear_time > 2700) {
+      seconds += 3600
+  } else if (seconds > 2700 && appear_time < 900) {
+      appear_time += 3600
+  }
+  if (diff >= 0 && diff <= 900) { // green to red over 15 minutes of active spawn
+      statusStr = 'ACTIVE SPAWN'
+      hue = (1 - (diff / 60 / 30)) * 120
+  } else if (diff < 0 && diff > -300) { // light blue to dark blue over 5 minutes til spawn
+      statusStr = 'UPCOMING SPAWN'
+      hue = ((1 - (-diff / 60 / 5)) * 50) + 200
+  } else {
+      statusStr = 'INACTIVE SPAWN'
+  }
+  hue = Math.round(hue / 5) * 5
+  if (hue === 275) {
+    imgStr = './static/icons/hsl-275-light.png'
+  } else {
+    imgStr = './static/icons/hsl-' + hue + '.png'
+  }
+    var str = `
+        <center>
+          <img height='50px' style='padding: 1px;' src=${imgStr}>
+          <div>
+            <font size="3"><b>Spawn Point</b></font>
+          </div>
+          <div>
+            ID: <b>${id}</b>
+          </div>
+          <div>
+            Kind: <b>${kind}</b> Links: <b>${links}</b>
+          <div>
+          <div>
+            Missed Count: <b>${missedcount}</b>
+          <div>
+    `
+    if (item.uncertain) {
         str += `
             <div>
-                May appear as early as ${formatSpawnTime(item.time - 1800)}
-            </div>`
+              <b>${statusStr}</b>
+            </div>
+            <div>
+              <font size="3"><b>Spawn Times UNKNOWN!<font><b>.
+            </div>
+            <div>
+              Hourly <b>Perdicted</b> Time:
+            </div>
+            <div>
+               Appears: <b>XX:${formatSpawnTime(item.appear_time)}</b>
+            <div>
+            </div>
+               Dissappears: <b>XX:${formatSpawnTime(item.disappear_time)}</b>
+            </div>
+            <div>
+              GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+            </div>
+            <div>
+              <font size="0.5"><b>Updated: ${lastScannedStr}</b></font>
+            </div>
+            <div>
+              <font size="1"><b><a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a></font></b>
+            </div>
+        </center>`
+    } else {
+        str += `
+            <div>
+              <b>${statusStr}</b>
+            </div>
+            <div>
+                Hourly <b>Locked</b> Time:
+            </div>
+            <div>
+               Appears: <b>XX:${formatSpawnTime(item.appear_time)}</b>
+            <div>
+            </div>
+               Dissappears: <b>XX:${formatSpawnTime(item.disappear_time)}</b>
+            </div>
+            <div>
+              GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+            </div>
+            <div>
+              <font size="0.5"><b>Updated: ${lastScannedStr}</b></font>
+            </div>
+            <div>
+              <font size="1"><b><a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a></font></b>
+            </div>
+        </center>`
     }
     return str
 }
@@ -1351,17 +1442,17 @@ function getColorBySpawnTime(value) {
 
     // account for hour roll-over
     if (seconds < 900 && value > 2700) {
-        seconds += 3600
+      seconds += 5400
     } else if (seconds > 2700 && value < 900) {
-        value += 3600
+      value += 5400
     }
 
     var diff = (seconds - value)
     var hue = 275 // light purple when spawn is neither about to spawn nor active
-    if (diff >= 0 && diff <= 900) { // green to red over 15 minutes of active spawn
-        hue = (1 - (diff / 60 / 15)) * 120
+    if (diff >= 0 && diff <= 900) { // green to red over 30 minutes of active spawn
+      hue = (1 - (diff / 60 / 30)) * 120
     } else if (diff < 0 && diff > -300) { // light blue to dark blue over 5 minutes til spawn
-        hue = ((1 - (-diff / 60 / 5)) * 50) + 200
+      hue = ((1 - (-diff / 60 / 5)) * 50) + 200
     }
 
     hue = Math.round(hue / 5) * 5
@@ -1408,7 +1499,7 @@ function spawnPointIndex(color) {
 
 function setupSpawnpointMarker(item) {
     var circleCenter = new google.maps.LatLng(item['latitude'], item['longitude'])
-    var hue = getColorBySpawnTime(item.time)
+    var hue = getColorBySpawnTime(item['appear_time'])
     var zoom = map.getZoom()
 
     var marker = new google.maps.Marker({
@@ -1898,7 +1989,7 @@ function processSpawnpoints(i, item) {
         return false
     }
 
-    var id = item['spawnpoint_id']
+    var id = item['id']
 
     if (!(id in mapData.spawnpoints)) { // add marker to map and item to dict
         if (item.marker) {
@@ -1918,7 +2009,7 @@ function updateSpawnPoints() {
 
     $.each(mapData.spawnpoints, function (key, value) {
         if (map.getBounds().contains(value.marker.getPosition())) {
-            var hue = getColorBySpawnTime(value['time'])
+            var hue = getColorBySpawnTime(value['appear_time'])
             value.marker.setIcon(changeSpawnIcon(hue, zoom))
             value.marker.setZIndex(spawnPointIndex(hue))
         }
