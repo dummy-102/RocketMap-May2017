@@ -1006,6 +1006,7 @@ function spawnpointLabel(item) {
   var statusStr = ''
   var imgStr = ''
   var hue = 275
+  var kindStr =  ''
   // account for hour roll-over
   if (seconds < 900 && appear_time > 2700) {
       seconds += 3600
@@ -1027,6 +1028,13 @@ function spawnpointLabel(item) {
   } else {
     imgStr = './static/icons/hsl-' + hue + '.png'
   }
+  if (kind == 'ssss') {
+    kindStr = '<b>60</b> Minute SpawnPoint'
+  } else if (kind == 'sssh') {
+    kindStr = '<b>45</b> Minute SpawnPoint'
+  } else if (kind == 'hhss') {
+    kindStr = '<b>30</b> Minute SpawnPoint'
+  }
     var str = `
         <center>
           <img height='50px' style='padding: 1px;' src=${imgStr}>
@@ -1038,6 +1046,9 @@ function spawnpointLabel(item) {
           </div>
           <div>
             Kind: <b>${kind}</b> Links: <b>${links}</b>
+          </div>
+          <div>
+            ${kindStr}
           <div>
           <div>
             Missed Count: <b>${missedcount}</b>
