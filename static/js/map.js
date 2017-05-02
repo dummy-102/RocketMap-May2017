@@ -1115,14 +1115,14 @@ function geofenceLabel(item) {
         str = `
         <center>
             <div>
-                <font size="3"><b>Forbidden Area:</b></font>
+                <img height='15px' style='padding: 1px;' src='static/forts/fence.png'><font size="3"><b>Forbidden Area:</b></font>
             </div>
         </center>`
     } else {
         str = `
         <center>
             <div>
-                <font size="3"><b>Geofence:</b></font>
+                <img height='15px' style='padding: 1px;' src='static/forts/fence.png'><font size="3"><b>Geofence:</b></font>
             </div>
         </center>`
     }
