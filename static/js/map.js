@@ -1113,20 +1113,26 @@ function geofenceLabel(item) {
     var str
     if (item.forbidden) {
         str = `
+        <center>
             <div>
-                <b>Forbidden Area</b>
-            </div>`
+                <font size="3"><b>Forbidden Area:</b></font>
+            </div>
+        </center>`
     } else {
         str = `
+        <center>
             <div>
-                <b>Geofence</b>
-            </div>`
+                <font size="3"><b>Geofence:</b></font>
+            </div>
+        </center>`
     }
 
     str += `
+      <center>
         <div>
-            ${item.name}
-        </div>`
+            Name: <b>${item.name}</b>
+        </div>
+      </center>`
 
     return str
 }
@@ -1432,6 +1438,21 @@ function getColorByDate(value) {
 
 function setupScannedMarker(item) {
     var circleCenter = new google.maps.LatLng(item['latitude'], item['longitude'])
+
+    var label = new google.maps.Marker({
+      position: circleCenter,
+      map: map,
+      icon: {
+        url: '',
+        size: new google.maps.Size(0, 0)
+      }
+    })
+
+
+    label.setLabel({
+    text: item.username,
+    fontSize: '0.5m'
+    })
 
     var marker = new google.maps.Circle({
         map: map,

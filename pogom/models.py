@@ -47,7 +47,7 @@ flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
 
-db_schema_version = 20
+db_schema_version = 21
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -745,6 +745,7 @@ class ScannedLocation(BaseModel):
     cellid = CharField(primary_key=True, max_length=50)
     latitude = DoubleField()
     longitude = DoubleField()
+    username = CharField()
     last_modified = DateTimeField(
         index=True, default=datetime.utcnow, null=True)
     # Marked true when all five bands have been completed.
@@ -2014,6 +2015,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'or pokestops. Possible speed violation.')
 
     scan_loc = ScannedLocation.get_by_loc(step_location)
+    scan_loc['username'] = account['username']
     done_already = scan_loc['done']
     ScannedLocation.update_band(scan_loc, now_date)
     just_completed = not done_already and scan_loc['done']
@@ -3377,5 +3379,11 @@ def database_migrate(db, old_ver):
                                 CharField(null=True, max_length=1))
         )
 
+    if old_ver < 21:
+        migrate(
+            migrator.add_column('scannedlocation', 'username',
+                                CharField(max_length=255, null=False,
+                                default=" ")),
+        )
     # Always log that we're done.
     log.info('Schema upgrade complete.')
