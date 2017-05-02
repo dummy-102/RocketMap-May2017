@@ -32,6 +32,7 @@ var excludedPokemon = []
 var notifiedPokemon = []
 var notifiedRarity = []
 var notifiedMinPerfection = null
+var onlyPokemon = 0
 
 var buffer = []
 var reincludedPokemon = []
@@ -466,6 +467,18 @@ function scout(encounterId) {
     })
 }
 
+function toggleOtherPokemon(pokemonId) {
+    onlyPokemon = onlyPokemon === 0 ? pokemonId : 0
+    if (onlyPokemon === 0) {
+        // reload all Pokemon
+        lastpokemon = false
+        updateMap()
+    } else {
+        // remove other Pokemon
+        clearStaleMarkers()
+    }
+}
+
 // Converts timestamp to readable String
 function getDateStr(t) {
     var dateStr = 'Unknown'
@@ -572,7 +585,8 @@ function pokemonLabel(name, rarity, types, disappearTime, id, latitude, longitud
             <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
             <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
             <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>&nbsp;&nbsp
-            ${scoutLink}
+            ${scoutLink}&nbsp;&nbsp
+            <a href='javascript:void(0);' onclick='javascript:toggleOtherPokemon("${id}");' title='Toggle display of other Pokemon'>Toggle Others</a>
         </div>`
     return contentstring
 }
@@ -1144,10 +1158,15 @@ function addListeners(marker) {
     return marker
 }
 
+function isTemporaryHidden(pokemonId) {
+    return onlyPokemon != 0 && pokemonId != onlyPokemon
+}
+
 function clearStaleMarkers() {
     $.each(mapData.pokemons, function (key, value) {
         if (mapData.pokemons[key]['disappear_time'] < new Date().getTime() ||
-            excludedPokemon.indexOf(mapData.pokemons[key]['pokemon_id']) >= 0) {
+            excludedPokemon.indexOf(mapData.pokemons[key]['pokemon_id']) >= 0 ||
+            isTemporaryHidden(mapData.pokemons[key]['pokemon_id'])) {
             if (mapData.pokemons[key].marker.rangeCircle) {
                 mapData.pokemons[key].marker.rangeCircle.setMap(null)
                 delete mapData.pokemons[key].marker.rangeCircle
@@ -1309,7 +1328,8 @@ function processPokemons(i, item) {
     }
 
     if (!(item['encounter_id'] in mapData.pokemons) &&
-        excludedPokemon.indexOf(item['pokemon_id']) < 0 && item['disappear_time'] > Date.now()) {
+        excludedPokemon.indexOf(item['pokemon_id']) < 0 && item['disappear_time'] > Date.now() &&
+        !isTemporaryHidden(item['pokemon_id'])) {
         // add marker to map and item to dict
         if (item.marker) {
             item.marker.setMap(null)
@@ -1571,7 +1591,7 @@ function updateMap() {
 
         reids = result.reids
         if (reids instanceof Array) {
-            reincludedPokemon = reids.filter(function (e) {
+            ad = reids.filter(function (e) {
                 return this.indexOf(e) < 0
             }, reincludedPokemon)
         }
