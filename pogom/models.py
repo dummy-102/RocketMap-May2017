@@ -2132,9 +2132,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
         # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
         # All of that is needed to make sure it's unique.
-        for p in query:
-            if p['spawnpoint_id'] != 'placeholder':
-                encountered_pokemon = [(p['encounter_id'], p['spawnpoint_id'])]
+        #for p in query:
+        #    if p['spawnpoint_id'] != 'placeholder':
+        #        encountered_pokemon = [(p['encounter_id'], p['spawnpoint_id'])]
+
+        encountered_pokemon = [(p['encounter_id'], p['spawnpoint_id']) for p in query]
 
         for p in wild_pokemon:
 
