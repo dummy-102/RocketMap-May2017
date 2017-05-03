@@ -619,8 +619,14 @@ function build_previous_id_div(encounterIdLong, previous_id) {
 function build_nearby_pkm_div(encounterIdLong, nearby_pkm) {
     return `
           <div id="pkmLoc${encounterIdLong}">
-            <img height='15px' style='padding: 1px;' src='static/forts/search.png'>
-            Pokestop Tracker Pokemon
+            <img height='15px' style='padding: 1px;' src='static/forts/pstop.png'>
+            <font size="3"><b>Pokestop Tracker Pokemon</font></b>
+          </div>
+          <div>
+            <font size="0.5"><b>(GPS And Time Approximation)</font></b>
+          </div>
+          <div>
+            <font size="0.5"><b>(Standard Timers 30/60)</font></b>
           </div>
           `
 }
@@ -706,7 +712,7 @@ function pokemonLabel(item) {
       <center>
         <div>
             <div>
-              <font size="3"><b>${near}</font></b>
+              ${near}
             </div>
             <div>
               <font size="3"><b>${ditto} ${name}</b></font>`
