@@ -156,6 +156,9 @@ def get_args():
     parser.add_argument('-hlenc', '--high-lvl-encounter',
                         help='Start an encounter to gather IVs and moves.',
                         action='store_true', default=False)
+    parser.add_argument('-npkm', '--nearbypokes',
+                        help='Add Nearby Pokestop Tracker Pokemon to the Map.',
+                        action='store_true', default=False)
     parser.add_argument('-ditto', '--ditto',
                         help='Catch certain pokemon to check for ditto.',
                         action='store_true', default=False)

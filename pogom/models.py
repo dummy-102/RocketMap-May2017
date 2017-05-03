@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import pprint
 import itertools
 import calendar
 import sys
@@ -125,6 +126,7 @@ class Pokemon(BaseModel):
     form = SmallIntegerField(null=True)
     rating_attack = CharField(null=True, max_length=1)
     rating_defense = CharField(null=True, max_length=1)
+    nearby_pkm = SmallIntegerField(null=True)
 
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
@@ -1949,7 +1951,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     forts_count = 0
     wild_pokemon = []
     wild_pokemon_count = 0
-    nearby_pokemon = 0
+    nearby_pokemon = []
+    nearby_pokemon_count = 0
     spawn_points = {}
     scan_spawn_points = {}
     sightings = {}
@@ -1978,13 +1981,14 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             now_date = datetime.utcfromtimestamp(
                 cell['current_timestamp_ms'] / 1000)
 
-        nearby_pokemon += len(cell.get('nearby_pokemons', []))
+        nearby_pokemon_count += len(cell.get('nearby_pokemons', []))
         # Parse everything for stats (counts).  Future enhancement -- we don't
         # necessarily need to know *how many* forts/wild/nearby were found but
         # we'd like to know whether or not *any* were found to help determine
         # if a scan was actually bad.
         if config['parse_pokemon']:
             wild_pokemon += cell.get('wild_pokemons', [])
+            nearby_pokemon += cell.get('nearby_pokemons', [])
 
         if config['parse_pokestops'] or config['parse_gyms']:
             forts += cell.get('forts', [])
@@ -2003,7 +2007,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     del map_dict['responses']['GET_MAP_OBJECTS']
 
     # If there are no wild or nearby Pokemon . . .
-    if not wild_pokemon and not nearby_pokemon:
+    if not wild_pokemon and not nearby_pokemon_count:
         # . . . and there are no gyms/pokestops then it's unusable/bad.
         if not forts:
             log.warning('Bad scan. Parsing found absolutely nothing.')
@@ -2020,6 +2024,101 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     ScannedLocation.update_band(scan_loc, now_date)
     just_completed = not done_already and scan_loc['done']
 
+    #log.info('Nearby Pokemon: {}'.format(
+    #    pprint.PrettyPrinter(indent=4).pformat(nearby_pokemon)))
+    if nearby_pokemon and config['parse_pokemon']:
+        temp_nearby_list = []
+        for n in nearby_pokemon:
+            if 'fort_id' in n:
+                temp_nearby_list.append(n)
+
+        nearby_pokemon = temp_nearby_list
+
+        encounter_ids = [b64encode(str(n['encounter_id']))
+                         for n in nearby_pokemon]
+        pokestop_ids = [n['fort_id'] for n in nearby_pokemon]
+        # For all the nearby Pokemon we found check if an active Pokemon is in
+        # the database.
+        query = (Pokemon
+                 .select(Pokemon.encounter_id, Pokemon.spawnpoint_id)
+                 .where((Pokemon.disappear_time >= now_date) &
+                        (Pokemon.encounter_id << encounter_ids))
+                 .dicts())
+
+        # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
+        # All of that is needed to make sure it's unique.
+        encountered_pokemon = [p['encounter_id'] for p in query]
+
+        query = (Pokestop
+                 .select(Pokestop.pokestop_id, Pokestop.latitude, Pokestop.longitude)
+                 .where((Pokestop.pokestop_id << pokestop_ids))
+                 .dicts())
+
+        matched_pokestops = {}
+        for f in query:
+            matched_pokestops[f['pokestop_id']] = {
+                'pokestop_id': f['pokestop_id'],
+                'latitude': f['latitude'],
+                'longitude': f['longitude']
+            }
+
+        if args.nearbypokes:
+            for n in nearby_pokemon:
+                if (b64encode(str(n['encounter_id']))
+                        in encountered_pokemon):
+                    continue  # If Pokemon has been found before don't process it.
+                elif n['fort_id'] in matched_pokestops:
+                    nearby_pkm = 1
+                    disappear_time = now_date + timedelta(minutes=3)
+                    latitude = (matched_pokestops[n['fort_id']]['latitude'] +
+                        random.uniform(-0.00025, 0.00025))
+                    longitude = (matched_pokestops[n['fort_id']]['longitude'] +
+                        random.uniform(-0.00025, 0.00025))
+                    pokemon[n['encounter_id']] = {
+                        'encounter_id': b64encode(str(n['encounter_id'])),
+                        'spawnpoint_id': 'placeholder',
+                        'pokemon_id': n['pokemon_id'],
+                        'latitude': latitude,
+                        'longitude': longitude,
+                        'disappear_time': disappear_time,
+                        'individual_attack': None,
+                        'individual_defense': None,
+                        'individual_stamina': None,
+                        'move_1': None,
+                        'move_2': None,
+                        'height': None,
+                        'weight': None,
+                        'gender': n['pokemon_display']['gender'],
+                        'form': None,
+                        'cp': None,
+                        'pokemon_level': None,
+                        'worker_level': worker_level,
+                        'catch_prob_1': None,
+                        'catch_prob_2': None,
+                        'catch_prob_3': None,
+                        'previous_id' : None,
+                        'rating_attack': None,
+                        'rating_defense': None,
+                        'nearby_pkm': nearby_pkm,
+                    }
+                    log.info(n['pokemon_display']['gender'])
+                    if pokemon[n['encounter_id']] == 201:
+                        pokemon[n['encounter_id']]['form'] = n[
+                            'pokemon_display'].get('form', None)
+
+                    if args.webhooks:
+                        pokemon_id = n['pokemon_data']['pokemon_id']
+                        if (pokemon_id in args.webhook_whitelist or
+                            (not args.webhook_whitelist and pokemon_id
+                             not in args.webhook_blacklist)):
+                            wh_poke = pokemon[n['encounter_id']].copy()
+                            wh_poke.update({
+                                'disappear_time': calendar.timegm(
+                                    disappear_time.timetuple()),
+                                'player_level': level
+                            })
+                            wh_update_queue.put(('pokemon', wh_poke))
+
     if wild_pokemon and config['parse_pokemon']:
         encounter_ids = [b64encode(str(p['encounter_id']))
                          for p in wild_pokemon]
@@ -2033,8 +2132,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
         # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
         # All of that is needed to make sure it's unique.
-        encountered_pokemon = [
-            (p['encounter_id'], p['spawnpoint_id']) for p in query]
+        for p in query:
+            if p['spawnpoint_id'] != 'placeholder':
+                encountered_pokemon = [(p['encounter_id'], p['spawnpoint_id'])]
 
         for p in wild_pokemon:
 
@@ -2147,6 +2247,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'form': None,
                 'rating_attack': None,
                 'rating_defense': None,
+                'nearby_pkm': None,
             }
 
             # Determine if to scan for Ditto
@@ -2605,7 +2706,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
     log.info('Parsing found Pokemon: %d, nearby: %d, pokestops: %d, gyms: %d.',
              len(pokemon) + skipped,
-             nearby_pokemon,
+             nearby_pokemon_count,
              len(pokestops) + stopsskipped,
              len(gyms))
 
@@ -2665,7 +2766,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         if sightings:
             db_update_queue.put((SpawnpointDetectionData, sightings))
 
-    if not nearby_pokemon and not wild_pokemon:
+    if not nearby_pokemon_count and not wild_pokemon:
         # After parsing the forts, we'll mark this scan as bad due to
         # a possible speed violation.
         return {

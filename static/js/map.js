@@ -616,6 +616,15 @@ function build_previous_id_div(encounterIdLong, previous_id) {
     }
 }
 
+function build_nearby_pkm_div(encounterIdLong, nearby_pkm) {
+    return `
+          <div id="pkmLoc${encounterIdLong}">
+            <img height='15px' style='padding: 1px;' src='static/forts/search.png'>
+            Pokestop Tracker Pokemon
+          </div>
+          `
+}
+
 function build_latitude_longitude_div(encounterIdLong, latitude, longitude) {
     return `
           <div id="pkmLoc${encounterIdLong}">
@@ -654,6 +663,7 @@ function pokemonLabel(item) {
     var previous_id = item['previous_id']
     var rating_attack = item['rating_attack']
     var rating_defense = item['rating_defense']
+    var nearby_pkm = item['nearby_pkm']
     $.each(types, function (index, type) {
         typesDisplay += getTypeSpan(type)
     })
@@ -661,6 +671,10 @@ function pokemonLabel(item) {
     var ditto = ''
     if (id === 132 && previous_id != null) {
         ditto += build_previous_id_div(encounterIdLong, previous_id)
+    }
+    var near = ''
+    if (nearby_pkm === 1) {
+        near += build_nearby_pkm_div(encounterIdLong, nearby_pkm)
     }
     var details = ''
     if (height != null) {
@@ -692,7 +706,7 @@ function pokemonLabel(item) {
       <center>
         <div>
             <div>
-              ${otime}
+              <font size="3"><b>${near}</font></b>
             </div>
             <div>
               <font size="3"><b>${ditto} ${name}</b></font>`
