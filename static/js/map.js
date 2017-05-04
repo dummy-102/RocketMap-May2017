@@ -451,7 +451,7 @@ function scout(encounterId) {
         success: function (data, textStatus, jqXHR) {
             if ('atk' in data) {
                 if (ivEl.length == 0) {
-                    $("#pkmLoc" + encounterIdLong).after(build_iv_div(encounterIdLong, data.atk, data.def, data.sta))
+                    $("#pkmLoc" + encounterIdLong).after(build_iv_div(encounterIdLong, data.iv_attack, data.iv_defense, data.iv_stamina))
                     ivEl = $("#pkmIV" + encounterIdLong)
                 }
                 if (movesEl.length == 0) {
@@ -477,9 +477,9 @@ function scout(encounterId) {
 
                 // update local values
                 var pkm = mapData.pokemons[encounterId]
-                pkm['individual_attack'] = data.atk
-                pkm['individual_defense'] = data.def
-                pkm['individual_stamina'] = data.sta
+                pkm['individual_attack'] = data.iv_attack
+                pkm['individual_defense'] = data.iv_defense
+                pkm['individual_stamina'] = data.iv_stamina
                 pkm['move_1'] = data.move_1
                 pkm['move_2'] = data.move_2
                 pkm['rating_attack'] = data.rating_attack
@@ -495,7 +495,7 @@ function scout(encounterId) {
                 pkm['catch_prob_3'] = data.catch_prob_3
                 pkm['previous_id'] = data.previous_id
             } else {
-                infoEl.text(data.msg)
+                infoEl.text(data.error)
             }
         }
     })
@@ -527,6 +527,14 @@ function build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_de
         </div>
         `
     }
+}
+
+function build_gender_div(encounterIdLong, gender) {
+    return `
+        <div id="pkmGender${encounterIdLong}">
+            Gender: <b>${GenderType[gender - 1]}</b>
+        </div>
+        `
 }
 
 function build_height_div(encounterIdLong, height, weight, gender) {
@@ -616,17 +624,17 @@ function build_previous_id_div(encounterIdLong, previous_id) {
     }
 }
 
-function build_nearby_pkm_div(encounterIdLong, nearby_pkm) {
+function build_nearby_pkm_div(encounterIdLong, spawnpoint_id) {
     return `
           <div id="pkmLoc${encounterIdLong}">
             <img height='15px' style='padding: 1px;' src='static/forts/pstop.png'>
             <font size="3"><b>Pokestop Tracker Pokemon</font></b>
           </div>
           <div>
-            <font size="0.5"><b>(GPS And Time Approximation)</font></b>
+            <font size="0.5"><b>(Time And GPS Approximation)</font></b>
           </div>
           <div>
-            <font size="0.5"><b>(Standard Timers 30/60)</font></b>
+            <font size="0.5"><b>[Standard 30/60 Min Timers]</font></b>
           </div>
           `
 }
@@ -634,7 +642,7 @@ function build_nearby_pkm_div(encounterIdLong, nearby_pkm) {
 function build_latitude_longitude_div(encounterIdLong, latitude, longitude) {
     return `
           <div id="pkmLoc${encounterIdLong}">
-            GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(7)}
+            GPS: </b>${latitude.toFixed(6)}<b>, <b>${longitude.toFixed(7)}</b>
           </div>
           `
 }
@@ -669,20 +677,24 @@ function pokemonLabel(item) {
     var previous_id = item['previous_id']
     var rating_attack = item['rating_attack']
     var rating_defense = item['rating_defense']
-    var nearby_pkm = item['nearby_pkm']
+    var spawnpoint_id = item['spawnpoint_id']
+    var encounterIdLong = atob(encounterId)
+
     $.each(types, function (index, type) {
         typesDisplay += getTypeSpan(type)
     })
-    var encounterIdLong = atob(encounterId)
     var ditto = ''
     if (id === 132 && previous_id != null) {
         ditto += build_previous_id_div(encounterIdLong, previous_id)
     }
     var near = ''
-    if (nearby_pkm === 1) {
-        near += build_nearby_pkm_div(encounterIdLong, nearby_pkm)
+    if (spawnpoint_id === 'nearby_pokemon') {
+        near += build_nearby_pkm_div(encounterIdLong, spawnpoint_id)
     }
     var details = ''
+    if (gender != null && spawnpoint_id === 'nearby_pokemon') {
+        details += build_gender_div(encounterIdLong, gender)
+    }
     if (height != null) {
         details += build_height_div(encounterIdLong, height, weight, gender)
     }
@@ -867,7 +879,7 @@ function gymLabel(item) {
                             ${memberStr}
                         </div>
                         <div>
-                            GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+                            GPS: <b>${item['latitude'].toFixed(6)}</b>, <b>${item['longitude'].toFixed(7)}</b>
                         </div>
                         <div>
                             <font size="0.5"><b>Scanned: ${lastScannedStr}</font></b>
@@ -938,7 +950,7 @@ function pokestopLabel(item) {
                     <b><span class='label-countdown' disappears-at='${item['lure_expiration']}'>(00m00s)</span></b>
                   </div>
                   <div>
-                    GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+                    GPS: <b>${item['latitude'].toFixed(6)}</b>, <b>${item['longitude'].toFixed(7)}</b>
                   </div>
                   <div>
                     <font size="0.5"><b>Updated: ${lastUpdatedStr}</b></font>
@@ -984,7 +996,7 @@ function pokestopLabel(item) {
         }
         str += `
                 <div>
-                  GPS: ${item['latitude'].toFixed(6)}, ${item['longitude'].toFixed(7)}
+                  GPS: <b>${item['latitude'].toFixed(6)}</b>, <b>${item['longitude'].toFixed(7)}</b>
                 </div>
                 <div>
                     <font size="0.5"><b>Updated: ${lastUpdatedStr}</b></font>
@@ -1469,10 +1481,10 @@ function setupScannedMarker(item) {
     })
 
 
-    label.setLabel({
-    text: item.username,
-    fontSize: '0.5m'
-    })
+    // label.setLabel({
+    // text: item.username,
+    // fontSize: '0.5m'
+    // })
 
     var marker = new google.maps.Circle({
         map: map,

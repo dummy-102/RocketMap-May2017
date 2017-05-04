@@ -193,7 +193,7 @@ def get_args():
                         type=float, default=1)
     parser.add_argument('-encwf', '--enc-whitelist-file',
                         default='', help='File containing a list of '
-                        'Pokemon IDs to encounter for'
+                        'Pokemon names to encounter for'
                         ' IV/CP scanning.')
     parser.add_argument('-nostore', '--no-api-store',
                         help=("Don't store the API objects used by the high"
@@ -494,23 +494,8 @@ def get_args():
                                  'specify file to log to.'),
                            nargs='?', const='nofile', default=False,
                            metavar='filename.log')
-    parser.add_argument('-saa', '--scout-account-auth', default="ptc",
-                        help='Scout auth')
-    parser.add_argument('-sau', '--scout-account-username', default=None,
-                        help='Scout username')
-    parser.add_argument('-sap', '--scout-account-password', default=None,
-                        help='Scout password')
-    parser.add_argument('-scd', '--scout-cooldown-delay',
-                        help='Number of seconds to wait before scout may be used again.',
-                        type=int, default=10)
-    parser.add_argument('-ssu', '--scout-service-url', default=None,
-                        help='URL to query Pokemon for IV/CP.')
-    parser.add_argument('-prs', '--pre-scout', action='append', default=[],
-                        help=('List of Pokemon to scout immediately for ' +
-                              'IV, moves and CP.'))
-    parser.add_argument('-prsf', '--pre-scout-file', default=None,
-                        help=('File of Pokemon names to scout immediately for ' +
-                              'IV, moves and CP.'))
+    parser.add_argument('-pgsu', '--pgscout-url', default=None,
+                        help='URL to query PGScout for Pokemon IV/CP.')
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
@@ -739,7 +724,8 @@ def get_args():
         # IV/CP scanning.
         if args.enc_whitelist_file:
             with open(args.enc_whitelist_file) as f:
-                args.enc_whitelist = frozenset([int(l.strip()) for l in f])
+                args.enc_whitelist = frozenset(
+                    [get_pokemon_id(name.strip()) for name in f])
 
         # Make max workers equal number of accounts if unspecified, and disable
         # account switching.
@@ -772,12 +758,6 @@ def get_args():
                                       args.webhook_blacklist]
             args.webhook_whitelist = [int(i) for i in
                                       args.webhook_whitelist]
-
-        args.pre_scout = [int(i) for i in args.pre_scout]
-        if args.pre_scout_file:
-            with open(args.pre_scout_file) as f:
-                args.pre_scout = [get_pokemon_id(name) for name in
-                                  f.read().splitlines()]
 
         if args.webhook_whitelist_file:
             with open(args.webhook_whitelist_file) as f:

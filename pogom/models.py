@@ -31,6 +31,8 @@ from cachetools import cached
 from timeit import default_timer
 
 from pogom.catch import catch
+from pogom.pgscout import pgscout_encounter
+
 from . import config
 from .utils import get_pokemon_name, get_pokemon_rarity, get_pokemon_types, \
     get_args, cellid, in_radius, date_secs, clock_between, secs_between, \
@@ -126,8 +128,6 @@ class Pokemon(BaseModel):
     form = SmallIntegerField(null=True)
     rating_attack = CharField(null=True, max_length=1)
     rating_defense = CharField(null=True, max_length=1)
-    nearby_pkm = SmallIntegerField(null=True)
-
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
 
@@ -1924,19 +1924,30 @@ def calc_pokemon_level(pokemon_info):
     pokemon_level = (round(pokemon_level) * 2) / 2.0
     return pokemon_level
 
-def perform_pre_scout(p):
-    from pogom.scout import perform_scout_via_service, perform_scout
-
-    args = get_args()
+def perform_pgscout(p):
+    pokemon_id = p['pokemon_data']['pokemon_id']
+    pokemon_name = get_pokemon_name(pokemon_id)
+    log.info("PGScouting a {} at {}, {}.".format(pokemon_name, p['latitude'],
+                                                 p['longitude']))
 
     # Prepare Pokemon object
     pkm = Pokemon()
-    pkm.pokemon_id = p['pokemon_id']
-    pkm.encounter_id = p['encounter_id']
-    pkm.spawnpoint_id = p['spawnpoint_id']
+    pkm.pokemon_id = pokemon_id
+    pkm.encounter_id = b64encode(str(p['encounter_id']))
+    pkm.spawnpoint_id = p['spawn_point_id']
     pkm.latitude = p['latitude']
     pkm.longitude = p['longitude']
-    return perform_scout_via_service(pkm) if args.scout_service_url else perform_scout(pkm)
+    scout_result = pgscout_encounter(pkm)
+    if scout_result['success']:
+        log.info(
+            "Successfully PGScouted a {:.1f}% lvl {} {} with {} CP (scout "
+            "level {}).".format(
+                scout_result['iv_percent'], scout_result['level'],
+                pokemon_name, scout_result['cp'], scout_result['scout_level']))
+    else:
+        log.warning("Failed PGScouting {}: {}".format(pokemon_name,
+                                                      scout_result['error']))
+    return scout_result
 
 
 # todo: this probably shouldn't _really_ be in "models" anymore, but w/e.
@@ -2068,7 +2079,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         in encountered_pokemon):
                     continue  # If Pokemon has been found before don't process it.
                 elif n['fort_id'] in matched_pokestops:
-                    nearby_pkm = 1
                     disappear_time = now_date + timedelta(minutes=3)
                     latitude = (matched_pokestops[n['fort_id']]['latitude'] +
                         random.uniform(-0.00025, 0.00025))
@@ -2076,7 +2086,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         random.uniform(-0.00025, 0.00025))
                     pokemon[n['encounter_id']] = {
                         'encounter_id': b64encode(str(n['encounter_id'])),
-                        'spawnpoint_id': 'placeholder',
+                        'spawnpoint_id': 'nearby_pokemon',
                         'pokemon_id': n['pokemon_id'],
                         'latitude': latitude,
                         'longitude': longitude,
@@ -2099,9 +2109,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'previous_id' : None,
                         'rating_attack': None,
                         'rating_defense': None,
-                        'nearby_pkm': nearby_pkm,
                     }
-                    log.info(n['pokemon_display']['gender'])
+
                     if pokemon[n['encounter_id']] == 201:
                         pokemon[n['encounter_id']]['form'] = n[
                             'pokemon_display'].get('form', None)
@@ -2132,11 +2141,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
         # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
         # All of that is needed to make sure it's unique.
-        #for p in query:
-        #    if p['spawnpoint_id'] != 'placeholder':
-        #        encountered_pokemon = [(p['encounter_id'], p['spawnpoint_id'])]
+        for p in query:
+            if p['spawnpoint_id'] != 'nearby_pokemon':
+                encountered_pokemon = [(p['encounter_id'], p['spawnpoint_id'])]
 
-        encountered_pokemon = [(p['encounter_id'], p['spawnpoint_id']) for p in query]
+        #encountered_pokemon = [(p['encounter_id'], p['spawnpoint_id']) for p in query]
 
         for p in wild_pokemon:
 
@@ -2249,7 +2258,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'form': None,
                 'rating_attack': None,
                 'rating_defense': None,
-                'nearby_pkm': None,
             }
 
             # Determine if to scan for Ditto
@@ -2261,8 +2269,13 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             # Scan for IVs/CP and moves.
             pokemon_id = p['pokemon_data']['pokemon_id']
             encounter_result = None
+            scout_result = None
 
-            if args.encounter or (pokemon_id in args.enc_whitelist) or scan_for_ditto:
+            if args.encounter and (
+                    pokemon_id in args.enc_whitelist) and worker_level < 30 and \
+                    args.pgscout_url:
+                    scout_result = perform_pgscout(p)
+            elif args.encounter or (pokemon_id in args.enc_whitelist) or scan_for_ditto:
                 time.sleep(args.encounter_delay)
 
                 hlvl_account = None
@@ -2516,35 +2529,25 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             'gender': caught['gender']
                         })
 
-            # Pre-Scout certain Pokemon
-            if pid in args.pre_scout:
-                log.info("Pre-scouting a {}".format(pname))
-                scouted_pkm = pokemon[p['encounter_id']]
-                scout_result = perform_pre_scout(scouted_pkm)
-                if scout_result['success']:
-                    log.info("Successfully pre-scouted a level {} {} with CP {} with level {} scout.".format(
-                        scout_result['pokemon_level'], pname,
-                        scout_result['cp'], scout_result['worker_level']))
-                    # Updating Pokemon data
-                    scouted_pkm['individual_attack'] = scout_result['atk']
-                    scouted_pkm['individual_defense'] = scout_result['def']
-                    scouted_pkm['individual_stamina'] = scout_result['sta']
-                    scouted_pkm['move_1'] = scout_result['move_1']
-                    scouted_pkm['move_2'] = scout_result['move_2']
-                    scouted_pkm['rating_attack'] = scout_result['rating_attack']
-                    scouted_pkm['rating_defense'] = scout_result['rating_defense']
-                    scouted_pkm['height'] = scout_result['height']
-                    scouted_pkm['weight'] = scout_result['weight']
-                    scouted_pkm['gender'] = scout_result['gender']
-                    scouted_pkm['cp'] = scout_result['cp']
-                    scouted_pkm['pokemon_level'] = scout_result['pokemon_level']
-                    scouted_pkm['worker_level'] = scout_result['worker_level']
-                    scouted_pkm['catch_prob_1'] = scout_result['catch_prob_1']
-                    scouted_pkm['catch_prob_2'] = scout_result['catch_prob_2']
-                    scouted_pkm['catch_prob_3'] = scout_result['catch_prob_3']
-                else:
-                    log.warning("Failed pre-scouting {}: {}".format(pname, scout_result['error']))
-
+            # Updating Pokemon data from PGScout result
+            if scout_result is not None:
+                pokemon[p['encounter_id']].update({
+                    'individual_attack': scout_result['iv_attack'],
+                    'individual_defense': scout_result['iv_defense'],
+                    'individual_stamina': scout_result['iv_stamina'],
+                    'move_1': scout_result['move_1'],
+                    'move_2': scout_result['move_2'],
+                    'height': scout_result['height'],
+                    'weight': scout_result['weight'],
+                    'gender': scout_result['gender'],
+                    'cp': scout_result['cp'],
+                    'Pokemon_level': scout_result['level'],  ######
+                    'catch_prob_1': scout_result['catch_prob_1'],
+                    'catch_prob_2': scout_result['catch_prob_2'],
+                    'catch_prob_3': scout_result['catch_prob_3'],
+                    'rating_attack': scout_result['rating_attack'],
+                    'rating_defense': scout_result['rating_defense'],
+                })
             # Clear the response for memory management.
             encounter_result = clear_dict_response(encounter_result)
 
