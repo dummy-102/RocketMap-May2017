@@ -87,9 +87,9 @@ class Pogom(Flask):
                 log.info(
                     "Successfully PGScouted a {:.1f}% lvl {} {} with {} CP ("
                     "scout level {}).".format(
-                        scout_result['iv_percent'], scout_result['level'],
+                        scout_result['iv_percent'], scout_result['pokemon_level'],
                         pokemon_name, scout_result['cp'],
-                        scout_result['scout_level']))
+                        scout_result['worker_level']))
         else:
             scout_result = scout_error("PGScout URL not configured.")
         return jsonify(scout_result)
@@ -107,18 +107,19 @@ class Pogom(Flask):
                 'individual_attack': response['iv_attack'],
                 'individual_defense': response['iv_defense'],
                 'individual_stamina': response['iv_stamina'],
+                'cp': response['cp'],
                 'move_1': response['move_1'],
                 'move_2': response['move_2'],
                 'height': response['height'],
                 'weight': response['weight'],
                 'gender': response['gender'],
-                'cp': response['cp'],
-                'level': response['level'],
+                'pokemon_level': response['pokemon_level'],
                 'catch_prob_1': response['catch_prob_1'],
                 'catch_prob_2': response['catch_prob_2'],
                 'catch_prob_3': response['catch_prob_3'],
                 'rating_attack': response['rating_attack'],
-                'rating_defense': response['rating_defense']
+                'rating_defense': response['rating_defense'],
+                'worker_level': response['worker_level'],
             }
         }
         self.db_updates_queue.put((Pokemon, update_data))

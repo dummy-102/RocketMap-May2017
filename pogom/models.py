@@ -1940,10 +1940,10 @@ def perform_pgscout(p):
     scout_result = pgscout_encounter(pkm)
     if scout_result['success']:
         log.info(
-            "Successfully PGScouted a {:.1f}% lvl {} {} with {} CP (scout "
+            "Successfully PGScouted a {:.1f}% lvl {} {} with {} CP (worker "
             "level {}).".format(
-                scout_result['iv_percent'], scout_result['level'],
-                pokemon_name, scout_result['cp'], scout_result['scout_level']))
+                scout_result['iv_percent'], scout_result['pokemon_level'],
+                pokemon_name, scout_result['cp'], scout_result['worker_level']))
     else:
         log.warning("Failed PGScouting {}: {}".format(pokemon_name,
                                                       scout_result['error']))
@@ -2233,33 +2233,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             pid = p['pokemon_data']['pokemon_id']
             pname = get_pokemon_name(pid)
 
-            pokemon[p['encounter_id']] = {
-                'encounter_id': b64encode(str(p['encounter_id'])),
-                'spawnpoint_id': p['spawn_point_id'],
-                'pokemon_id': p['pokemon_data']['pokemon_id'],
-                'latitude': p['latitude'],
-                'longitude': p['longitude'],
-                'disappear_time': disappear_time,
-                'individual_attack': None,
-                'individual_defense': None,
-                'individual_stamina': None,
-                'move_1': None,
-                'move_2': None,
-                'height': None,
-                'weight': None,
-                'gender': None,
-                'cp': None,
-                'pokemon_level': None,
-                'worker_level': None,
-                'catch_prob_1': None,
-                'catch_prob_2': None,
-                'catch_prob_3': None,
-                'previous_id' :None,
-                'form': None,
-                'rating_attack': None,
-                'rating_defense': None,
-            }
-
             # Determine if to scan for Ditto
             # Note that scanning for Ditto requires an encounter beforehand
             is_ditto_candidate = pid in ditto_dex
@@ -2271,11 +2244,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             encounter_result = None
             scout_result = None
 
-            if args.encounter and (
+            if args.scencounter or (
                     pokemon_id in args.enc_whitelist) and worker_level < 30 and \
                     args.pgscout_url:
                     scout_result = perform_pgscout(p)
-            elif args.encounter or (pokemon_id in args.enc_whitelist) or scan_for_ditto:
+            if args.encounter or (pokemon_id in args.enc_whitelist) or scan_for_ditto:
                 time.sleep(args.encounter_delay)
 
                 hlvl_account = None
@@ -2398,6 +2371,33 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 else:
                     log.error('No accounts are available, please'
                               + ' consider adding more. Skipping encounter.')
+
+            pokemon[p['encounter_id']] = {
+                'encounter_id': b64encode(str(p['encounter_id'])),
+                'spawnpoint_id': p['spawn_point_id'],
+                'pokemon_id': p['pokemon_data']['pokemon_id'],
+                'latitude': p['latitude'],
+                'longitude': p['longitude'],
+                'disappear_time': disappear_time,
+                'individual_attack': None,
+                'individual_defense': None,
+                'individual_stamina': None,
+                'move_1': None,
+                'move_2': None,
+                'height': None,
+                'weight': None,
+                'gender': None,
+                'cp': None,
+                'pokemon_level': None,
+                'worker_level': None,
+                'catch_prob_1': None,
+                'catch_prob_2': None,
+                'catch_prob_3': None,
+                'previous_id' :None,
+                'form': None,
+                'rating_attack': None,
+                'rating_defense': None,
+            }
 
             if (encounter_result is not None and 'wild_pokemon'
                     in encounter_result['responses']['ENCOUNTER']):
@@ -2541,12 +2541,13 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'weight': scout_result['weight'],
                     'gender': scout_result['gender'],
                     'cp': scout_result['cp'],
-                    'Pokemon_level': scout_result['level'],  ######
+                    'Pokemon_level': scout_result['pokemon_level'],
                     'catch_prob_1': scout_result['catch_prob_1'],
                     'catch_prob_2': scout_result['catch_prob_2'],
                     'catch_prob_3': scout_result['catch_prob_3'],
                     'rating_attack': scout_result['rating_attack'],
                     'rating_defense': scout_result['rating_defense'],
+                    'worker_level': scout_result['worker_level'],
                 })
             # Clear the response for memory management.
             encounter_result = clear_dict_response(encounter_result)

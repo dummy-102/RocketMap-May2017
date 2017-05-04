@@ -424,13 +424,12 @@ function PokegetDateStr(t) {
 function scout(encounterId) {
     var encounterIdLong = atob(encounterId)
     var infoEl = $("#scoutInfo" + encounterIdLong)
-    var ivEl = $("#pkmIV" + encounterIdLong)
-    var movesEl = $("#pkmMoves" + encounterIdLong)
-    var weightEl = $("#pkmWeight" + encounterIdLong)
     var heightEl = $("#pkmHeight" + encounterIdLong)
-    var genderEl = $("#pkmGender" + encounterIdLong)
+    var ivEl = $("#pkmIV" + encounterIdLong)
     var cpEl = $("#pkmCP" + encounterIdLong)
+    var movesEl = $("#pkmMoves" + encounterIdLong)
     var probsEl = $("#pkmProbs" + encounterIdLong)
+    var locEl = $("#pkmLoc" + encounterIdLong)
     var workerEl = $("#pkmWorker" + encounterIdLong)
 
     $.ajax({
@@ -442,37 +441,38 @@ function scout(encounterId) {
         dataType: 'json',
         cache: false,
         beforeSend: function () {
-            infoEl.text("Scouting, please wait...")
+            infoEl.text("Scouting, Please Wait...Refresh To See Worker Lv")
             infoEl.show()
         },
         error: function () {
-            infoEl.text("Error scouting, try again?")
+            infoEl.text("Error Scouting, try again?")
         },
         success: function (data, textStatus, jqXHR) {
-            if ('atk' in data) {
+            if (data.success) {
                 if (ivEl.length == 0) {
-                    $("#pkmLoc" + encounterIdLong).after(build_iv_div(encounterIdLong, data.iv_attack, data.iv_defense, data.iv_stamina))
+                    $("#pkmHeight" + encounterIdLong).after(build_iv_div(encounterIdLong, data.iv_attack, data.iv_defense, data.iv_stamina))
                     ivEl = $("#pkmIV" + encounterIdLong)
-                }
-                if (movesEl.length == 0) {
-                    ivEl.after(build_moves_div(encounterIdLong, data.move_1, data.move_2, data.rating_attack, data.rating_defense))
-                    movesEl = $("#pkmMoves" + encounterIdLong)
-                }
-                if (heightEl.length == 0) {
-                    ivEl.after(build_height_div(encounterIdLong, data.height, data.weight, data.gender))
-                    heightEl = $("#pkmHeight" + encounterIdLong)
-                }
+                  }
                 if (cpEl.length == 0) {
-                    heightEl.after(build_cp_div(encounterIdLong, data.cp, data.pokemon_level))
+                    ivEl.after(build_cp_div(encounterIdLong, data.cp, data.pokemon_level))
                     cpEl = $("#pkmCP" + encounterIdLong)
-                }
+                  }
+                if (movesEl.length == 0) {
+                    cpEl.after(build_moves_div(encounterIdLong, data.move_1, data.move_2, data.rating_attack, data.rating_defense))
+                    movesEl = $("#pkmMoves" + encounterIdLong)
+                  }
                 if (probsEl.length == 0) {
-                    cpEl.after(build_probs_div(encounterIdLong, data.catch_prob_1, data.catch_prob_2, data.catch_prob_3))
+                    movesEl.after(build_probs_div(encounterIdLong, data.catch_prob_1, data.catch_prob_2, data.catch_prob_3))
                     probEl = $("#pkmProbs" + encounterIdLong)
-                }
+                  }
+                if (locEl.length == 0) {
+                    probsEl.after(build_latitude_longitude_div(encounterIdLong, data.latitude, data.longitude))
+                    locEl = $("#pkmLoc" + encounterIdLong)
+                    }
                 if (workerEl.length == 0) {
-                    probsEl.after(build_worker_level_div(encounterIdLong, data.worker_level))
-                }
+                    locEl.after(build_worker_level_div(encounterIdLong, data.worker_level))
+                    workerEl = $("#pkmWorker" + encounterIdLong)
+                  }
                 infoEl.hide()
 
                 // update local values
@@ -480,6 +480,7 @@ function scout(encounterId) {
                 pkm['individual_attack'] = data.iv_attack
                 pkm['individual_defense'] = data.iv_defense
                 pkm['individual_stamina'] = data.iv_stamina
+                pkm['cp'] = data.cp
                 pkm['move_1'] = data.move_1
                 pkm['move_2'] = data.move_2
                 pkm['rating_attack'] = data.rating_attack
@@ -487,13 +488,13 @@ function scout(encounterId) {
                 pkm['weight'] = data.weight
                 pkm['height'] = data.height
                 pkm['gender'] = data.gender
-                pkm['cp'] = data.cp
                 pkm['pokemon_level'] = data.pokemon_level
                 pkm['worker_level'] = data.worker_level
                 pkm['catch_prob_1'] = data.catch_prob_1
                 pkm['catch_prob_2'] = data.catch_prob_2
                 pkm['catch_prob_3'] = data.catch_prob_3
-                pkm['previous_id'] = data.previous_id
+                pkm['latitude'] = data.latitude
+                pkm['longitude'] = data.longitude
             } else {
                 infoEl.text(data.error)
             }
@@ -506,6 +507,14 @@ function build_iv_div(encounterIdLong, atk, def, sta) {
     return `
         <div id="pkmIV${encounterIdLong}">
             IV: <b>${iv.toFixed(1)}%</b> (${atk}/${def}/${sta})
+        </div>
+        `
+}
+
+function build_cp_div(encounterIdLong, cp, pokemon_level) {
+    return `
+        <div id="pkmCP${encounterIdLong}">
+			CP: <b>${cp}</b> | Pokemon Level: <b>${pokemon_level}</b>
         </div>
         `
 }
@@ -545,14 +554,6 @@ function build_height_div(encounterIdLong, height, weight, gender) {
         `
 }
 
-function build_cp_div(encounterIdLong, cp, pokemon_level) {
-    return `
-        <div id="pkmCP${encounterIdLong}">
-			CP: <b>${cp}</b> | Pokemon Level: <b>${pokemon_level}</b>
-        </div>
-        `
-}
-
 function build_worker_level_div(encounterIdLong, worker_level) {
     return `
         <div id="pkmWorker${encounterIdLong}">
@@ -575,49 +576,49 @@ function build_probs_div(encounterIdLong, prob1, prob2, prob3) {
 function build_previous_id_div(encounterIdLong, previous_id) {
     if (previous_id == 16) {
       return `
-          <span id="pkmWorker${encounterIdLong}">
+          <span id="pkmDitto${encounterIdLong}">
             (Pidgy)
           </span>
           `
     }
     if (previous_id == 19) {
       return `
-          <span id="pkmWorker${encounterIdLong}">
+          <span id="pkmDitto${encounterIdLong}">
             (Rattata)
           </span>
           `
     }
     if (previous_id == 41) {
       return `
-          <span id="pkmWorker${encounterIdLong}">
+          <span id="pkmDitto${encounterIdLong}">
             (Zubat)
           </span>
           `
     }
     if (previous_id == 129) {
       return `
-          <span id="pkmWorker${encounterIdLong}">
+          <span id="pkmDitto${encounterIdLong}">
            (Magikarp)
           </span>
           `
     }
     if (previous_id == 161) {
       return `
-          <span id="pkmWorker${encounterIdLong}">
+          <span id="pkmDitto${encounterIdLong}">
             (Sentret)
           </span>
           `
     }
     if (previous_id == 163) {
       return `
-          <span id="pkmWorker${encounterIdLong}">
+          <span id="pkmDitto${encounterIdLong}">
             (Hoothoot)
           </span>
           `
     }
     if (previous_id == 193) {
       return `
-          <span id="pkmWorker${encounterIdLong}">
+          <span id="pkmDitto${encounterIdLong}">
             (Yanma)
           </span>
           `
@@ -626,7 +627,7 @@ function build_previous_id_div(encounterIdLong, previous_id) {
 
 function build_nearby_pkm_div(encounterIdLong, spawnpoint_id) {
     return `
-          <div id="pkmLoc${encounterIdLong}">
+          <div id="pkmNearby${encounterIdLong}">
             <img height='15px' style='padding: 1px;' src='static/forts/pstop.png'>
             <font size="3"><b>Pokestop Tracker Pokemon</font></b>
           </div>
@@ -642,7 +643,7 @@ function build_nearby_pkm_div(encounterIdLong, spawnpoint_id) {
 function build_latitude_longitude_div(encounterIdLong, latitude, longitude) {
     return `
           <div id="pkmLoc${encounterIdLong}">
-            GPS: </b>${latitude.toFixed(6)}<b>, <b>${longitude.toFixed(7)}</b>
+            GPS: <b>${latitude.toFixed(6)}</b>, <b>${longitude.toFixed(7)}</b>
           </div>
           `
 }
@@ -698,9 +699,6 @@ function pokemonLabel(item) {
     if (height != null) {
         details += build_height_div(encounterIdLong, height, weight, gender)
     }
-    if (prob1 != null) {
-        details += build_probs_div(encounterIdLong, prob1, prob2, prob3)
-    }
     if (atk != null) {
         details += build_iv_div(encounterIdLong, atk, def, sta)
     }
@@ -710,7 +708,10 @@ function pokemonLabel(item) {
     if (move1 != null) {
         details += build_moves_div(encounterIdLong, move1, move2, rating_attack, rating_defense)
     }
-    if (latitude != null || longitude  != null) {
+    if (prob1 != null) {
+        details += build_probs_div(encounterIdLong, prob1, prob2, prob3)
+    }
+    if (latitude != null || longitude != null) {
         details += build_latitude_longitude_div(encounterIdLong, latitude, longitude)
     }
     if (worker_level != null) {
