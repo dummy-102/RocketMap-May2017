@@ -78,18 +78,22 @@ class Pogom(Flask):
             p = Pokemon.get(Pokemon.encounter_id == encounterId)
             pokemon_name = get_pokemon_name(p.pokemon_id)
             log.info(
-                "On demand PGScouting a {} at {}, {}.".format(pokemon_name,
+                u"On demand PGScouting a {} at {}, {}.".format(pokemon_name,
                                                               p.latitude,
                                                               p.longitude))
             scout_result = pgscout_encounter(p)
             if scout_result['success']:
                 self.update_scouted_pokemon(p, scout_result)
                 log.info(
-                    "Successfully PGScouted a {:.1f}% lvl {} {} with {} CP ("
-                    "scout level {}).".format(
+                    u"Successfully PGScouted a {:.1f}% lvl {} {} with {} CP ("
+                    u"scout level {}).".format(
                         scout_result['iv_percent'], scout_result['pokemon_level'],
                         pokemon_name, scout_result['cp'],
                         scout_result['worker_level']))
+            else:
+                log.warning(u"Failed PGScouting {}: {}".format(pokemon_name,
+                                                               scout_result[
+                                                                   'error']))
         else:
             scout_result = scout_error("PGScout URL not configured.")
         return jsonify(scout_result)
@@ -120,6 +124,7 @@ class Pogom(Flask):
                 'rating_attack': response['rating_attack'],
                 'rating_defense': response['rating_defense'],
                 'worker_level': response['worker_level'],
+                'form': response.get('form', None),
             }
         }
         self.db_updates_queue.put((Pokemon, update_data))
