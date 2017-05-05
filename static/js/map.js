@@ -441,7 +441,7 @@ function scout(encounterId) {
         dataType: 'json',
         cache: false,
         beforeSend: function () {
-            infoEl.text("Scouting, Please Wait...Refresh To See Worker Lv")
+            infoEl.text("Scouting, Please Wait...Refresh To See All Info")
             infoEl.show()
         },
         error: function () {
