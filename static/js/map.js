@@ -472,7 +472,14 @@ function pokemonLabel(item) {
             <span> ${rarityDisplay}</span>
             <span> - </span>
             <small>${typesDisplay}</small>
-        </div>
+        </div>`
+    if (item['spawnpoint_id'].length > 12) {  // spawnpoint_id was filled with fort_id which is by far longer
+        contentstring += `
+        <div>
+            Pokemon from lured Pokestop
+        </div>`
+    }
+    contentstring += `
         <div>
             Disappears at ${pad(disappearDate.getHours())}:${pad(disappearDate.getMinutes())}:${pad(disappearDate.getSeconds())}
             <span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span>

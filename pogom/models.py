@@ -2225,6 +2225,40 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                 lure_expiration.timetuple()),
                             'active_fort_modifier': active_fort_modifier
                         }))
+
+                    if not args.no_lured_pokemon:
+                        lure_info = f.get('lure_info', None)
+                        if ('encounter_id' and 'active_pokemon_id' and
+                                'lure_expires_timestamp_ms'in lure_info):
+                            printPokemon(
+                                lure_info['pokemon_id'],
+                                f['latitude'],
+                                f['longitude'],
+                                datetime.utcfromtimestamp(
+                                    lure_info['lure_expires_timestamp_ms']
+                                    / 1000.0))
+                            pokemon[lure_info['encounter_id']] = {
+                                'encounter_id': b64encode(str(
+                                    lure_info['encounter_id'])),
+                                'spawnpoint_id': lure_info['fort_id'],
+                                'pokemon_id': lure_info['active_pokemon_id'],
+                                'latitude': f['latitude'],
+                                'longitude': f['longitude'],
+                                'disappear_time': datetime.utcfromtimestamp(
+                                    lure_info['lure_expires_timestamp_ms'] /
+                                    1000.0),
+                                'individual_attack': None,
+                                'individual_defense': None,
+                                'individual_stamina': None,
+                                'move_1': None,
+                                'move_2': None,
+                                'cp': None,
+                                'height': None,
+                                'weight': None,
+                                'gender': None,
+                                'form': None
+                            }
+
                 else:
                     lure_expiration, active_fort_modifier = None, None
 
