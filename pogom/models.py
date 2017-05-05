@@ -2231,7 +2231,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         if ('encounter_id' and 'active_pokemon_id' and
                                 'lure_expires_timestamp_ms'in lure_info):
                             printPokemon(
-                                lure_info['pokemon_id'],
+                                lure_info['active_pokemon_id'],
                                 f['latitude'],
                                 f['longitude'],
                                 datetime.utcfromtimestamp(
