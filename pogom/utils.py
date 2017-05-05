@@ -153,9 +153,6 @@ def get_args():
     parser.add_argument('-enc', '--encounter',
                         help='Start an encounter to gather IVs and moves.',
                         action='store_true', default=False)
-    parser.add_argument('-hlenc', '--high-lvl-encounter',
-                        help='Start an encounter to gather IVs and moves.',
-                        action='store_true', default=False)
     parser.add_argument('-npkm', '--nearbypokes',
                         help='Add Nearby Pokestop Tracker Pokemon to the Map.',
                         action='store_true', default=False)
@@ -494,9 +491,10 @@ def get_args():
                                  'specify file to log to.'),
                            nargs='?', const='nofile', default=False,
                            metavar='filename.log')
-    parser.add_argument('-scenc', '--scencounter',
-                        help='Start a Scout encounter to gather IVs and moves.',
-                        action='store_true', default=False)
+    parser.add_argument('-encsf', '--enc-scout-file',
+                        default='', help='File containing a list of '
+                        'Pokemon names to encounter for'
+                        ' IV/CP scanning.')
     parser.add_argument('-pgsu', '--pgscout-url', default=None,
                         help='URL to query PGScout for Pokemon IV/CP.')
     parser.set_defaults(DEBUG=False)
@@ -723,12 +721,18 @@ def get_args():
 
         # Prepare the IV/CP scanning filters.
         args.enc_whitelist = []
+        args.enc_scout = []
 
         # IV/CP scanning.
         if args.enc_whitelist_file:
             with open(args.enc_whitelist_file) as f:
                 args.enc_whitelist = frozenset(
-                    [get_pokemon_id(name.strip()) for name in f])
+                    [get_pokemon_id(name.strip()) for name in f])  # Name
+
+        if args.enc_scout_file:
+            with open(args.enc_scout_file) as f:
+                args.enc_scout = frozenset(
+                    [get_pokemon_id(name.strip()) for name in f])  # Name
 
         # Make max workers equal number of accounts if unspecified, and disable
         # account switching.
@@ -775,6 +779,7 @@ def get_args():
                                       args.webhook_blacklist]
             args.webhook_whitelist = [int(i) for i in
                                       args.webhook_whitelist]
+
         # Decide which scanning mode to use.
         if args.spawnpoint_scanning:
             args.scheduler = 'SpawnScan'

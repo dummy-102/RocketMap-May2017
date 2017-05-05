@@ -13,7 +13,7 @@ from pogom.utils import get_pokemon_name
 log = logging.getLogger(__name__)
 
 
-def catch(hlvl_api, encounter_id, spawn_point_id, pid, inventory):
+def catch(api, encounter_id, spawn_point_id, pid, inventory):
     # Try to catch pokemon, but don't get stuck.
     pkm_name = get_pokemon_name(pid)
     attempts = 1
@@ -29,7 +29,7 @@ def catch(hlvl_api, encounter_id, spawn_point_id, pid, inventory):
             ball = ITEM_ULTRA_BALL if inventory.get(ITEM_ULTRA_BALL, 0) > 0 else (
                 ITEM_GREAT_BALL if inventory.get(ITEM_GREAT_BALL, 0) > 0 else ITEM_POKE_BALL)
 
-            req = hlvl_api.create_request()
+            req = api.create_request()
             req.catch_pokemon(
                 encounter_id=encounter_id,
                 pokeball=ball,
@@ -68,10 +68,10 @@ def catch(hlvl_api, encounter_id, spawn_point_id, pid, inventory):
                                 'height': iidata['pokemon_data']['height_m'],
                                 'weight': iidata['pokemon_data']['weight_kg'],
                                 'gender': iidata['pokemon_data']['pokemon_display']['gender'],
-                                'cp': '?'
+                                #'cp': '?'
                             })
                             time.sleep(random.uniform(7, 10))
-                            release(hlvl_api, pkm_name, cpid)
+                            release(api, pkm_name, cpid)
                     if not 'pid' in rv:
                         log.error('Could not find caught Pokemon in inventory. Cannot release. Too bad!')
                     return rv
@@ -90,10 +90,10 @@ def catch(hlvl_api, encounter_id, spawn_point_id, pid, inventory):
                     log.info('Catch attempt %s failed for %s. It dodged the ball!', attempts, pkm_name)
 
             else:
-                log.error('Catch attempt %s failed for %s. The hlvl_api response was empty!', attempts, pkm_name)
+                log.error('Catch attempt %s failed for %s. The api response was empty!', attempts, pkm_name)
 
         except Exception as e:
-            log.error('Catch attempt %s failed for pid: %s. The hlvl_api response returned an error! ' +
+            log.error('Catch attempt %s failed for pid: %s. The api response returned an error! ' +
                       'Exception: %s', attempts, pid, repr(e))
 
         attempts += 1
@@ -105,10 +105,10 @@ def catch(hlvl_api, encounter_id, spawn_point_id, pid, inventory):
     return rv
 
 
-def release(hlvl_api, pkm_name, cpid):
+def release(api, pkm_name, cpid):
     try:
         log.info('Attempting to release %s', pkm_name)
-        req = hlvl_api.create_request()
+        req = api.create_request()
         req.release_pokemon(pokemon_id=cpid)
         req.check_challenge()
         req.get_hatched_eggs()
