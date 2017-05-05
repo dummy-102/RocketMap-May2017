@@ -2243,7 +2243,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             pokemon_id = p['pokemon_data']['pokemon_id']
             encounter_result = None
             scout_result = None
-            log.info(args.enc_scout)
+
             if args.pgscout_url and (pokemon_id in args.enc_scout) or scan_for_ditto:
                 scout_result = perform_pgscout(p)
 
@@ -2570,7 +2570,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'rating_defense': None,
             }
 
-            if (encounter_result is not None and 'wild_pokemon'
+            if not args.pgscout_url and (encounter_result is not None and 'wild_pokemon'
                     in encounter_result['responses']['ENCOUNTER']):
 
                 # Get Pokemon Info
@@ -2594,7 +2594,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     catch_prob_3 = probs[2]
                     worker_level = worker_level
 
-                    log.debug('Regualar Encounter for Pokemon ID %s'
+                    log.debug('Regular Encounter for Pokemon ID %s'
                                 + ' at %s, %s successful,'
                                 + ' Stats: %s/%s/%s - Catch Chances:'
                                 + ' %s/%s/%s - Worker Lv: %s.',
@@ -2698,6 +2698,10 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'rating_attack': scout_result['rating_attack'],
                     'rating_defense': scout_result['rating_defense'],
                     'worker_level': scout_result['worker_level'],
+                })
+                if pokemon_id == 201:
+                    pokemon[p['encounter_id']].update({
+                        'form': scout_result['form'],
                 })
 
             # Catch pokemon to check for Ditto if --ditto enabled

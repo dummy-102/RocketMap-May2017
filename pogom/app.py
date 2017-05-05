@@ -120,6 +120,7 @@ class Pogom(Flask):
                 'rating_attack': response['rating_attack'],
                 'rating_defense': response['rating_defense'],
                 'worker_level': response['worker_level'],
+                'form': response['form'],
             }
         }
         self.db_updates_queue.put((Pokemon, update_data))
