@@ -2690,28 +2690,47 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Updating Pokemon data from PGScout result
             if scout_result is not None:
-                pokemon[p['encounter_id']].update({
-                    'individual_attack': scout_result['iv_attack'],
-                    'individual_defense': scout_result['iv_defense'],
-                    'individual_stamina': scout_result['iv_stamina'],
-                    'move_1': scout_result['move_1'],
-                    'move_2': scout_result['move_2'],
-                    'height': scout_result['height'],
-                    'weight': scout_result['weight'],
-                    'gender': scout_result['gender'],
-                    'cp': scout_result['cp'],
-                    'pokemon_level': scout_result['pokemon_level'],
-                    'catch_prob_1': scout_result['catch_prob_1'],
-                    'catch_prob_2': scout_result['catch_prob_2'],
-                    'catch_prob_3': scout_result['catch_prob_3'],
-                    'rating_attack': scout_result['rating_attack'],
-                    'rating_defense': scout_result['rating_defense'],
-                    'worker_level': scout_result['worker_level'],
-                })
-                if pokemon_id == 201:
-                    pokemon[p['encounter_id']].update({
-                        'form': scout_result['form'],
-                })
+                try:
+                    if scout_result['worker_level'] <= 30:
+
+                        pokemon[p['encounter_id']].update({
+                            'height': scout_result['height'],
+                            'weight': scout_result['weight'],
+                            'gender': scout_result['gender'],
+                            'catch_prob_1': scout_result['catch_prob_1'],
+                            'catch_prob_2': scout_result['catch_prob_2'],
+                            'catch_prob_3': scout_result['catch_prob_3'],
+                            'worker_level': scout_result['worker_level'],
+                        })
+
+                    if scout_result['worker_level'] >= 30:
+
+                        pokemon[p['encounter_id']].update({
+                            'individual_attack': scout_result['iv_attack'],
+                            'individual_defense': scout_result['iv_defense'],
+                            'individual_stamina': scout_result['iv_stamina'],
+                            'move_1': scout_result['move_1'],
+                            'move_2': scout_result['move_2'],
+                            'height': scout_result['height'],
+                            'weight': scout_result['weight'],
+                            'gender': scout_result['gender'],
+                            'cp': scout_result['cp'],
+                            'pokemon_level': scout_result['pokemon_level'],
+                            'catch_prob_1': scout_result['catch_prob_1'],
+                            'catch_prob_2': scout_result['catch_prob_2'],
+                            'catch_prob_3': scout_result['catch_prob_3'],
+                            'rating_attack': scout_result['rating_attack'],
+                            'rating_defense': scout_result['rating_defense'],
+                            'worker_level': scout_result['worker_level'],
+                        })
+
+                    if pokemon_id == 201:
+                        pokemon[p['encounter_id']].update({
+                            'form': scout_result['form'],
+                    })
+
+                except Exception as e:
+                    log.warning('Scouting Exception while gthering details: %s', repr(e))
 
             # Catch pokemon to check for Ditto if --ditto enabled
             # Thanks to voxx!
