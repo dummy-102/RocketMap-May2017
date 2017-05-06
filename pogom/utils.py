@@ -183,6 +183,10 @@ def get_args():
     parser.add_argument('-psl', '--lurestop',
                         help='Lure Pokestops for Events and Holidays.',
                         action='store_true', default=False)
+    parser.add_argument('-lf', '--lureFence',
+                        help='Choose area for Pokestop luring')
+    parser.add_argument('-nlf', '--nolureFence',
+                        help='Choose area that CANNOT have Pokestop luring')
     parser.add_argument('-cs', '--captcha-solving',
                         help='Enables captcha solving.',
                         action='store_true', default=False)

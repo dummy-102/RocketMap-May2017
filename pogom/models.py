@@ -2729,6 +2729,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             # Thanks to voxx!
             if scan_for_ditto:
                 log.info('%s may be a ditto. Triggering catch logic!', pname)
+                # Might Need Work --
                 if args.encounter:
                     caught = catch(hlvl_api, p['encounter_id'], p['spawn_point_id'], pid, inventory)
                 elif args.encounter:
@@ -2857,8 +2858,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     if args.spinstop:
                         cleanup_inventory(api, inventory)
                         spin_pokestop(api, f, step_location, inventory)
+
                     if args.lurestop:
-                        lure_pokestop(api, f, step_location, inventory)
+                        lure_pokestop(args, api, f, step_location, inventory)
 
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):

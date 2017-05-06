@@ -490,9 +490,9 @@ def geofence(step_location, geofence_file, forbidden=False):
         log.warning('FOUND IN THE GEOFENCE, LURING: %s, %s', result_x, result_y)
     return step_location_geofenced
 
-def lure_pokestop(api, fort, step_location, inventory):
+def lure_pokestop(args, api, fort, step_location, inventory):
     if 'active_fort_modifier' not in fort:
-        spinning_radius = 0.04
+        spinning_radius = 0.03
         totalDisks = inventory['totalDisks']
         log.warning('++++++++++++++++++++++++++++ DETECTING %s LURES', totalDisks)
         in_range = in_radius((fort['latitude'], fort['longitude']), step_location,
@@ -529,11 +529,6 @@ def lure_pokestop(api, fort, step_location, inventory):
                 time.sleep(4.20)
                 lure_request = req.call()
                 #log.warning('@@@LURE RESPONSE@@@ %s', lure_request['responses'])
-                # Check for reCaptcha
-                captcha_url = spin_response['responses']['CHECK_CHALLENGE']['challenge_url']
-                if len(captcha_url) > 1:
-                    log.debug('Account encountered a reCaptcha.')
-                    return False
                 lure_status = lure_request['responses']['ADD_FORT_MODIFIER']['result']
                 if lure_status is 0:
                     log.warning('xxxxxxxxxxxxxxxxxxxxxxxxxxxx Lure unset!')
