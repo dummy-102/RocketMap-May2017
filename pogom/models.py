@@ -2720,7 +2720,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'catch_prob_2': probs[1],
                         'catch_prob_3': probs[2],
                         'cp': pokemon_info['cp'],
-                        'Pokemon_level': Pokemon_level,
+                        'pokemon_level': Pokemon_level,
                         'worker_level': worker_level,
                     })
 
@@ -2838,7 +2838,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         timedelta(minutes=args.lure_duration))
                     active_fort_modifier = f['active_fort_modifier']
                     get_details = True
-
+                    # Lured Pokemon Support ~To Do Add All Info...
                     if args.lured_pokemon:
                         if 'lure_info' in f:
                             lure_info = f.get('lure_info', None)
@@ -2870,7 +2870,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                     'catch_prob_3': None,
                                     'pokemon_level': None,
                                     'previous_id': None,
-                                    'worker_level': None,
+                                    'worker_level': worker_level,
                                     'rating_attack': None,
                                     'rating_defense': None,
                                 }
