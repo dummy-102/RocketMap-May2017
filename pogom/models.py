@@ -2839,6 +2839,43 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     active_fort_modifier = f['active_fort_modifier']
                     get_details = True
 
+                    if args.lured_pokemon:
+                        if 'lure_info' in f:
+                            lure_info = f.get('lure_info', None)
+                            if ('encounter_id' and 'active_pokemon_id' and 'lure_expires_timestamp_ms' in lure_info):
+                                #log.info('========================================= %s - %s - %s - %s', lure_info['active_pokemon_id'], f['latitude'], f['longitude'], lure_info['lure_expires_timestamp_ms'] / 1000.0)
+                                #log.info(encounter_result)
+                                pokemon[lure_info['encounter_id']] = {
+                                    'encounter_id': b64encode(str(
+                                        lure_info['encounter_id'])),
+                                    'spawnpoint_id': 'lured_pokemon',
+                                    'pokemon_id': lure_info['active_pokemon_id'],
+                                    'latitude': f['latitude'],
+                                    'longitude': f['longitude'],
+                                    'disappear_time': datetime.utcfromtimestamp(
+                                        lure_info['lure_expires_timestamp_ms'] /
+                                        1000.0),
+                                    'individual_attack': None,
+                                    'individual_defense': None,
+                                    'individual_stamina': None,
+                                    'move_1': None,
+                                    'move_2': None,
+                                    'cp': None,
+                                    'height': None,
+                                    'weight': None,
+                                    'gender': None,
+                                    'form': None,
+                                    'catch_prob_1': None,
+                                    'catch_prob_2': None,
+                                    'catch_prob_3': None,
+                                    'pokemon_level': None,
+                                    'previous_id': None,
+                                    'worker_level': None,
+                                    'rating_attack': None,
+                                    'rating_defense': None,
+                                }
+
+
                     if args.webhooks and args.webhook_updates_only:
                         wh_update_queue.put(('pokestop', {
                             'pokestop_id': b64encode(str(f['id'])),

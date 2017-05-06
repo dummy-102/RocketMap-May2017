@@ -733,6 +733,12 @@ function pokemonLabel(item) {
               contentstring += ` <font size="3"><b>[${unownForm[item['form']]}]</font></b>
             </div>`
             }
+            if (spawnpoint_id === 'lured_pokemon') {  // spawnpoint_id was filled with fort_id which is by far longer
+                contentstring += `
+                <div>
+                    Pokemon from lured Pokestop
+                </div>`
+            }
     contentstring += `
             <div>
               <img style="vertical-align:top" width='50px' height='50px' src='static/sprites/${id}.png'>
@@ -745,7 +751,7 @@ function pokemonLabel(item) {
             </div>
             <div>
               <b>${disappearStr}</b>
-              <b><span class='label-countdown' disappears-at='${disappearTime}'>(00m00s)</span></b>
+              <b>(<span class='label-countdown' disappears-at='${disappearTime}'>00m00s</span>)</b>
             </div>
               ${details}
             <div id="scoutInfo${encounterIdLong}" style="display:none;"></div>
@@ -948,7 +954,7 @@ function pokestopLabel(item) {
         str += `
                   <div>
                     Lure expires at ${expiredStr}
-                    <b><span class='label-countdown' disappears-at='${item['lure_expiration']}'>(00m00s)</span></b>
+                    <b>(<span class='label-countdown' disappears-at='${item['lure_expiration']}'>00m00s</span>)</b>
                   </div>
                   <div>
                     GPS: <b>${item['latitude'].toFixed(6)}</b>, <b>${item['longitude'].toFixed(7)}</b>
@@ -2196,14 +2202,11 @@ var updateLabelDiffTime = function () {
         if (disappearsAt.ttime < disappearsAt.now) {
             timestring = '(expired)'
         } else {
-            timestring += '('
             if (hours > 0) {
-                timestring = hours + ':'
+                timestring = hours + 'h:'
             }
-
             timestring += lpad(minutes, 2, 0) + 'm:'
             timestring += lpad(seconds, 2, 0) + 's'
-            timestring += ')'
         }
 
         $(element).text(timestring)

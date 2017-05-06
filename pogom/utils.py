@@ -171,9 +171,6 @@ def get_args():
     parser.add_argument('-enc', '--encounter',
                         help='Start an encounter to gather IVs and moves.',
                         action='store_true', default=False)
-    parser.add_argument('-npkm', '--nearbypokes',
-                        help='Add Nearby Pokestop Tracker Pokemon to the Map.',
-                        action='store_true', default=False)
     parser.add_argument('-ditto', '--ditto',
                         help='Catch certain pokemon to check for ditto.',
                         action='store_true', default=False)
@@ -341,6 +338,12 @@ def get_args():
     parser.add_argument('-nk', '--no-pokestops',
                         help=('Disables PokeStops from the map (including ' +
                               'parsing them into local db).'),
+                        action='store_true', default=False)
+    parser.add_argument('-npkm', '--nearbypokes',
+                        help='Add Nearby Pokestop Tracker Pokemon to the Map.',
+                        action='store_true', default=False)
+    parser.add_argument('-lp', '--lured-pokemon',
+                        help=('Add Pokemon From Lures To The Map.'),
                         action='store_true', default=False)
     parser.add_argument('-ss', '--spawnpoint-scanning',
                         help=('Use spawnpoint scanning (instead of hex ' +
