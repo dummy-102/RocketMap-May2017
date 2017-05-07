@@ -640,6 +640,15 @@ function build_nearby_pkm_div(encounterIdLong, spawnpoint_id) {
           `
 }
 
+function build_lured_pkm_div(encounterIdLong, spawnpoint_id) {
+    return `
+          <div id="pkmLured${encounterIdLong}">
+            <img height='15px' style='padding: 1px;' src='static/forts/pstop.png'>
+            <font size="3"><b>Lured Pokemon</font></b>
+          </div>
+          `
+}
+
 function build_latitude_longitude_div(encounterIdLong, latitude, longitude) {
     return `
           <div id="pkmLoc${encounterIdLong}">
@@ -689,11 +698,15 @@ function pokemonLabel(item) {
         ditto += build_previous_id_div(encounterIdLong, previous_id)
     }
     var near = ''
-    if (spawnpoint_id === 'nearby_pokemon') {
+    if (spawnpoint_id === 'nearby_pokemon' && spawnpoint_id != null) {
         near += build_nearby_pkm_div(encounterIdLong, spawnpoint_id)
     }
+    var lure = ''
+    if (spawnpoint_id === 'lured_pokemon' && spawnpoint_id != null) {
+        lure += build_lured_pkm_div(encounterIdLong, spawnpoint_id)
+    }
     var details = ''
-    if (gender != null && spawnpoint_id === 'nearby_pokemon') {
+    if (gender != null && spawnpoint_id === 'nearby_pokemon' || spawnpoint_id === 'lured_pokemon' && spawnpoint_id != null) {
         details += build_gender_div(encounterIdLong, gender)
     }
     if (height != null) {
@@ -718,8 +731,6 @@ function pokemonLabel(item) {
         details += build_worker_level_div(encounterIdLong, worker_level)
     }
 
-    var otime = (item['disappear_time'] - Date.now())  / 1000 / 60 / 1
-
     var scoutLink = cp == null ? `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>` : ""
     var contentstring = `
       <center>
@@ -728,16 +739,13 @@ function pokemonLabel(item) {
               ${near}
             </div>
             <div>
+              ${lure}
+            </div>
+            <div>
               <font size="3"><b>${ditto} ${name}</b></font>`
             if (id === 201 && form !== null && form > 0) {
               contentstring += ` <font size="3"><b>[${unownForm[item['form']]}]</font></b>
             </div>`
-            }
-            if (spawnpoint_id === 'lured_pokemon') {  // spawnpoint_id was filled with fort_id which is by far longer
-                contentstring += `
-                <div>
-                    Pokemon from lured Pokestop
-                </div>`
             }
     contentstring += `
             <div>
@@ -1353,7 +1361,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
             }
         }
     } else if (Store.get('showPokemonOpacity')) {
-        var otime = (item['disappear_time'] - Date.now())  / 1000 / 60 / 1
+        var otime = (item['disappear_time'] - Date.now())  / 1000 / 30 / 1
         marker.setOpacity(otime)  // Default opacity if toggle enabled
     }
 
@@ -1477,22 +1485,6 @@ function getColorByDate(value) {
 
 function setupScannedMarker(item) {
     var circleCenter = new google.maps.LatLng(item['latitude'], item['longitude'])
-
-    var label = new google.maps.Marker({
-      position: circleCenter,
-      map: map,
-      icon: {
-        url: '',
-        size: new google.maps.Size(0, 0)
-      }
-    })
-
-
-    // label.setLabel({
-    // text: item.username,
-    // fontSize: '0.5m'
-    // })
-
     var marker = new google.maps.Circle({
         map: map,
         clickable: false,
@@ -2200,7 +2192,7 @@ var updateLabelDiffTime = function () {
 
 
         if (disappearsAt.ttime < disappearsAt.now) {
-            timestring = '(expired)'
+            timestring = 'expired'
         } else {
             if (hours > 0) {
                 timestring = hours + 'h:'

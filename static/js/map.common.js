@@ -1125,7 +1125,7 @@ function setupPokemonMarker(item, map, isBounceDisabled) {
         })
     }
     if (Store.get('showPokemonOpacity')) {
-        var otime = (item['disappear_time'] - Date.now())  / 1000 / 60 / 1
+        var otime = (item['disappear_time'] - Date.now())  / 1000 / 30 / 1
         marker.setOpacity(otime)  // Default opacity if toggle enabled
     }
     return marker
