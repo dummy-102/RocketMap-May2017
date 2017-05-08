@@ -107,7 +107,7 @@ def catch(api, encounter_id, spawn_point_id, pid, inventory):
 
 def release(api, pkm_name, cpid):
     try:
-        log.info('Attempting to release %s', pkm_name)
+        #log.info('Attempting to release %s', pkm_name)
         req = api.create_request()
         req.release_pokemon(pokemon_id=cpid)
         req.check_challenge()

@@ -426,6 +426,10 @@ def get_args():
                         help=('Get all details about pokestops (causes an ' +
                               'additional API hit for every pokestop).'),
                         action='store_true', default=False)
+    parser.add_argument('-pli', '--pokestop-lured-info',
+                        help=('Get all details about lured pokestops (causes an ' +
+                              'additional API hit for every pokestop).'),
+                        action='store_true', default=False)
     parser.add_argument('--disable-clean', help='Disable clean db loop.',
                         action='store_true', default=False)
     parser.add_argument('--webhook-updates-only',
