@@ -491,7 +491,7 @@ class Pokestop(BaseModel):
                     PokestopDetails.pokestop_id, PokestopDetails.name,
                     PokestopDetails.description, PokestopDetails.url,
                     PokestopDetails.item_id, PokestopDetails.deployer,
-                    PokestopDetails.expires))
+                    PokestopDetails.expires, PokestopDetails.last_scanned))
             query_details = (query_details.where(
                 PokestopDetails.pokestop_id == p['pokestop_id']).dicts())
 
@@ -1968,7 +1968,7 @@ def calc_pokemon_level(pokemon_info):
 def perform_pgscout(p):
     pokemon_id = p['pokemon_data']['pokemon_id']
     pokemon_name = get_pokemon_name(pokemon_id)
-    log.info(u"PGScouting a {} at {}, {}.".format(pokemon_name, p['latitude'],
+    log.warning(u"PGScouting a {} at {}, {}.".format(pokemon_name, p['latitude'],
                                                  p['longitude']))
 
     # Prepare Pokemon object
@@ -1980,7 +1980,7 @@ def perform_pgscout(p):
     pkm.longitude = p['longitude']
     scout_result = pgscout_encounter(pkm)
     if scout_result['success']:
-        log.info(
+        log.warning(
             u"Successfully PGScouted a {:.1f}% lvl {} {} with {} CP (worker "
             u"level {}).".format(
                 scout_result['iv_percent'], scout_result['pokemon_level'],
@@ -2073,7 +2073,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         # . . . and there are no gyms/pokestops then it's unusable/bad.
         if not forts:
             log.warning('Bad scan. Parsing found absolutely nothing.')
-            log.info('Common causes: captchas or IP bans.')
+            log.warning('Common causes: captchas or IP bans.')
         else:
             # No wild or nearby Pokemon but there are forts.  It's probably
             # a speed violation.
@@ -2184,7 +2184,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         # For all the wild Pokemon we found check if an active Pokemon is in
         # the database.
         query = (Pokemon
-                 .select(Pokemon.encounter_id, Pokemon.spawnpoint_id)
+                 .select(Pokemon.encounter_id, Pokemon.spawnpoint_id, Pokemon.previous_id)
                  .where((Pokemon.disappear_time >= now_date) &
                         (Pokemon.encounter_id << encounter_ids))
                  .dicts())
@@ -2237,7 +2237,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'spawnpoint': sp['id'],
                 'scannedlocation': scan_loc['cellid']}
             if not sp['last_scanned']:
-                log.info('New Spawn Point found.')
+                log.warning('New Spawn Point found.')
                 new_spawn_points.append(sp)
 
                 # If we found a new spawnpoint after the location was already
@@ -2274,7 +2274,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             # We want the stuff above or we will impact spawn detection
             # but we don't want to insert it, or send it to webhooks
             if p['pokemon_data']['pokemon_id'] in args.ignore_list:
-                log.debug("Ignoring Pokemon id: %i",
+                log.warning("Ignoring Pokemon id: %i",
                           p['pokemon_data']['pokemon_id'])
                 continue
             printPokemon(p['pokemon_data']['pokemon_id'], p[
@@ -2385,7 +2385,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # If we didn't get an account, we can't encounter.
                 if hlvl_account:
                     # Logging.
-                    log.info('(High Level Account) Encountering  %s with account %s'
+                    log.warning('(High Level Account) Encountering  %s with account %s'
                               + ' at %s, %s.',
                               pname,
                               hlvl_account['username'],
@@ -2493,7 +2493,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # LOW LEVEL
                 elif llvl_account:
                     # Logging.
-                    log.info('(Low Level Account) Encountering %s with account %s'
+                    log.warning('(Low Level Account) Encountering %s with account %s'
                               + ' at %s, %s.',
                               pname,
                               llvl_account['username'],
@@ -2652,7 +2652,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     catch_prob_3 = probs[2]
                     worker_level = worker_level
 
-                    log.debug('Regular Encounter for Pokemon ID %s'
+                    log.warning('Regular Encounter for Pokemon ID %s'
                                 + ' at %s, %s successful,'
                                 + ' Stats: %s/%s/%s - Catch Chances:'
                                 + ' %s/%s/%s - Worker Lv: %s.',
@@ -2694,7 +2694,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     worker_level = worker_level
 
                     # Logging: let the user know we succeeded.
-                    log.debug('Lv 30 Encounter for Pokemon ID %s'
+                    log.warning('Lv 30 Encounter for Pokemon ID %s'
                                   + ' at %s, %s successful, '
                                   + ' IVs: %s/%s/%s - CP: %s '
                                   + ' Stats: %s/%s/%s - Catch Chances:'
@@ -2740,7 +2740,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             # Updating Pokemon data from PGScout result
             if scout_result is not None and scout_result['success']:
                 if scout_result['worker_level'] <= 30:
-
                     pokemon[p['encounter_id']].update({
                         'height': scout_result['height'],
                         'weight': scout_result['weight'],
@@ -2753,7 +2752,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     })
 
                 if scout_result['worker_level'] >= 30:
-
                     pokemon[p['encounter_id']].update({
                         'individual_attack': scout_result['iv_attack'],
                         'individual_defense': scout_result['iv_defense'],
@@ -2786,7 +2784,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # else:
                     # caught = catch(d_api, p['encounter_id'], p['spawn_point_id'], pid, inventory)
                 if caught.get('catch_status', None) == 'success' and 'pid' in caught and int(caught['pid']) == 132:
-                    log.info('++++++++++++++++++++++++++++++++ %s is a DITTO! Updating encounter ' +
+                    log.warning('++++++++++++++++++++++++++++++++ %s is a DITTO! Updating encounter ' +
                              'data with new pokemon_id and movesets.', pname)
                     pokemon[p['encounter_id']].update({
                         'previous_id': p['pokemon_data']['pokemon_id']
@@ -2802,26 +2800,41 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'weight': caught['weight'],
                         'gender': caught['gender'],
                     })
-                    #if args.pgscout_url and (pid in args.enc_scout):
-                    #    scout_result = perform_pgscout(p)
-                    #    pokemon[p['encounter_id']].update({
-                    #        'individual_attack': scout_result['iv_attack'],
-                    #        'individual_defense': scout_result['iv_defense'],
-                    #        'individual_stamina': scout_result['iv_stamina'],
-                    #        'move_1': scout_result['move_1'],
-                    #        'move_2': scout_result['move_2'],
-                    #        'height': scout_result['height'],
-                    #        'weight': scout_result['weight'],
-                    #        'gender': scout_result['gender'],
-                    #        'cp': scout_result['cp'],
-                    #        'pokemon_level': scout_result['pokemon_level'],
-                    #        'catch_prob_1': scout_result['catch_prob_1'],
-                    #        'catch_prob_2': scout_result['catch_prob_2'],
-                    #        'catch_prob_3': scout_result['catch_prob_3'],
-                    #        'rating_attack': scout_result['rating_attack'],
-                    #        'rating_defense': scout_result['rating_defense'],
-                    #        'worker_level': scout_result['worker_level'],
-                    #    })
+                    if args.pgscout_url and (pid in args.enc_scout):
+                        scout_result = perform_pgscout(p)
+                    if scout_result is not None and scout_result['success']:
+                        if scout_result['worker_level'] <= 30:
+                            pokemon[p['encounter_id']].update({
+                                'height': scout_result['height'],
+                                'weight': scout_result['weight'],
+                                'gender': scout_result['gender'],
+                                'catch_prob_1': scout_result['catch_prob_1'],
+                                'catch_prob_2': scout_result['catch_prob_2'],
+                                'catch_prob_3': scout_result['catch_prob_3'],
+                                'rating_attack': 'A', # Ditto Doesnt Have Diff Moves
+                                'rating_defense': 'A',
+                                'worker_level': scout_result['worker_level'],
+                            })
+
+                        if scout_result['worker_level'] >= 30:
+                            pokemon[p['encounter_id']].update({
+                                'individual_attack': scout_result['iv_attack'],
+                                'individual_defense': scout_result['iv_defense'],
+                                'individual_stamina': scout_result['iv_stamina'],
+                                #'move_1': scout_result['move_1'],
+                                #'move_2': scout_result['move_2'],
+                                'height': scout_result['height'],
+                                'weight': scout_result['weight'],
+                                'gender': scout_result['gender'],
+                                'cp': scout_result['cp'],
+                                'pokemon_level': scout_result['pokemon_level'],
+                                'catch_prob_1': scout_result['catch_prob_1'],
+                                'catch_prob_2': scout_result['catch_prob_2'],
+                                'catch_prob_3': scout_result['catch_prob_3'],
+                                'rating_attack': 'A', # Ditto Doesnt Have Diff Moves
+                                'rating_defense': 'A',
+                                'worker_level': scout_result['worker_level'],
+                            })
 
             if args.webhooks:
                 pokemon_id = p['pokemon_data']['pokemon_id']
@@ -2905,30 +2918,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                                 if account_not_30:
 
-                                    # Standard Information
-                                    gender = pokemon_info['pokemon_display']['gender']
-                                    height = pokemon_info.get('height_m', 0)
-                                    weight = pokemon_info.get('weight_kg', 0)
-                                    catch_prob_1 = probs[0]
-                                    catch_prob_2 = probs[1]
-                                    catch_prob_3 = probs[2]
-                                    worker_level = worker_level
-
-                                    log.debug('Regular Lure Encounter for Pokemon ID %s'
-                                                + ' at %s, %s successful,'
-                                                + ' Stats: %s/%s/%s - Catch Chances:'
-                                                + ' %s/%s/%s - Worker Lv: %s.',
-                                                pokemon_id,
-                                                p['latitude'],
-                                                p['longitude'],
-                                                gender,
-                                                height,
-                                                weight,
-                                                catch_prob_1,
-                                                catch_prob_2,
-                                                catch_prob_3,
-                                                worker_level)
-
                                     # Check For Standard Information
                                     pokemon[lure_info['encounter_id']].update({
                                         'height': pokemon_info['height_m'],
@@ -2942,39 +2931,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                                 # Check For IV/CP If Account Is 30 Plus
                                 if account_is_30:
-                                    # IVs + Update.
-                                    individual_attack = pokemon_info.get('individual_attack', 0)
-                                    individual_defense = pokemon_info.get('individual_defense', 0)
-                                    individual_stamina = pokemon_info.get('individual_stamina', 0)
-                                    cp = pokemon_info.get('cp', None)
-                                    gender = pokemon_info['pokemon_display']['gender']
-                                    height = pokemon_info.get('height_m', 0)
-                                    weight = pokemon_info.get('weight_kg', 0)
-                                    catch_prob_1 = probs[0]
-                                    catch_prob_2 = probs[1]
-                                    catch_prob_3 = probs[2]
-                                    worker_level = worker_level
-
-                                    # Logging: let the user know we succeeded.
-                                    log.debug('Lv 30 Lure Encounter for Pokemon ID %s'
-                                                  + ' at %s, %s successful, '
-                                                  + ' IVs: %s/%s/%s - CP: %s '
-                                                  + ' Stats: %s/%s/%s - Catch Chances:'
-                                                  + ' %s/%s/%s - Worker Lv: %s.',
-                                                  pokemon_id,
-                                                  p['latitude'],
-                                                  p['longitude'],
-                                                  individual_attack,
-                                                  individual_defense,
-                                                  individual_stamina,
-                                                  cp,
-                                                  gender,
-                                                  height,
-                                                  weight,
-                                                  catch_prob_1,
-                                                  catch_prob_2,
-                                                  catch_prob_3,
-                                                  worker_level)
 
                                     # Check ALL INFO + IV/CP MOVES
                                     pokemon[lure_info['encounter_id']].update({
@@ -3003,7 +2959,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                 # Updating Pokemon data from PGScout result
                                 if scout_result is not None and scout_result['success']:
                                     if scout_result['worker_level'] <= 30:
-
                                         pokemon[lure_info['encounter_id']].update({
                                             'height': scout_result['height'],
                                             'weight': scout_result['weight'],
@@ -3016,7 +2971,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                         })
 
                                     if scout_result['worker_level'] >= 30:
-
                                         pokemon[lure_info['encounter_id']].update({
                                             'individual_attack': scout_result['iv_attack'],
                                             'individual_defense': scout_result['iv_defense'],
@@ -3052,25 +3006,50 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 else:
                     lure_expiration, active_fort_modifier = None, None
 
-                # Get detailed informations about Pokestops
-                if args.pokestop_info:
-                    if not get_details:
-                        try:  # No need to get known info
-                            PokestopDetails.get(pokestop_id=f['id'])
-                            get_details = False
-                        except PokestopDetails.DoesNotExist:  # Let's get it
-                            get_details = True
+                if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
+                        in encountered_pokestops):
+                    # If pokestop has been encountered before and hasn't
+                    # changed don't process it.
+                    stopsskipped += 1
+                    continue
 
-                    if get_details:
-                        time.sleep(random.random() + 2)
-                        fort_details_response = fort_details_request(api, f)
-                        if fort_details_response:
-                            pokestop_details = parse_pokestop_details(
-                                fort_details_response, db_update_queue)
-                            #log.info(
-                            #    'Parsed pokestop details: \n\r{}'.format(
-                            #        pprint.PrettyPrinter(indent=4).pformat(
-                            #            pokestop_details)))
+                if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
+                        in encountered_pokestops):
+                    # If pokestop has been encountered before and hasn't
+                    # changed don't process it.
+                    stopsskipped += 1
+
+                else:
+                    # Get detailed informations about Pokestops
+                    if args.pokestop_info:
+                        if not get_details:
+                            try:  # No need to get known info
+                                PokestopDetails.get(pokestop_id=f['id'])
+                                get_details = False
+                            except PokestopDetails.DoesNotExist:  # Let's get it
+                                get_details = True
+
+                        if get_details:
+                            time.sleep(random.random() + 2)
+                            fort_details_response = fort_details_request(api, f)
+                            if fort_details_response:
+                                pokestop_details = parse_pokestop_details(
+                                    fort_details_response, db_update_queue)
+                                #log.info(
+                                #    'Parsed pokestop details: \n\r{}'.format(
+                                #        pprint.PrettyPrinter(indent=4).pformat(
+                                #            pokestop_details)))
+
+                pokestops[f['id']] = {
+                    'pokestop_id': f['id'],
+                    'enabled': f.get('enabled', 0),
+                    'latitude': f['latitude'],
+                    'longitude': f['longitude'],
+                    'last_modified': datetime.utcfromtimestamp(
+                        f['last_modified_timestamp_ms'] / 1000.0),
+                    'lure_expiration': lure_expiration,
+                    'active_fort_modifier': active_fort_modifier
+                }
 
                 # Send all pokestops to webhooks.
                 if args.webhooks and not args.webhook_updates_only:
@@ -3100,24 +3079,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                     if args.lurestop:
                         lure_pokestop(args, api, f, step_location, inventory)
-
-                if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
-                        in encountered_pokestops):
-                    # If pokestop has been encountered before and hasn't
-                    # changed don't process it.
-                    stopsskipped += 1
-                    continue
-
-                pokestops[f['id']] = {
-                    'pokestop_id': f['id'],
-                    'enabled': f.get('enabled', 0),
-                    'latitude': f['latitude'],
-                    'longitude': f['longitude'],
-                    'last_modified': datetime.utcfromtimestamp(
-                        f['last_modified_timestamp_ms'] / 1000.0),
-                    'lure_expiration': lure_expiration,
-                    'active_fort_modifier': active_fort_modifier
-                }
 
             # Currently, there are only stops and gyms.
             elif config['parse_gyms'] and f.get('type') is None:
@@ -3236,7 +3197,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
 def fort_details_request(api, f):
     try:
-        log.debug('Getting details for pokestop @ %f/%f',
+        log.warning('Getting details for pokestop @ %f/%f',
                   f['latitude'], f['longitude'])
         req = api.create_request()
         x = req.fort_details(
@@ -3275,7 +3236,7 @@ def parse_pokestop_details(fort_details_response, db_update_queue):
 
     if 'modifiers' in fort_details:
         modifiers = fort_details.get('modifiers', None)
-        log.info('========== LURE PROVIDER %s =========', modifiers[0]['deployer_player_codename'])
+        log.warning('========== LURE PROVIDER %s =========', modifiers[0]['deployer_player_codename'])
         pokestop_details[pokestop_id].update({
             'item_id': modifiers[0]['item_id'],
             'deployer': modifiers[0]['deployer_player_codename'],

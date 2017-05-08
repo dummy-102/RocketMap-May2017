@@ -279,7 +279,7 @@ def drop_items(api, inventory, item_id, item_name, drop_count=-1):
     if drop_count > 0:
         result = drop_items_request(api, item_id, drop_count, inventory)
         if result == 1:
-            log.info("Dropped {} {}s.".format(drop_count, item_name))
+            log.warning("------------------------------- Dropped {} {}s.".format(drop_count, item_name))
             inventory[item_id] -= drop_count
             inventory['total'] -= drop_count
             return drop_count
@@ -376,7 +376,7 @@ def spin_pokestop(api, fort, step_location, inventory):
     spin_result = spin_response['responses']['FORT_SEARCH']['result']
     if spin_result is 1:
         awards = get_awarded_items(spin_response['responses']['FORT_SEARCH']['items_awarded'])
-        log.info('++++++++++++++++++++++++++++ Got {} items ({} balls) from Pokestop.'.format(awards['total'], awards['balls']))
+        log.warning('++++++++++++++++++++++++++++ Got {} items ({} balls) from Pokestop.'.format(awards['total'], awards['balls']))
         inventory.update(get_player_inventory(spin_response))
         return True
     elif spin_result is 2:
@@ -476,10 +476,10 @@ def geofence(step_location, geofence_file, forbidden=False):
                 continue
             geofence.append(literal_eval(line.strip()))
         if forbidden:
-             log.info('Loaded %d geofence-forbidden coordinates. ' +
+             log.warning('Loaded %d geofence-forbidden coordinates. ' +
                       'Applying...', len(geofence))
         else:
-             log.info('Loaded %d geofence coordinates. Applying...',
+             log.warning('Loaded %d geofence coordinates. Applying...',
                     len(geofence))
     #log.info(geofence)
     p = Path(geofence)
@@ -554,7 +554,7 @@ def lure_pokestop(args, api, fort, step_location, inventory):
 # 1: SUCCESS
 # 2: AWARDED_ALREADY
 def level_up_rewards_request(api, level, username, inventory):
-    log.info('Attempting to check level up rewards for level {} of account {}.'.format(level, username))
+    log.warning('Attempting to check level up rewards for level {} of account {}.'.format(level, username))
     time.sleep(random.uniform(2, 3))
     try:
         req = api.create_request()

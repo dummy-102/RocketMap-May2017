@@ -53,7 +53,7 @@ def catch(api, encounter_id, spawn_point_id, pid, inventory):
                 # Success!
                 if catch_status == 1:
                     cpid = catch_result['responses']['CATCH_POKEMON']['captured_pokemon_id']
-                    log.info('Catch attempt %s was successful for %s!', attempts, pkm_name)
+                    log.warning('Catch attempt %s was successful for %s!', attempts, pkm_name)
 
                     rv = {'catch_status': 'success'}
                     # Check inventory for new pokemon id and movesets
@@ -121,7 +121,7 @@ def release(api, pkm_name, cpid):
         if (release_result is not None and 'RELEASE_POKEMON' in release_result['responses']):
             release_result = release_result['responses']['RELEASE_POKEMON']['result']
             if int(release_result) == 1:
-                log.info('Successfully released %s', pkm_name)
+                log.warning('Successfully released %s', pkm_name)
             else:
                 log.info('Failed to release %s with result code: %s.', pkm_name, release_result)
 
