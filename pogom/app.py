@@ -123,6 +123,7 @@ class Pogom(Flask):
                 'catch_prob_3': response['catch_prob_3'],
                 'rating_attack': response['rating_attack'],
                 'rating_defense': response['rating_defense'],
+                'previous_id': response['previous_id'],
                 'worker_level': response['worker_level'],
                 'form': response.get('form', None),
             }

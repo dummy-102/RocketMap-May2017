@@ -12,12 +12,11 @@ from pogom.utils import get_pokemon_name
 
 log = logging.getLogger(__name__)
 
-
 def catch(api, encounter_id, spawn_point_id, pid, inventory):
     # Try to catch pokemon, but don't get stuck.
     pkm_name = get_pokemon_name(pid)
     attempts = 1
-    while attempts < 3:
+    while attempts < 5:
         log.info('Starting attempt %s to catch a %s!', attempts, pkm_name)
         time.sleep(random.uniform(2, 3))
         try:
@@ -98,7 +97,7 @@ def catch(api, encounter_id, spawn_point_id, pid, inventory):
 
         attempts += 1
 
-    if attempts >= 3:
+    if attempts >= 5:
         log.error('Failed to catch pid: %s after %s attempts. Giving up.', pid, (attempts - 1))
         rv = {'catch_status': 'fail'}
 

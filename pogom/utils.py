@@ -78,6 +78,9 @@ def get_args():
     parser = configargparse.ArgParser(
         default_config_files=defaultconfigfiles,
         auto_env_var_prefix='POGOMAP_')
+    parser.add_argument('-skbug', '--skoodebug',
+                            help=('Turn On Extra Debugging'),
+                            action='store_true', default=False)
     parser.add_argument('-cf', '--config',
                         is_config_file=True, help='Set configuration file')
     parser.add_argument('-a', '--auth-service', type=str.lower,

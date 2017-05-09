@@ -781,7 +781,7 @@ function pokemonLabel(item) {
               <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>&nbsp;&nbsp
               <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>&nbsp;&nbsp
               <a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='View in Maps'>Get directions</a>&nbsp;&nbsp
-              <a href='javascript:void(0);' onclick='javascript:toggleOtherPokemon("${id}");' title='Toggle display of other Pokemon'>Toggle Others</a>&nbsp;&nbsp
+              <a href='javascript:void(0);' onclick='javascript:toggleOtherPokemon("${id}");' title='Toggle display of other Pokemon'>Toggle</a>&nbsp;&nbsp
               ${scoutLink}
               </font></b>
             </div>
@@ -1121,7 +1121,7 @@ function spawnpointLabel(item) {
               <b>${statusStr}</b>
             </div>
             <div>
-              <font size="3"><b>Spawn Times UNKNOWN!<font><b>.
+              <font size="3"><b>Spawn Times UNKNOWN!</font></b>.
             </div>
             <div>
               Hourly <b>Perdicted</b> Time:
