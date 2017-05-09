@@ -4,14 +4,9 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<script>var pageLoaded = new Date().getTime();</script>
 	<link rel="stylesheet" href="{{ url_for('static', filename='dist/css/mobile.min.css').lstrip('/') }}" type="text/css" />
-	<style>
-	img.middle {
-		vertical-align: middle;
-	}
-	</style>
 </head>
 <body>
-	<center><a href="http://skoodat.dlinkddns.com/go/"> <img class="middle" src="http://i.imgur.com/XBEi7ns.png" height="40" width="180" /></a></center>
+	<center><a href="http://pokehamilton.com/"><img src="static/pokehamilton.png" style="vertical-align:middle;" height="40" width="180"></a></center>
 	<h1> </h1>
 	<h2>Nearby Pokémon</h2>
 
@@ -35,7 +30,7 @@
 			<label><input type="checkbox" id="use-loc">Use device GPS</label>
 		</div>
 	</div>
-	<center><a href="https://www.paypal.me/ChrisEden"> <img class="middle" src="http://i.imgur.com/XdaERXe.png" height="20" width="65" /></a></center>
+	<center><a href="https://www.paypal.me/ChrisEden"><img src="static/donate.png" style="vertical-align:middle;" height="40" width="130"></a></center>
 	<script src="{{ url_for('static', filename='dist/js/mobile.min.js').lstrip('/') }}"></script>
 </body>
 </html>

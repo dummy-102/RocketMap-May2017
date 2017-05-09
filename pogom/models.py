@@ -2176,7 +2176,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         wh_poke.update({
                             'disappear_time': calendar.timegm(
                                 disappear_time.timetuple()),
-                            'player_level': level
+                            'worker_level': worker_level
                         })
                         wh_update_queue.put(('pokemon', wh_poke))
 

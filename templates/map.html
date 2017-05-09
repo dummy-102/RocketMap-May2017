@@ -32,12 +32,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.0/jquery-ui.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.12/css/jquery.dataTables.css">
     <script src="{{ url_for('static', filename='js/vendor/modernizr.custom.js').lstrip('/') }}"></script>
-    <!-- Title Align -->
-	<style>
-	img.middle {
-		vertical-align: middle;
-	}
-	</style>
     <!-- Toastr -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
   </head>
@@ -46,9 +40,9 @@
       <!-- Header -->
       <header id="header">
         <a href="#nav"></a>
-		<a href="http://pokehamilton.com/"> <img class="middle" src="http://i.imgur.com/XBEi7ns.png" height="40" width="180" /></a>
+    <a href="http://pokehamilton.com/"><img src="static/pokehamilton.png" style="vertical-align:middle;" height="40" width="180"></a>
 		<a style="float: right;" href="#stats" id="statsToggle" class="statsNav" ></a>
-		<a style="float: right;" href="http://ssolutions.ca/"> <img class="middle" src="http://i.imgur.com/mO66mfI.png" height="26" width="55" /></a>
+    <a style="float: right;" href="http://ssolutions.ca/"><img src="static/ssolutions.png" style="vertical-align:middle;" height="26" width="55"></a>
       </header>
       <!-- NAV -->
       <nav id="nav">
@@ -56,8 +50,8 @@
           <h3>Information</h3>
           <div>
             <div class="stats-label-container">
-			  <center><a href="https://www.paypal.me/ChrisEden"> <img class="middle" src="http://i.imgur.com/XdaERXe.png" height="40" width="130" /></a></center>
-              <h3><center><a href="https://www.paypal.me/ChrisEden">PayPal</a></center></h3>
+        <center><a href="https://www.paypal.me/ChrisEden"><img src="static/donate.png" style="vertical-align:middle;" height="40" width="130"></a></center>
+              <h3><center><a href="https://www.paypal.me/ChrisEden">Click Here</a></center></h3>
 			  <center>Please Donate To Help Server Costs.</center>
 			  <center>---------------------------</center>
 			  <center>Version: 0.61.0/1.31.0</center>
@@ -417,6 +411,9 @@
       </nav>
       <nav id="stats">
         <div class="switch-container">
+          <div class="switch-container">
+            <div><center><a href="mobile">Mobile Tracker</a></center></div>
+          </div>
           <div class="switch-container">
             <div><center><a href="stats">Full Stats</a></center></div>
           </div>
