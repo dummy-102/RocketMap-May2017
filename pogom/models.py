@@ -1857,20 +1857,25 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         pokestop_ids = [n['fort_id'] for n in nearby_pokemon]
         # For all the nearby Pokemon we found check if an active Pokemon is in
         # the database.
-        query = (Pokemon
-                 .select(Pokemon.encounter_id, Pokemon.spawnpoint_id)
-                 .where((Pokemon.disappear_time >= now_date) &
-                        (Pokemon.encounter_id << encounter_ids))
-                 .dicts())
+        query = []
+        if encounter_ids:
+            query = (Pokemon
+                     .select(Pokemon.encounter_id, Pokemon.spawnpoint_id)
+                     .where((Pokemon.disappear_time >= now_date) &
+                            (Pokemon.encounter_id << encounter_ids))
+                     .dicts())
 
         # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
         # All of that is needed to make sure it's unique.
         encountered_pokemon = [p['encounter_id'] for p in query]
 
-        query = (Pokestop
-                 .select(Pokestop.pokestop_id, Pokestop.latitude, Pokestop.longitude)
-                 .where((Pokestop.pokestop_id << pokestop_ids))
-                 .dicts())
+        query = []
+        if pokestop_ids:
+            query = (Pokestop
+                     .select(Pokestop.pokestop_id, Pokestop.latitude,
+                             Pokestop.longitude)
+                     .where((Pokestop.pokestop_id << pokestop_ids))
+                     .dicts())
 
         matched_pokestops = {}
         for f in query:
