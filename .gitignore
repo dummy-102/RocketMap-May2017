@@ -25,6 +25,7 @@ static/icons-large-sprite.png
 static/icons-shuffle-sprite128x.png
 static/icons/*.png
 static/sprites/*.png
+static/sounds/cries/*
 *.csv
 *.bat
 *.sh
