@@ -766,11 +766,10 @@ function customizePokemonMarker(marker, item, skipNotification) {
     if (notifiedPokemon.indexOf(item['pokemon_id']) > -1 || notifiedRarity.indexOf(item['pokemon_rarity']) > -1) {
         if (!skipNotification) {
             if (Store.get('playSound') && !Store.get('playCries')) {
-                var audio = new Audio('static/sounds/ding.mp3')
                 audio.play()
             } else if (Store.get('playSound') && Store.get('playCries')) {
-                var audio = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.wav')
-                audio.play().catch(function (err) {
+                var audiocry = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.wav')
+                audiocry.play().catch(function (err) {
                     if (err) {
                         console.log('sound for this pokemon is missing, using ding instead')
                         var audio = new Audio('static/sounds/ding.mp3')
@@ -790,14 +789,12 @@ function customizePokemonMarker(marker, item, skipNotification) {
         if (notifiedMinPerfection > 0 && perfection >= notifiedMinPerfection) {
             if (!skipNotification) {
                 if (Store.get('playSound') && !Store.get('playCries')) {
-                    var audio = new Audio('static/sounds/ding.mp3')
                     audio.play()
                 } else if (Store.get('playSound') && Store.get('playCries')) {
-                    var audio = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.wav')
-                    audio.play().catch(function (err) {
+                    var audiocryiv = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.wav')
+                    audiocryiv.play().catch(function (err) {
                         if (err) {
                             console.log('sound for this pokemon is missing, using ding instead')
-                            var audio = new Audio('static/sounds/ding.mp3')
                             audio.play()
                         }
                     })
