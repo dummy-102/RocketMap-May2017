@@ -1349,7 +1349,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
             if (Store.get('playSound') && !Store.get('playCries')) {
                 audio.play()
             } else if (Store.get('playSound') && Store.get('playCries')) {
-                var audiocry = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.wav')
+                var audiocry = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.ogg')
                 audiocry.play().catch(function (err) {
                     if (err) {
                         console.log('sound for this pokemon is missing, using ding instead')
@@ -1378,7 +1378,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
                 if (Store.get('playSound') && !Store.get('playCries')) {
                     audio.play()
                 } else if (Store.get('playSound') && Store.get('playCries')) {
-                    var audiocryiv = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.wav')
+                    var audiocryiv = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.ogg')
                     audiocryiv.play().catch(function (err) {
                         if (err) {
                             console.log('sound for this pokemon is missing, using ding instead')
