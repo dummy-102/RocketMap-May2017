@@ -123,7 +123,7 @@ class Pokemon(BaseModel):
     catch_prob_1 = DoubleField(null=True)
     catch_prob_2 = DoubleField(null=True)
     catch_prob_3 = DoubleField(null=True)
-    previous_id = SmallIntegerField(index=True)
+    previous_id = SmallIntegerField(null=True)
     form = SmallIntegerField(null=True)
     rating_attack = CharField(null=True, max_length=1)
     rating_defense = CharField(null=True, max_length=1)
@@ -742,7 +742,7 @@ class ScannedLocation(BaseModel):
     cellid = CharField(primary_key=True, max_length=50)
     latitude = DoubleField()
     longitude = DoubleField()
-    username = CharField()
+    #username = CharField(max_length=50)
     last_modified = DateTimeField(
         index=True, default=datetime.utcnow, null=True)
     # Marked true when all five bands have been completed.
@@ -2031,7 +2031,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'or pokestops. Possible speed violation.')
 
     scan_loc = ScannedLocation.get_by_loc(step_location)
-    scan_loc['username'] = account['username']
+    #scan_loc['username'] = account['username']
     done_already = scan_loc['done']
     ScannedLocation.update_band(scan_loc, now_date)
     just_completed = not done_already and scan_loc['done']
@@ -2040,6 +2040,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     #    pprint.PrettyPrinter(indent=4).pformat(nearby_pokemon)))
     if nearby_pokemon and config['parse_pokemon']:
         temp_nearby_list = []
+
         for n in nearby_pokemon:
             if 'fort_id' in n:
                 temp_nearby_list.append(n)
@@ -2059,8 +2060,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
         # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
         # All of that is needed to make sure it's unique.
-        encountered_pokemon = [p['encounter_id'] for p in query]
-
+        encountered_pokemon = [(p['encounter_id']) for p in query]
+        #log.warning(nearby_pokemon)
         query = (Pokestop
                  .select(Pokestop.pokestop_id, Pokestop.latitude, Pokestop.longitude)
                  .where((Pokestop.pokestop_id << pokestop_ids))
@@ -2073,6 +2074,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'latitude': f['latitude'],
                 'longitude': f['longitude']
             }
+
 
         for n in nearby_pokemon:
             if (b64encode(str(n['encounter_id']))
@@ -2100,7 +2102,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'move_2': None,
                     'height': None,
                     'weight': None,
-                    'gender': n['pokemon_display']['gender'],
+                    'gender': None,
                     'cp': None,
                     'pokemon_level': None,
                     'worker_level': worker_level,
@@ -2113,9 +2115,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'rating_defense': None,
                 }
 
-                if pokemon[n['encounter_id']] == 201:
-                    pokemon[n['encounter_id']]['form'] = n[
-                        'pokemon_display'].get('form', None)
+                #if pokemon[n['encounter_id']] == 201:
+                #    pokemon[n['encounter_id']]['form'] = n[
+                #        'pokemon_display'].get('form', None)
 
                 if args.webhooks:
                     pokemon_id = n['pokemon_data']['pokemon_id']
@@ -2875,7 +2877,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         except PokestopDetails.DoesNotExist:  # Let's get it
                             get_details = True
 
-                    if get_details and fd['deployer'] == None:
+                    if get_details:
                         time.sleep(random.random() + 2)
                         fort_details_response = fort_details_request(api, f)
                         if fort_details_response:
@@ -3732,11 +3734,11 @@ def database_migrate(db, old_ver):
                                 CharField(null=True, max_length=1))
         )
 
-    if old_ver < 21:
-        migrate(
-            migrator.add_column('scannedlocation', 'username',
-                                CharField(max_length=255, null=False,
-                                default=" ")),
-        )
+    #if old_ver < 21:
+    #    migrate(
+    #        migrator.add_column('scannedlocation', 'username',
+    #                            CharField(max_length=255, null=False,
+    #                            default=" ")),
+    #    )
     # Always log that we're done.
     log.info('Schema upgrade complete.')
