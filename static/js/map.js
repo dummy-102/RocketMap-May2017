@@ -363,6 +363,7 @@ function initSidebar() {
     $('#spawnpoints-switch').prop('checked', Store.get('showSpawnpoints'))
     $('#ranges-switch').prop('checked', Store.get('showRanges'))
     $('#sound-switch').prop('checked', Store.get('playSound'))
+    $('#cries-switch').prop('checked', Store.get('playCries'))
     var searchBox = new google.maps.places.Autocomplete(document.getElementById('next-location'))
     $('#next-location').css('background-color', $('#geoloc-switch').prop('checked') ? '#e0e0e0' : '#ffffff')
 
@@ -764,8 +765,18 @@ function customizePokemonMarker(marker, item, skipNotification) {
 
     if (notifiedPokemon.indexOf(item['pokemon_id']) > -1 || notifiedRarity.indexOf(item['pokemon_rarity']) > -1) {
         if (!skipNotification) {
-            if (Store.get('playSound')) {
+            if (Store.get('playSound') && !Store.get('playCries')) {
+                var audio = new Audio('static/sounds/ding.mp3')
                 audio.play()
+            } else if (Store.get('playSound') && Store.get('playCries')) {
+                var audio = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.wav')
+                audio.play().catch(function (err) {
+                    if (err) {
+                        console.log('sound for this pokemon is missing, using ding instead')
+                        var audio = new Audio('static/sounds/ding.mp3')
+                        audio.play()
+                    }
+                })
             }
             sendNotification(getNotifyText(item).fav_title, getNotifyText(item).fav_text, 'static/icons/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
         }
@@ -778,8 +789,18 @@ function customizePokemonMarker(marker, item, skipNotification) {
         var perfection = getIv(item['individual_attack'], item['individual_defense'], item['individual_stamina'])
         if (notifiedMinPerfection > 0 && perfection >= notifiedMinPerfection) {
             if (!skipNotification) {
-                if (Store.get('playSound')) {
+                if (Store.get('playSound') && !Store.get('playCries')) {
+                    var audio = new Audio('static/sounds/ding.mp3')
                     audio.play()
+                } else if (Store.get('playSound') && Store.get('playCries')) {
+                    var audio = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.wav')
+                    audio.play().catch(function (err) {
+                        if (err) {
+                            console.log('sound for this pokemon is missing, using ding instead')
+                            var audio = new Audio('static/sounds/ding.mp3')
+                            audio.play()
+                        }
+                    })
                 }
                 sendNotification(getNotifyText(item).fav_title, getNotifyText(item).fav_text, 'static/icons/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
             }
@@ -2357,6 +2378,10 @@ $(function () {
 
     $('#sound-switch').change(function () {
         Store.set('playSound', this.checked)
+    })
+
+    $('#cries-switch').change(function () {
+        Store.set('playCries', this.checked)
     })
 
     $('#geoloc-switch').change(function () {
