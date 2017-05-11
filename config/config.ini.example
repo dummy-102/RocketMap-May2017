@@ -66,6 +66,7 @@
 #geofence-file:	                # Geofence file to define outer borders of the scan area.
 #forbidden-file:                # File to define forbidden areas inside scan area. Regarded this as inverted geofence. Can be combined with geofence-file.
 #no-matplotlib                  # Prevents the usage of matplotlib when running on incompatible hardware. (default=False)
+#purge-geofence-data            # Removes all geofence data from the database.(default=False)
 
 
 # Search settings

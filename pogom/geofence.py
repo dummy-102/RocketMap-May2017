@@ -6,6 +6,7 @@ import time
 import logging
 
 from .utils import get_args
+from .models import Geofence
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ class Geofences:
                 'Loaded %d valid and %d forbidden areas',
                 len(self.valid_areas),
                 len(self.forbidden_areas))
+
+            if args.purge_geofence_data:
+                Geofence.clear_all()
+                
+            Geofence.push_geofences(self.valid_areas + self.forbidden_areas)
 
     def is_enabled(self):
         enabled = False

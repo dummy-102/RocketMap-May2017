@@ -1724,32 +1724,33 @@ class Geofence(BaseModel):
     def remove_duplicates(geofences):
         # Remove old geofences without interfering with other DB threads.
         with flaskDb.database.transaction():
-            for geofence in geofences:
+            for g in geofences:
                 (DeleteQuery(Geofence)
-                 .where(Geofence.name == geofences[geofence]['name'])
+                 .where(Geofence.name == g['name'])
                  .execute())
 
     @staticmethod
     def push_geofences(geofences):
         Geofence.remove_duplicates(geofences)
 
-        db_geofences = {}
+        db_geofences = []
         id = 0
-        for geofence in geofences:
+        for g in geofences:
             coordinates_id = 0
-            for coordinates in geofences[geofence]['polygon']:
+            for c in g['polygon']:
                 id = id + 1
-                db_geofences[id] = {
-                    'forbidden': geofences[geofence]['forbidden'],
-                    'name': geofences[geofence]['name'],
+                db_geofences.append({
+                    'forbidden': g['forbidden'],
+                    'name': g['name'],
                     'coordinates_id': coordinates_id,
-                    'latitude': coordinates['lat'],
-                    'longitude': coordinates['lon']
-                }
+                    'latitude': c['lat'],
+                    'longitude': c['lon']
+                })
                 coordinates_id = coordinates_id + 1
 
         # Make a DB save.
-        #with flaskDb.database.transaction():
+        with flaskDb.database.transaction():
+            Geofence.insert_many(db_geofences).execute()
 
         return db_geofences
 
