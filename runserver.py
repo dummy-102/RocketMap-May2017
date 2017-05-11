@@ -312,7 +312,7 @@ def main():
             log.info('** Starting a fake search **')
             search_thread = Thread(target=fake_search_thread,
                                    name='search-overseer',
-                                   args=(db_updates_queue,))
+                                   args=(args, position, db_updates_queue,))
         else:
             argset = (args, new_location_queue, pause_bit,
                       heartbeat, db_updates_queue, wh_updates_queue)
