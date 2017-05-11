@@ -10,10 +10,11 @@ import gc
 import time
 import geopy
 import math
-from peewee import (InsertQuery, Check, CompositeKey, ForeignKeyField,
-                    SmallIntegerField, IntegerField, CharField, DoubleField,
-                    BooleanField, DateTimeField, fn, DeleteQuery, FloatField,
-                    SQL, TextField, JOIN, OperationalError)
+from peewee import (InsertQuery, Check, CompositeKey, PrimaryKeyField,
+                    ForeignKeyField, SmallIntegerField, IntegerField,
+                    CharField, DoubleField, BooleanField, DateTimeField, fn,
+                    DeleteQuery, FloatField, SQL, TextField, JOIN,
+                    OperationalError)
 from playhouse.flask_utils import FlaskDB
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError, case
@@ -1704,6 +1705,76 @@ class Token(flaskDb.Model):
         return tokens
 
 
+# Geofence DB Model
+class Geofence(BaseModel):
+    id = PrimaryKeyField()
+    forbidden = BooleanField()
+    name = CharField(max_length=50)
+    coordinates_id = SmallIntegerField()
+    latitude = DoubleField()
+    longitude = DoubleField()
+
+    @staticmethod
+    def clear_all():
+        # Remove all geofences without interfering with other threads.
+        with flaskDb.database.transaction():
+            DeleteQuery(Geofence).execute()
+
+    @staticmethod
+    def remove_duplicates(geofences):
+        # Remove old geofences without interfering with other DB threads.
+        with flaskDb.database.transaction():
+            for geofence in geofences:
+                (DeleteQuery(Geofence)
+                 .where(Geofence.name == geofences[geofence]['name'])
+                 .execute())
+
+    @staticmethod
+    def push_geofences(geofences):
+        Geofence.remove_duplicates(geofences)
+
+        db_geofences = {}
+        id = 0
+        for geofence in geofences:
+            coordinates_id = 0
+            for coordinates in geofences[geofence]['polygon']:
+                id = id + 1
+                db_geofences[id] = {
+                    'forbidden': geofences[geofence]['forbidden'],
+                    'name': geofences[geofence]['name'],
+                    'coordinates_id': coordinates_id,
+                    'latitude': coordinates['lat'],
+                    'longitude': coordinates['lon']
+                }
+                coordinates_id = coordinates_id + 1
+
+        # Make a DB save.
+        #with flaskDb.database.transaction():
+
+        return db_geofences
+
+    @staticmethod
+    def get_geofences():
+        query = Geofence.select().dicts()
+
+        # Performance:  disable the garbage collector prior to creating a
+        # (potentially) large dict with append().
+        gc.disable()
+
+        geofences = []
+        for g in query:
+            if args.china:
+                g['polygon']['latitude'], g['polygon']['longitude'] = \
+                    transform_from_wgs_to_gcj(
+                        g['polygon']['latitude'], g['polygon']['longitude'])
+            geofences.append(g)
+
+        # Re-enable the GC.
+        gc.enable()
+
+        return geofences
+
+
 class HashKeys(BaseModel):
     key = CharField(primary_key=True, max_length=20)
     maximum = SmallIntegerField(default=0)
@@ -2618,7 +2689,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, LocationAltitude, HashKeys]
+              Token, LocationAltitude, HashKeys, Geofence]
     for table in tables:
         if not table.table_exists():
             log.info('Creating table: %s', table.__name__)
@@ -2634,7 +2705,7 @@ def drop_tables(db):
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude,
-              Token, HashKeys]
+              Token, HashKeys, Geofence]
     db.connect()
     db.execute_sql('SET FOREIGN_KEY_CHECKS=0;')
     for table in tables:

@@ -7,6 +7,11 @@
 *.json
 config/*
 !config/config.ini.example
+accounts/*
+!accounts/accounts.csv.example
+geofences/*
+!geofences/geofences.txt.example
+!geofences/forbidden.txt.example
 static/dist/
 node_modules/
 venv/
@@ -16,8 +21,8 @@ _build
 _build_html
 beehive.*
 static/pixel_icons/*.png
-static/icons-sprite.png		
-static/icons-large-sprite.png		
+static/icons-sprite.png
+static/icons-large-sprite.png
 static/icons/*.png
 *.csv
 *.bat
