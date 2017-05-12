@@ -1856,7 +1856,6 @@ class Token(flaskDb.Model):
 # Geofence DB Model
 class Geofence(BaseModel):
     id = PrimaryKeyField()
-    geofence_id = SmallIntegerField()
     forbidden = BooleanField()
     name = CharField(max_length=50)
     coordinates_id = SmallIntegerField()
@@ -1865,17 +1864,47 @@ class Geofence(BaseModel):
 
     @staticmethod
     def clear_all():
-        DeleteQuery(Geofence).execute()
+        # Remove all geofences without interfering with other threads.
+        with flaskDb.database.transaction():
+            DeleteQuery(Geofence).execute()
+
+    @staticmethod
+    def remove_duplicates(geofences):
+        # Remove old geofences without interfering with other DB threads.
+        with flaskDb.database.transaction():
+            for g in geofences:
+                (DeleteQuery(Geofence)
+                 .where(Geofence.name == g['name'])
+                 .execute())
+
+    @staticmethod
+    def push_geofences(geofences):
+        Geofence.remove_duplicates(geofences)
+
+        db_geofences = []
+        id = 0
+        for g in geofences:
+            coordinates_id = 0
+            for c in g['polygon']:
+                id = id + 1
+                db_geofences.append({
+                    'forbidden': g['forbidden'],
+                    'name': g['name'],
+                    'coordinates_id': coordinates_id,
+                    'latitude': c['lat'],
+                    'longitude': c['lon']
+                })
+                coordinates_id = coordinates_id + 1
+
+        # Make a DB save.
+        with flaskDb.database.transaction():
+            Geofence.insert_many(db_geofences).execute()
+
+        return db_geofences
 
     @staticmethod
     def get_geofences():
-        query = Geofence.select(
-                Geofence.geofence_id, Geofence.forbidden, Geofence.name,
-                Geofence.coordinates_id, Geofence.latitude,
-                Geofence.longitude)
-
-        # Send them all
-        query = (query.dicts())
+        query = Geofence.select().dicts()
 
         # Performance:  disable the garbage collector prior to creating a
         # (potentially) large dict with append().
@@ -1893,6 +1922,7 @@ class Geofence(BaseModel):
         gc.enable()
 
         return geofences
+
 
 class HashKeys(BaseModel):
     key = CharField(primary_key=True, max_length=20)
@@ -3492,7 +3522,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, PokestopDetails, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, HashKeys, LocationAltitude, Account]
+              Token, HashKeys, LocationAltitude, Account, Geofence]
     for table in tables:
         if not table.table_exists():
             log.info('Creating table: %s', table.__name__)
@@ -3507,7 +3537,7 @@ def drop_tables(db):
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude,
-              Token, HashKeys]
+              Token, HashKeys, Geofence]
     db.connect()
     db.execute_sql('SET FOREIGN_KEY_CHECKS=0;')
     for table in tables:

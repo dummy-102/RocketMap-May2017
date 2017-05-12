@@ -158,6 +158,9 @@ def get_args():
                         help=('Prevents the usage of matplotlib when ' +
                               'running on incompatible hardware.'),
                         action='store_true', default=False)
+    parser.add_argument('-pgd', '--purge-geofence-data',
+                        help=('Removes all geofence data from the database.'),
+                        action='store_true', default=False)
     parser.add_argument('-sd', '--scan-delay',
                         help='Time delay between requests in scan threads.',
                         type=float, default=10)
