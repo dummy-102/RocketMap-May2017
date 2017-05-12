@@ -15,7 +15,6 @@ from pgoapi import PGoApi
 from pgoapi.exceptions import AuthException
 from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
-from .utils import in_radius
 from .fakePogoApi import FakePogoApi
 from .utils import in_radius, generate_device_info, equi_rect_distance
 from .proxy import get_new_proxy
@@ -247,67 +246,29 @@ def complete_tutorial(api, account, tutorial_state):
     return True
 
 
-def cleanup_inventory(api, inventory):
-    # Just need to make room for 1 more item
-    if inventory['total'] >= 100:
-        items_dropped = drop_items(api, inventory, ITEM_POTION, "Potion", 10)
-        items_dropped += drop_items(api, inventory, ITEM_SUPER_POTION, "Super Potion", 10)
-        items_dropped += drop_items(api, inventory, ITEM_HYPER_POTION, "Hyper Potion", 10)
-        items_dropped += drop_items(api, inventory, ITEM_MAX_POTION, "Max Potion", 10)
-        items_dropped += drop_items(api, inventory, ITEM_REVIVE, "Revive", 10)
-        items_dropped += drop_items(api, inventory, ITEM_MAX_REVIVE, "Max Revive", 10)
-        items_dropped += drop_items(api, inventory, ITEM_BLUK_BERRY, "Bluk Berry", 10)
-        items_dropped += drop_items(api, inventory, ITEM_NANAB_BERRY, "Nanab Berry", 10)
-        items_dropped += drop_items(api, inventory, ITEM_WEPAR_BERRY, "Wepar Berry", 10)
-        items_dropped += drop_items(api, inventory, ITEM_PINAP_BERRY, "Pinap Berry", 10)
-        items_dropped += drop_items(api, inventory, ITEM_RAZZ_BERRY, "Razz Berry", 10)
+# Complete tutorial with a level up by a Pokestop spin.
+# API argument needs to be a logged in API instance.
+# Called during fort parsing in models.py
+def tutorial_pokestop_spin(api, player_level, forts, step_location, account):
+    if player_level > 1:
+        log.debug(
+            'No need to spin a Pokestop. ' +
+            'Account %s is already level %d.',
+            account['username'], player_level)
+    else:  # Account needs to spin a Pokestop for level 2.
+        log.debug(
+            'Spinning Pokestop for account %s.',
+            account['username'])
+        for fort in forts:
+            if fort.get('type') == 1:
+                if spin_pokestop(api, fort, step_location):
+                    log.debug(
+                        'Account %s successfully spun a Pokestop ' +
+                        'after completed tutorial.',
+                        account['username'])
+                    return True
 
-        # Throw away balls if necessary
-        if inventory['total'] >= 350:
-            need_to_drop = inventory['total'] - 350 + 1
-            items_dropped = drop_items(api, inventory, ITEM_POKE_BALL, "Poke Ball", need_to_drop)
-            if items_dropped < need_to_drop:
-                need_to_drop -= items_dropped
-                items_dropped = drop_items(api, inventory, ITEM_GREAT_BALL, "Great Ball", need_to_drop)
-            if items_dropped < need_to_drop:
-                need_to_drop -= items_dropped
-                drop_items(api, inventory, ITEM_ULTRA_BALL, "Great Ball", need_to_drop)
-
-def drop_items(api, inventory, item_id, item_name, drop_count=-1):
-    item_count = inventory.get(item_id, 0)
-    drop_count = item_count if drop_count == -1 else min(item_count, drop_count)
-    if drop_count > 0:
-        result = drop_items_request(api, item_id, drop_count, inventory)
-        if result == 1:
-            log.warning("------------------------------- Dropped {} {}s.".format(drop_count, item_name))
-            inventory[item_id] -= drop_count
-            inventory['total'] -= drop_count
-            return drop_count
-        else:
-            log.warning("Failed dropping {} {}s.".format(drop_count, item_name))
-    return 0
-
-
-def drop_items_request(api, item_id, amount, inventory):
-    time.sleep(random.uniform(2, 4))
-    try:
-        req = api.create_request()
-        req.recycle_inventory_item(item_id=item_id,
-                                   count=amount)
-        req.check_challenge()
-        req.get_hatched_eggs()
-        req.get_inventory()
-        req.check_awarded_badges()
-        req.download_settings()
-        req.get_buddy_walked()
-        response_dict = req.call()
-        inventory.update(get_player_inventory(response_dict))
-        if ('responses' in response_dict) and ('RECYCLE_INVENTORY_ITEM' in response_dict['responses']):
-            drop_details = response_dict['responses']['RECYCLE_INVENTORY_ITEM']
-            return drop_details.get('result', -1)
-    except Exception as e:
-        log.warning('Exception while dropping items: %s', repr(e))
-        return False
+    return False
 
 
 def get_player_level(map_dict):
@@ -324,6 +285,17 @@ def get_player_level(map_dict):
         return player_level
 
     return 0
+
+
+def get_player_stats(response_dict):
+    inventory_items = response_dict.get('responses', {})\
+        .get('GET_INVENTORY', {}).get('inventory_delta', {})\
+        .get('inventory_items', [])
+    for item in inventory_items:
+        item_data = item.get('inventory_item_data', {})
+        if 'player_stats' in item_data:
+            return item_data['player_stats']
+    return {}
 
 
 def get_player_inventory(map_dict):
@@ -354,76 +326,55 @@ def get_player_inventory(map_dict):
                 item_id = incubator['item_id']
                 inventory[item_id] = inventory.get(item_id, 0) + 1
                 total_items += 1
-    inventory['balls'] = inventory.get(ITEM_POKE_BALL, 0) + inventory.get(ITEM_GREAT_BALL, 0) + inventory.get(
-        ITEM_ULTRA_BALL, 0) + inventory.get(ITEM_MASTER_BALL, 0)
+    inventory['balls'] = inventory.get(ITEM_POKE_BALL, 0) + inventory.get(
+        ITEM_GREAT_BALL, 0) + inventory.get(ITEM_ULTRA_BALL,
+        0) + inventory.get(ITEM_MASTER_BALL, 0)
     inventory['totalDisks'] = inventory.get(ITEM_TROY_DISK, 0)
     inventory['total'] = total_items
     return inventory
 
 
-def spin_pokestop(api, fort, step_location, inventory):
-    time.sleep(random.uniform(2, 5))  # Do not let Niantic throttle
-    spin_response = spin_pokestop_request(api, fort, step_location, inventory)
-    if not spin_response:
-        return False
+def spin_pokestop(api, fort, step_location):
+    spinning_radius = 0.04
+    if in_radius((fort['latitude'], fort['longitude']), step_location,
+                 spinning_radius):
+        log.debug('Attempt to spin Pokestop (ID %s)', fort['id'])
+        log.warning('++++++++++++++++++++++++++++ TUTORIAL SPINNING POKESTOP')
+        time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle
+        spin_response = spin_pokestop_request(api, fort, step_location)
+        time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle
 
-    # Check for reCaptcha
-    captcha_url = spin_response['responses']['CHECK_CHALLENGE']['challenge_url']
-    if len(captcha_url) > 1:
-        log.debug('Account encountered a reCaptcha.')
-        return False
+        # Check for reCaptcha
+        captcha_url = spin_response['responses'][
+            'CHECK_CHALLENGE']['challenge_url']
+        if len(captcha_url) > 1:
+            log.debug('Account encountered a reCaptcha.')
+            return False
 
-    spin_result = spin_response['responses']['FORT_SEARCH']['result']
-    if spin_result is 1:
-        awards = get_awarded_items(spin_response['responses']['FORT_SEARCH']['items_awarded'])
-        log.warning('++++++++++++++++++++++++++++ Got {} items ({} balls) from Pokestop.'.format(awards['total'], awards['balls']))
-        inventory.update(get_player_inventory(spin_response))
-        return True
-    elif spin_result is 2:
-        log.debug('Pokestop was not in range to spin.')
-    elif spin_result is 3:
-        log.debug('Failed to spin Pokestop. Has recently been spun.')
-    elif spin_result is 4:
-        log.debug('Failed to spin Pokestop. Inventory is full.')
-    elif spin_result is 5:
-        log.debug('Maximum number of Pokestops spun for this day.')
-    else:
-        log.debug(
-            'Failed to spin a Pokestop. Unknown result %d.',
-            spin_result)
+        spin_result = spin_response['responses']['FORT_SEARCH']['result']
+        if spin_result is 1:
+            log.debug('Successful Pokestop spin.')
+            return True
+        elif spin_result is 2:
+            log.debug('Pokestop was not in range to spin.')
+        elif spin_result is 3:
+            log.debug('Failed to spin Pokestop. Has recently been spun.')
+        elif spin_result is 4:
+            log.debug('Failed to spin Pokestop. Inventory is full.')
+        elif spin_result is 5:
+            log.debug('Maximum number of Pokestops spun for this day.')
+        else:
+            log.debug(
+                'Failed to spin a Pokestop. Unknown result %d.',
+                spin_result)
+
     return False
 
 
-def get_awarded_items(items_awarded):
-    awards = {}
-    total = 0
-    balls = 0
-    for item in items_awarded:
-        item_id = item['item_id']
-        count = item['item_count']
-        total += count
-        if item_id in (ITEM_POKE_BALL, ITEM_GREAT_BALL, ITEM_ULTRA_BALL, ITEM_MASTER_BALL):
-            balls += count
-        awards[item_id] = awards.get(item_id, 0) + count
-    awards['total'] = total
-    awards['balls'] = balls
-    return awards
-
-
-def pokestop_spinnable(fort, step_location):
-    spinning_radius = 0.04
-    in_range = in_radius((fort['latitude'], fort['longitude']), step_location,
-                         spinning_radius)
-    now = time.time()
-    needs_cooldown = "cooldown_complete_timestamp_ms" in fort and fort["cooldown_complete_timestamp_ms"] / 1000 > now
-    return in_range and not needs_cooldown
-
-
-def spin_pokestop_request(api, fort, step_location, inventory):
+def spin_pokestop_request(api, fort, step_location):
     try:
-        log.warning('++++++++++++++++++++++++++++ SPINNING POKESTOP')
         req = api.create_request()
-        req.fort_search(
+        spin_pokestop_response = req.fort_search(
             fort_id=fort['id'],
             fort_latitude=fort['latitude'],
             fort_longitude=fort['longitude'],
@@ -435,9 +386,6 @@ def spin_pokestop_request(api, fort, step_location, inventory):
         req.check_awarded_badges()
         req.download_settings()
         req.get_buddy_walked()
-        response_dict = req.call()
-        inventory.update(get_player_inventory(response_dict))
-        return response_dict
         spin_pokestop_response = req.call()
 
         return spin_pokestop_response
@@ -445,6 +393,7 @@ def spin_pokestop_request(api, fort, step_location, inventory):
     except Exception as e:
         log.error('Exception while spinning Pokestop: %s.', repr(e))
         return False
+
 
 def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
     try:
@@ -468,113 +417,6 @@ def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
         log.error('Exception while encountering Pokémon: %s.', repr(e))
         return False
 
-def geofence(step_location, geofence_file, forbidden=False):
-    geofence = []
-    with open(geofence_file) as f:
-        for line in f:
-            if len(line.strip()) == 0 or line.startswith('#'):
-                continue
-            geofence.append(literal_eval(line.strip()))
-        if forbidden:
-             log.warning('Loaded %d geofence-forbidden coordinates. ' +
-                      'Applying...', len(geofence))
-        else:
-             log.warning('Loaded %d geofence coordinates. Applying...',
-                    len(geofence))
-    #log.info(geofence)
-    p = Path(geofence)
-    step_location_geofenced = []
-    result_x, result_y, result_z = step_location
-    if p.contains_point([step_location[0], step_location[1]]) ^ forbidden:
-        step_location_geofenced.append((result_x, result_y, result_z))
-        log.warning('FOUND IN THE GEOFENCE, LURING: %s, %s', result_x, result_y)
-    return step_location_geofenced
-
-def lure_pokestop(args, api, fort, step_location, inventory):
-    if 'active_fort_modifier' not in fort:
-        spinning_radius = 0.03
-        totalDisks = inventory['totalDisks']
-        log.warning('++++++++++++++++++++++++++++ DETECTING %s LURES', totalDisks)
-        in_range = in_radius((fort['latitude'], fort['longitude']), step_location,
-                                 spinning_radius)
-        if in_range:
-            if args.lureFence is not None:
-                allowed = geofence(step_location, args.lureFence)
-                log.warning('FENCE: %s', allowed)
-                if allowed == []:
-                    log.warning('STOP IS FORBIDDEN')
-                    forbidden = True
-                else:
-                    log.warning('STOP IS GOOD')
-                    forbidden = False
-            if args.nolureFence is not None:
-                forbidden = geofence(step_location, args.nolureFence, forbidden=True)
-                log.warning('DI-ALLOWFENCE: %s', forbidden)
-                if forbidden == []:
-                    log.warning('STOP IS GOOD')
-                    forbidden = False
-                else:
-                    forbidden = True
-                    log.warning('STOP IS FORBIDDEN')
-            lure_status = None
-            lure_id = 501
-            if totalDisks == 0:
-                forbidden = True
-            while lure_status is None and totalDisks > 0:
-                req = api.create_request()
-                lure_request = req.add_fort_modifier(modifier_type=lure_id,
-                                                     fort_id=fort['id'],
-                                                     player_latitude=step_location[0],
-                                                     player_longitude=step_location[1])
-                time.sleep(4.20)
-                lure_request = req.call()
-                #log.warning('@@@LURE RESPONSE@@@ %s', lure_request['responses'])
-                lure_status = lure_request['responses']['ADD_FORT_MODIFIER']['result']
-                if lure_status is 0:
-                    log.warning('xxxxxxxxxxxxxxxxxxxxxxxxxxxx Lure unset!')
-                    lure_status = 'Failed'
-                elif lure_status is 1:
-                    log.warning('++++++++++++++++++++++++++++ Lure Successfully Set!')
-                    lure_status = 'Successful'
-                elif lure_status is 2:
-                    log.warning('xxxxxxxxxxxxxxxxxxxxxxxxxxxx Stop already has lure!')
-                    lure_status = 'Panic'
-                elif lure_status is 3:
-                    log.warning('xxxxxxxxxxxxxxxxxxxxxxxxxxxx Out of range to set lure!')
-                    lure_status = 'Range'
-                elif lure_status is 4:
-                    log.warning('---------------------------- Account has no lures!')
-                    lure_status = 'Empty'
-
-                log.warning('@@@ LURE STATUS @@@ %s', lure_status)
-
-# Send LevelUpRewards request to check for and accept level up rewards.
-# @Returns
-# 0: UNSET
-# 1: SUCCESS
-# 2: AWARDED_ALREADY
-def level_up_rewards_request(api, level, username, inventory):
-    log.warning('Attempting to check level up rewards for level {} of account {}.'.format(level, username))
-    time.sleep(random.uniform(2, 3))
-    try:
-        req = api.create_request()
-        req.level_up_rewards(level=level)
-        req.check_challenge()
-        req.get_hatched_eggs()
-        req.get_inventory()
-        req.check_awarded_badges()
-        req.download_settings()
-        req.get_buddy_walked()
-        rewards_response = req.call()
-        inventory.update(get_player_inventory(rewards_response))
-        if ('responses' in rewards_response) and ('LEVEL_UP_REWARDS' in rewards_response['responses']):
-            reward_details = rewards_response['responses']['LEVEL_UP_REWARDS']
-            return reward_details.get('result', -1)
-
-    except Exception as e:
-        log.warning('Exception while requesting level up rewards: %s', repr(e))
-
-    return False
 
 # The AccountSet returns a scheduler that cycles through different
 # sets of accounts (e.g. L30). Each set is defined at runtime, and is

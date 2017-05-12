@@ -43,17 +43,16 @@ from pgoapi import utilities as util
 from pgoapi.hash_server import (HashServer, BadHashRequestException,
                                 HashingOfflineException)
 
-from .models import (parse_map, GymDetails, parse_gyms, parse_player_stats,
+from .models import (parse_map, GymDetails, parse_gyms,
                      MainWorker, WorkerStatus, Account, HashKeys)
 from .fakePogoApi import FakePogoApi
-
 from .utils import now, generate_device_info, clear_dict_response, captcha_balance
 from .transform import get_new_coords, jitter_location
 from .account import (setup_api, check_login, get_tutorial_state,
-                      complete_tutorial, level_up_rewards_request, get_player_inventory, AccountSet)
+                      complete_tutorial, get_player_inventory, AccountSet, get_player_stats)
+from pogom.gainxp import level_up_rewards_request
 from .captcha import captcha_overseer_thread, handle_captcha
 import schedulers
-
 from .proxy import get_new_proxy
 
 log = logging.getLogger(__name__)
@@ -1105,7 +1104,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                     continue
 
                 # Update player account stats.
-                account.update(parse_player_stats(response_dict))
+                account.update(get_player_stats(response_dict))
 
                 # Extract player inventory
                 inventory = get_player_inventory(response_dict)
@@ -1162,10 +1161,16 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                     if response_dict is not None:
                         del response_dict
 
-                # Update account stats
+                # Check for level up rewards.
                 if acc_stats.awarded_to_level < account['level']:
-                    if level_up_rewards_request(api, account['level'], account['username'], inventory) == 1:
+                    log.info("Checking level up rewards for level {}.".format(
+                        account['level']))
+                    lvlup_award_result = level_up_rewards_request(api, account[
+                        'level'], account['username'], inventory)
+                    if lvlup_award_result in (1, 2):
+                        log.info("Got level up rewards! Yay!")
                         acc_stats.awarded_to_level = account['level']
+                # Update account stats
                 acc_stats.update(account)
                 dbq.put((Account, {account['username']: acc_stats.db_format()}))
 

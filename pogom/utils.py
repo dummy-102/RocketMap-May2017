@@ -172,8 +172,8 @@ def get_args():
     parser.add_argument('-enc', '--encounter',
                         help='Start an encounter to gather IVs and moves.',
                         action='store_true', default=False)
-    parser.add_argument('-ditto', '--ditto',
-                        help='Catch certain pokemon to check for ditto.',
+    parser.add_argument('-gxp', '--gain-xp',
+                        help='Do various things to let map accounts gain XP.',
                         action='store_true', default=False)
     parser.add_argument('-pss', '--spinstop',
                         help='Spin Pokestops for Items and XP.',

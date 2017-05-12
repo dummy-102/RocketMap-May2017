@@ -29,9 +29,9 @@ from cachetools import TTLCache
 from cachetools import cached
 from timeit import default_timer
 
-from pogom.catch import catch
+from pogom.gainxp import catch, pokestop_spinnable, cleanup_inventory, \
+    spin_pokestop_update_inventory, is_ditto, lure_pokestop
 from pogom.pgscout import pgscout_encounter
-
 from . import config
 from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
                     get_args, cellid, in_radius, date_secs, clock_between,
@@ -39,8 +39,8 @@ from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
                     get_move_type, clear_dict_response)
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
-from .account import (get_player_inventory, pokestop_spinnable, spin_pokestop,
-    cleanup_inventory, get_player_level, check_login, setup_api, lure_pokestop, encounter_pokemon_request)
+from .account import (tutorial_pokestop_spin, get_player_level, check_login,
+                        setup_api, encounter_pokemon_request)
 
 log = logging.getLogger(__name__)
 
@@ -51,6 +51,8 @@ cache = TTLCache(maxsize=100, ttl=60 * 5)
 
 db_schema_version = 21
 
+# These Pokemon could be Dittos
+DITTO_POKEDEX_IDS = [16, 19, 41, 129, 161, 163, 193]
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
     pass
@@ -2031,16 +2033,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     new_spawn_points = []
     sp_id_list = []
     captcha_url = ''
-    ditto_dex = [16, 19, 41, 129, 161, 163, 193]
-    #ditto_dex = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-    #                32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
-    #                65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97,
-    #                98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
-    #                125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151,
-    #                152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178,
-    #                179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205,
-    #                206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232,
-    #                233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251]
+
     account_is_30 = account.get('level', 0) >= 30
     account_not_30 = account.get('level', 0) <= 30
     inventory = account['inventory']
@@ -2309,25 +2302,20 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                           p['pokemon_data']['pokemon_id'])
                 continue
 
+            # Store this and reuse
+            pokemon_id = p['pokemon_data']['pokemon_id']
+
             printPokemon(p['pokemon_data']['pokemon_id'], p[
                          'latitude'], p['longitude'], disappear_time)
 
-            pid = p['pokemon_data']['pokemon_id']
-            pname = get_pokemon_name(pid)
-            # Determine if to scan for Ditto
-            # Note that scanning for Ditto requires an encounter beforehand
-            is_ditto_candidate = pid in ditto_dex
-            have_balls = inventory.get('balls', 0) > 0
-            scan_for_ditto = not account_is_30 and args.ditto and is_ditto_candidate and have_balls
             # Scan for IVs/CP and moves.
-            pokemon_id = p['pokemon_data']['pokemon_id']
             encounter_result = None
             scout_result = None
 
-            if args.pgscout_url and (pokemon_id in args.enc_scout): # and scan_for_ditto:
+            if args.pgscout_url and (pokemon_id in args.enc_scout):
                 scout_result = perform_pgscout(p)
 
-            if args.encounter and (pokemon_id in args.enc_whitelist) or scan_for_ditto:
+            if args.encounter and (pokemon_id in args.enc_whitelist):
                 time.sleep(args.encounter_delay)
 
                 hlvl_account = None
@@ -2360,7 +2348,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     # Logging.
                     log.warning('(High Level Account) Encountering  %s with account %s'
                               + ' at %s, %s.',
-                              pname,
+                              pokemon_id,
                               hlvl_account['username'],
                               scan_location[0],
                               scan_location[1])
@@ -2468,7 +2456,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     # Logging.
                     log.warning('(Low Level Account) Encountering %s with account %s'
                               + ' at %s, %s.',
-                              pname,
+                              pokemon_id,
                               llvl_account['username'],
                               scan_location[0],
                               scan_location[1])
@@ -2648,6 +2636,19 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'pokemon_level': Pokemon_level,
                     })
 
+            # Catch pokemon to check for Ditto if --gain-xp enabled
+            # Original code by voxx!
+            have_balls = inventory.get('balls', 0) > 0
+            if args.gain_xp and account_not_30 and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
+                if is_ditto(args, api, p, inventory):
+                    pokemon[p['encounter_id']].update({
+                        'previous_id': p['pokemon_data']['pokemon_id']
+                    })
+                    pokemon[p['encounter_id']]['pokemon_id'] = 132
+                    pokemon_id = 132
+                    # Scout result is useless
+                    scout_result = None
+
             # Updating Pokemon data from PGScout result
             if scout_result is not None and scout_result['success']:
                 if scout_result['worker_level'] <= 30:
@@ -2683,73 +2684,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         #'form': scout_result.get('form', None),
                     })
 
-            # Catch pokemon to check for Ditto if --ditto enabled
-            # Thanks to voxx!
-            if scan_for_ditto:
-                log.info('%s may be a ditto. Triggering catch logic!', pname)
-                # Might Need Work --
-                if args.encounter and account_is_30:
-                    caught = catch(hlvl_api, p['encounter_id'], p['spawn_point_id'], pid, inventory)
-
-                elif args.encounter and account_not_30:
-                    caught = catch(llvl_api, p['encounter_id'], p['spawn_point_id'], pid, inventory)
-
-                if caught.get('catch_status', None) == 'success' and 'pid' in caught and int(caught['pid']) == 132:
-                    log.warning('++++++++++++++++++++++++++++++++ %s is a DITTO! Updating encounter ' +
-                             'data with new pokemon_id and movesets.', pname)
-                    pokemon[p['encounter_id']].update({
-                        'previous_id': p['pokemon_data']['pokemon_id']
-                    })
-                    pokemon[p['encounter_id']]['pokemon_id'] = 132
-                    pid = 132
-                    pname = "Ditto"
-                    # Update Ditto Info
-                    pokemon[p['encounter_id']].update({
-                        'move_1': caught['move_1'],
-                        'move_2': caught['move_2'],
-                        'height': caught['height'],
-                        'weight': caught['weight'],
-                        'gender': caught['gender'],
-                    })
-
-                    # Ditto Scout
-                    if args.pgscout_url and (pid in args.enc_scout):
-                        scout_result = perform_pgscout(p)
-
-                    if scout_result is not None and scout_result['success']:
-                        if scout_result['worker_level'] <= 30:
-                            pokemon[p['encounter_id']].update({
-                                #'height': scout_result['height'],
-                                #'weight': scout_result['weight'],
-                                #'gender': scout_result['gender'],
-                                'catch_prob_1': scout_result['catch_prob_1'],
-                                'catch_prob_2': scout_result['catch_prob_2'],
-                                'catch_prob_3': scout_result['catch_prob_3'],
-                                'rating_attack': 'A', # Ditto Doesnt Have Diff Moves
-                                'rating_defense': 'A',
-                                'worker_level': scout_result['worker_level'],
-                            })
-
-                        if scout_result['worker_level'] >= 30:
-                            pokemon[p['encounter_id']].update({
-                                'individual_attack': scout_result['iv_attack'],
-                                'individual_defense': scout_result['iv_defense'],
-                                'individual_stamina': scout_result['iv_stamina'],
-                                #'move_1': scout_result['move_1'],
-                                #'move_2': scout_result['move_2'],
-                                #'height': scout_result['height'],
-                                #'weight': scout_result['weight'],
-                                #'gender': scout_result['gender'],
-                                'cp': scout_result['cp'],
-                                'pokemon_level': scout_result['pokemon_level'],
-                                'catch_prob_1': scout_result['catch_prob_1'],
-                                'catch_prob_2': scout_result['catch_prob_2'],
-                                'catch_prob_3': scout_result['catch_prob_3'],
-                                'rating_attack': 'A', # Ditto Doesnt Have Diff Moves
-                                'rating_defense': 'A',
-                                'worker_level': scout_result['worker_level'],
-                            })
-
             if args.webhooks:
                 pokemon_id = p['pokemon_data']['pokemon_id']
                 if (pokemon_id in args.webhook_whitelist or
@@ -2782,6 +2716,16 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 encountered_pokestops = [(f['pokestop_id'], int(
                     (f['last_modified'] -
                      datetime(1970, 1, 1)).total_seconds())) for f in query]
+
+        # Complete tutorial with a Pokestop spin
+        if args.complete_tutorial and not (len(captcha_url) > 1 and not args.gain_xp):
+            if config['parse_pokestops']:
+                tutorial_pokestop_spin(
+                    api, worker_level, forts, step_location, account)
+            else:
+                log.error(
+                    'Pokestop can not be spun since parsing Pokestops is ' +
+                    'not active. Check if \'-nk\' flag is accidentally set.')
 
         for f in forts:
             if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops
@@ -2969,10 +2913,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             #            pokestop_details)))
 
                 # Spin Pokestop to gain XP if account is below level 25
-                if not account_is_30 and pokestop_spinnable(f, step_location):
+                if args.gain_xp and account_not_30 and pokestop_spinnable(
+                    f, step_location):
                     if args.spinstop:
                         cleanup_inventory(api, inventory)
-                        spin_pokestop(api, f, step_location, inventory)
+                        spin_pokestop_update_inventory(api, f, step_location, inventory)
 
                     if args.lurestop:
                         lure_pokestop(args, api, f, step_location, inventory)
@@ -3308,16 +3253,6 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
              len(gym_details),
              len(gym_members))
 
-
-def parse_player_stats(response_dict):
-    inventory_items = response_dict.get('responses', {})\
-        .get('GET_INVENTORY', {}).get('inventory_delta', {})\
-        .get('inventory_items', [])
-    for item in inventory_items:
-        item_data = item.get('inventory_item_data', {})
-        if 'player_stats' in item_data:
-            return item_data['player_stats']
-    return {}
 
 def write_geofences(geofence_file, forbidden_area, db_update_queue):
     geofence_data = parse_geofences(geofence_file, forbidden_area)
