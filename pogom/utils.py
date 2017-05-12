@@ -204,6 +204,12 @@ def get_args():
                         'captcha solving. On timeout, if enabled, 2Captcha ' +
                         'will be used to solve captcha. Default is 0.',
                         type=int, default=0)
+    parser.add_argument('-cbl', '--captcha-balance-limit',
+                        help='Pause scanning when 2captcha balance reaches below this limit (default 0.01)',
+                        type=float, default=0.01)
+    parser.add_argument('-cbi', '--captcha-balance-interval',
+                        help='Interval to check 2Captcha balance in secs (default 300)',
+                        type=int, default=300)
     parser.add_argument('-ed', '--encounter-delay',
                         help=('Time delay between encounter pokemon ' +
                               'in scan threads.'),
@@ -1045,3 +1051,11 @@ def clear_dict_response(response, keep_inventory=False):
     if 'GET_BUDDY_WALKED' in response['responses']:
         del response['responses']['GET_BUDDY_WALKED']
     return response
+
+# Check 2captcha balance
+def captcha_balance(key):
+    payload = {'key': key, 'action': 'getbalance'}
+    r = requests.get('https://2captcha.com/res.php', params=payload)
+    balance = float(r.text)
+    log.info('2captcha balance is %f$', balance)
+    return balance

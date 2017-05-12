@@ -46,11 +46,14 @@ from pgoapi.hash_server import (HashServer, BadHashRequestException,
 from .models import (parse_map, GymDetails, parse_gyms, parse_player_stats,
                      MainWorker, WorkerStatus, Account, HashKeys)
 from .fakePogoApi import FakePogoApi
-from .utils import now, generate_device_info, clear_dict_response
+
+from .utils import now, generate_device_info, clear_dict_response, captcha_balance
 from .transform import get_new_coords, jitter_location
 from .account import (setup_api, check_login, get_tutorial_state,
                       complete_tutorial, level_up_rewards_request, get_player_inventory, AccountSet)
 from .captcha import captcha_overseer_thread, handle_captcha
+import schedulers
+
 from .proxy import get_new_proxy
 
 log = logging.getLogger(__name__)
@@ -428,6 +431,15 @@ def account_recycler(args, accounts_queue, account_failures):
                     a['notified'] = True
 
 
+def captcha(args, pause_bit):
+    while True:
+        # Pause scanning if 2captcha balance reach under limit
+        if args.captcha_key and captcha_balance(args.captcha_key) <= args.captcha_balance_limit:
+            pause_bit.set()
+            log.info('Searching paused due to 2captcha balance is under limit!')
+        time.sleep(args.captcha_balance_interval)
+
+
 def worker_status_db_thread(threads_status, name, db_updates_queue):
 
     while True:
@@ -539,6 +551,13 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
         t = Thread(target=captcha_overseer_thread, name='captcha-overseer',
                    args=(args, account_queue, account_captchas, key_scheduler,
                          wh_queue))
+        t.daemon = True
+        t.start()
+
+    # Create 2captcha balance watchdog thread
+    if args.captcha_key:
+        log.info('Starting 2captcha balance watchdog thread')
+        t = Thread(target=captcha, name='2captcha', args=(args, pause_bit))
         t.daemon = True
         t.start()
 
