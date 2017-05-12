@@ -372,7 +372,7 @@
   },
   "30": {
     "name": "Nidorina",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Poison",
@@ -409,7 +409,7 @@
   },
   "33": {
     "name": "Nidorino",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Poison",
@@ -554,7 +554,7 @@
   },
   "44": {
     "name": "Gloom",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Grass",
@@ -732,7 +732,7 @@
   },
   "58": {
     "name": "Growlithe",
-    "rarity": "Uncommon",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Fire",
@@ -1867,7 +1867,7 @@
   },
   "147": {
     "name": "Dratini",
-    "rarity": "Uncommon",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Dragon",
@@ -2371,7 +2371,7 @@
   },
   "187": {
     "name": "Hoppip",
-    "rarity": "Common",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Grass",
@@ -2568,7 +2568,7 @@
   },
   "202": {
     "name": "Wobbuffet",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Psychic",
@@ -2594,7 +2594,7 @@
   },
   "204": {
     "name": "Pineco",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Bug",
@@ -2631,7 +2631,7 @@
   },
   "207": {
     "name": "Gligar",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Normal",
@@ -2743,7 +2743,7 @@
   },
   "215": {
     "name": "Sneasel",
-    "rarity": "Rare",
+    "rarity": "Common",
     "types": [
       {
         "type": "Dark",
@@ -2780,7 +2780,7 @@
   },
   "218": {
     "name": "Slugma",
-    "rarity": "Uncommon",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Fire",
@@ -2821,7 +2821,7 @@
   },
   "221": {
     "name": "Piloswine",
-    "rarity": "Ultra Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Ice",
