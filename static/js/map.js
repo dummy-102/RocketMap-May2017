@@ -1365,7 +1365,14 @@ function getNotifyText(item) {
     find = ['<dist>', '<udist>']
     replace = [dist, udist]
     var ntext = repArray(notifyText, find, replace)
-
+    //Nearby Tag
+    if (item.spawnpoint_id === 'nearby_pokemon') {
+      ntitle += ' (Nearby Pokemon)'
+    }
+    //Lured Tag
+    if (item.spawnpoint_id === 'lured_pokemon') {
+      ntitle += ' (Lured Pokemon)'
+    }
     //Ditto [16, 19, 41, 129, 161, 163, 193]
     if (item.pokemon_id === 132 && item.previous_id == 16) {
   		ntitle += ' (Pidgy)'
