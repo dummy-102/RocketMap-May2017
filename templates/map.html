@@ -41,7 +41,8 @@
       <header id="header">
         <a href="#nav"></a>
     <a href="http://pokehamilton.com/"><img src="static/pokehamilton.png" style="vertical-align:middle;" height="40" width="180"></a>
-		<a style="float: right;" href="#stats" id="statsToggle" class="statsNav" ></a>
+    <a href="#stats" id="statsToggle" class="statsNav" style="float: right;"></a>
+    <a href="#spawn2" id="spawnToggle" class="spawnNav" style="float: right;"></a>
     <a style="float: right;" href="http://ssolutions.ca/"><img src="static/ssolutions.png" style="vertical-align:middle;" height="26" width="55"></a>
       </header>
       <!-- NAV -->
@@ -452,6 +453,39 @@
           <div id="pokestopList" style="color: black;"></div>
         </div>
       </nav>
+       <nav id="spawn">
+	    <div class="switch-container">
+          <div class="switch-container">
+            <center><h1 id="spawn-ldg-label"></h1></center>
+          </div>
+		  <div class="stats-label-container">
+            <center><h1 id="stats-nest-label"></h1></center>
+          </div>
+            <div id="spawnList" style="color: black;">
+			 <ul class="statsHolder " name="spawnpointnest" style="max-width: 240px; list-style: none"></ul>
+		    </div>
+		  <div class="stats-label-container">
+            <center><h1 id="stats-spawn-label"></h1></center>
+          </div>
+            <div id="spawnList" style="color: black;">
+			 <ul class="statsHolder " name="spawnpointrest" style="max-width: 240px; list-style: none"></ul>
+          </div>
+ 		</div>
+	  </nav>
+	    <nav id="spawn2">
+		<div class="switch-container">
+          <div class="switch-container">
+            <center><h1 id="spawn2-ldg-label">Retrieving data</h1></center>
+          </div>
+		  <div class="stats-label-container">
+            <center><h1 id="stats-nest-label"></h1></center>
+          </div>
+            <div id="nestlist" style="color: black;">
+			 <ul class="statsHolder " name="spawn2pointnest" style="max-width: 240px; list-style: none"></ul>
+		  </div>
+ 		</div>
+	    </nav>
+
       <nav id="gym-details">
         <center><h1>Loading...</h1></center>
       </nav>

@@ -119,6 +119,36 @@ function removePokemonMarker(encounterId) { // eslint-disable-line no-unused-var
     mapData.pokemons[encounterId].hidden = true
 }
 
+function pointHistory() { // eslint-disable-line no-unused-vars
+    $('div[id=nestlist]').empty()
+    document.getElementById('spawn2-ldg-label').innerHTML = 'Retrieving data'
+    var bounds = map.getBounds()
+    var swPoint = bounds.getSouthWest()
+    var nePoint = bounds.getNorthEast()
+    var swLat = swPoint.lat()
+    var swLng = swPoint.lng()
+    var neLat = nePoint.lat()
+    var neLng = nePoint.lng()
+
+    $.ajax({
+        url: 'pointhistory',
+        dataType: 'json',
+        data: {
+            'swLat': swLat,
+            'swLng': swLng,
+            'neLat': neLat,
+            'neLng': neLng
+        },
+        async: true,
+        success: function (data) {
+            spHistory(data)
+        },
+        error: function (jqXHR, status, error) {
+            console.log('Error loading stats: ' + error)
+        }
+    })
+}
+
 function initMap() { // eslint-disable-line no-unused-vars
     map = new google.maps.Map(document.getElementById('map'), {
         center: {
@@ -1101,7 +1131,7 @@ function spawnpointLabel(item) {
         <center>
           <img height='50px' style='padding: 1px;' src=${imgStr}>
           <div>
-            <font size="3"><b>Spawn Point</b></font>
+            <span class="fa fa-paw" /></span> <font size="3"><b>Spawn Point</b></font>
           </div>
           <div>
             ID: <b>${id}</b>
@@ -1139,9 +1169,6 @@ function spawnpointLabel(item) {
             <div>
               <font size="0.5"><b>Updated: ${lastScannedStr}</b></font>
             </div>
-            <div>
-              <font size="1"><b><a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a></font></b>
-            </div>
         </center>`
     } else {
         str += `
@@ -1162,12 +1189,14 @@ function spawnpointLabel(item) {
             </div>
             <div>
               <font size="0.5"><b>Updated: ${lastScannedStr}</b></font>
-            </div>
-            <div>
-              <font size="1"><b><a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a></font></b>
-            </div>
-        </center>`
+            </div>`
     }
+
+        str +=
+            `<div>
+                <font size="1"><b><a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a></font></b>&nbsp;&nbsp;<font size="1"><b><a href="javascript:getStats('${item['id']}')">Spawn history</a></font></b>
+              </div>
+            </center>`
     return str
 }
 
@@ -1197,6 +1226,43 @@ function geofenceLabel(item) {
       </center>`
 
     return str
+}
+
+function nestLabel(latilongi, spID, pokename, pokeid, spLAT, spLONG) {
+  var str
+    str = `
+      <center>
+          <div>
+            <img style="vertical-align:top" width='50px' height='50px' src='static/sprites/${pokeid}.png'>
+          </div>
+          <div>
+            <font size="3"><b>${pokename} Nest Location</b></font>
+          </div>
+          <div>
+              <font size="1"><b><a href="javascript:getStats('${spID}')">Spawn history</a></font></b>
+            </div>
+      </center>`
+
+    return str
+}
+
+function addnestmarker(latilongi, spID, pokename, pokeid, spLAT, spLONG) { // eslint-disable-line no-unused-vars
+    var marker = new google.maps.Marker({
+        position: latilongi,
+        title: spID,
+        draggable: false,
+        map: map,
+        id: spID,
+        icon: {
+            url: 'static/sprites/' + pokeid +'.png',
+            scaledSize: new google.maps.Size(55, 55)
+        }
+    })
+    marker.infoWindow = new google.maps.InfoWindow({
+        content: nestLabel(latilongi, spID, pokename, pokeid),
+        disableAutoPan: true
+    })
+    addListeners(marker)
 }
 
 function addRangeCircle(marker, map, type, teamId) {

@@ -36,7 +36,9 @@
     "skel": true,
     "setupPokemonMarker": true,
     "randomColor": false,
-
+    "pointHistory":true,
+    "spHistory":true,
+    "addnestmarker":true,
     "isTouchDevice": true,
     "isMobileDevice": true,
     "pokemonSprites": true,
