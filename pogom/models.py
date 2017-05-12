@@ -3492,7 +3492,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, PokestopDetails, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, HashKeys, LocationAltitude, Account, Geofence]
+              Token, HashKeys, LocationAltitude, Account]
     for table in tables:
         if not table.table_exists():
             log.info('Creating table: %s', table.__name__)
@@ -3507,7 +3507,7 @@ def drop_tables(db):
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude,
-              Token, HashKeys, Geofence]
+              Token, HashKeys]
     db.connect()
     db.execute_sql('SET FOREIGN_KEY_CHECKS=0;')
     for table in tables:

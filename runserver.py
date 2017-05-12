@@ -304,9 +304,6 @@ def main():
         t.daemon = True
         t.start()
 
-    # Create Geofences object and save into args
-    args.geofences = Geofences(args, db_updates_queue)
-
     if not args.only_server:
 
         # Abort if we don't have a hash key set
