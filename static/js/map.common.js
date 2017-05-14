@@ -851,11 +851,11 @@ var StoreOptions = {
         type: StoreTypes.String
     },
     'remember_select_exclude': {
-        default: [10,13,16,19,21,41,96,177,194,220],
+        default: [10,13,16,19,21,41,96,98,161,163,165,167,177,183,194,220],
         type: StoreTypes.JSON
     },
     'remember_select_notify': {
-        default: [1,2,4,5,7,8,25,27,37,58,77,88,95,102,138,140,152,153,155,156,158,159,218,228],
+        default: [1,4,7,25,37,58,88,132,138,140,152,155,158,228],
         type: StoreTypes.JSON
     },
     'remember_select_rarity_notify': {
@@ -903,7 +903,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showLuredPokestopsOnly': {
-        default: 0,
+        default: 1,
         type: StoreTypes.Number
     },
     'showScanned': {
@@ -967,11 +967,11 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'showTimers': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'hideTimersAtZoomLevel': {
-        default: 16,
+        default: 15.5,
         type: StoreTypes.Number
     },
     'searchMarkerStyle': {

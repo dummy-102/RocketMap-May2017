@@ -562,7 +562,6 @@ class Pokestop(BaseModel):
 
 
 class Gym(BaseModel):
-
     gym_id = CharField(primary_key=True, max_length=50)
     team_id = SmallIntegerField()
     guard_pokemon_id = SmallIntegerField()
@@ -784,7 +783,7 @@ class ScannedLocation(BaseModel):
     cellid = CharField(primary_key=True, max_length=50)
     latitude = DoubleField()
     longitude = DoubleField()
-    #username = CharField(max_length=50)
+    username = CharField(null=True, max_length=20)
     last_modified = DateTimeField(
         index=True, default=datetime.utcnow, null=True)
     # Marked true when all five bands have been completed.
@@ -2094,113 +2093,10 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'or pokestops. Possible speed violation.')
 
     scan_loc = ScannedLocation.get_by_loc(step_location)
-    #scan_loc['username'] = account['username']
+    scan_loc['username'] = account['username']
     done_already = scan_loc['done']
     ScannedLocation.update_band(scan_loc, now_date)
     just_completed = not done_already and scan_loc['done']
-
-    #log.info('Nearby Pokemon: {}'.format(
-    #    pprint.PrettyPrinter(indent=4).pformat(nearby_pokemon)))
-    if nearby_pokemon and config['parse_pokemon']:
-        temp_nearby_list = []
-
-        for n in nearby_pokemon:
-            if 'fort_id' in n:
-                temp_nearby_list.append(n)
-
-        nearby_pokemon = temp_nearby_list
-
-        encounter_ids = [b64encode(str(n['encounter_id']))
-                         for n in nearby_pokemon]
-        pokestop_ids = [n['fort_id'] for n in nearby_pokemon]
-        # For all the nearby Pokemon we found check if an active Pokemon is in
-        # the database.
-        query = []
-        if encounter_ids:
-            query = (Pokemon
-                     .select(Pokemon.encounter_id, Pokemon.spawnpoint_id)
-                     .where((Pokemon.disappear_time >= now_date) &
-                            (Pokemon.encounter_id << encounter_ids))
-                     .dicts())
-
-        # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
-        # All of that is needed to make sure it's unique.
-        encountered_pokemon = []
-        for p in query:
-            encountered_pokemon.append((p['encounter_id']))
-        #encountered_pokemon = [p['encounter_id'] for p in query]
-
-        query = []
-        if pokestop_ids:
-            query = (Pokestop
-                     .select(Pokestop.pokestop_id, Pokestop.latitude,
-                             Pokestop.longitude)
-                     .where((Pokestop.pokestop_id << pokestop_ids))
-                     .dicts())
-
-        matched_pokestops = {}
-        for f in query:
-            matched_pokestops[f['pokestop_id']] = {
-                'pokestop_id': f['pokestop_id'],
-                'latitude': f['latitude'],
-                'longitude': f['longitude']
-            }
-
-        for n in nearby_pokemon:
-            if (b64encode(str(n['encounter_id']))
-                    in encountered_pokemon):
-                continue  # If Pokemon has been found before don't process it.
-
-            elif n['fort_id'] in matched_pokestops and args.nearbypokes:
-                disappear_time = now_date + timedelta(minutes=3)
-                latitude = (matched_pokestops[n['fort_id']]['latitude'] +
-                    random.uniform(-0.00025, 0.00025))
-                longitude = (matched_pokestops[n['fort_id']]['longitude'] +
-                    random.uniform(-0.00025, 0.00025))
-
-                pokemon[n['encounter_id']] = {
-                    'encounter_id': b64encode(str(n['encounter_id'])),
-                    'spawnpoint_id': 'nearby_pokemon',
-                    'pokemon_id': n['pokemon_id'],
-                    'latitude': latitude,
-                    'longitude': longitude,
-                    'disappear_time': disappear_time,
-                    'individual_attack': None,
-                    'individual_defense': None,
-                    'individual_stamina': None,
-                    'move_1': None,
-                    'move_2': None,
-                    'height': None,
-                    'weight': None,
-                    'gender': n['pokemon_display']['gender'],
-                    'cp': None,
-                    'pokemon_level': None,
-                    'worker_level': worker_level,
-                    'catch_prob_1': None,
-                    'catch_prob_2': None,
-                    'catch_prob_3': None,
-                    'previous_id' : None,
-                    'form': None,
-                    'rating_attack': None,
-                    'rating_defense': None,
-                }
-
-                if pokemon[n['encounter_id']] == 201:
-                    pokemon[n['encounter_id']]['form'] = n[
-                        'pokemon_display'].get('form', None)
-
-                if args.webhooks:
-                    pokemon_id = n['pokemon_data']['pokemon_id']
-                    if (pokemon_id in args.webhook_whitelist or
-                        (not args.webhook_whitelist and pokemon_id
-                         not in args.webhook_blacklist)):
-                        wh_poke = pokemon[n['encounter_id']].copy()
-                        wh_poke.update({
-                            'disappear_time': calendar.timegm(
-                                disappear_time.timetuple()),
-                            'worker_level': worker_level
-                        })
-                        wh_update_queue.put(('pokemon', wh_poke))
 
     if wild_pokemon and config['parse_pokemon']:
         encounter_ids = [b64encode(str(p['encounter_id']))
@@ -2311,10 +2207,10 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             # Scan for IVs/CP and moves.
             encounter_result = None
             scout_result = None
-
+            # Scouting
             if args.pgscout_url and (pokemon_id in args.enc_scout):
                 scout_result = perform_pgscout(p)
-
+            # Setup High Lv Or Low Lv API
             if args.encounter and (pokemon_id in args.enc_whitelist):
                 time.sleep(args.encounter_delay)
 
@@ -2334,7 +2230,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 elif account_not_30:
                     llvl_account = account
                     llvl_api = api
-                else:
+                elif account_is_30:
                     # Get account to use for IV or CP scanning.
                     #if pokemon_id in args.enc_whitelist: (DISABLED)
                     hlvl_account = account_sets.next('30', step_location)
@@ -2461,12 +2357,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                               scan_location[0],
                               scan_location[1])
 
-                    # If not args.no_api_store is enabled, we need to
-                    # re-use an old API object if it's stored and we're
-                    # using an account from the AccountSet.
-                    #if not args.no_api_store and using_accountset:
-                    #    llvl_api = llvl_account.get('api', None)
-
                     # Make new API for this account if we're not using an
                     # API that's already logged in.
                     if not llvl_api:
@@ -2481,10 +2371,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             log.debug('(Low Level Account) Using hashing key %s for this'
                                       + ' encounter.', key)
                             llvl_api.activate_hash_server(key)
-
-                    # We have an API object now. If necessary, store it.
-                    #if using_accountset and not args.no_api_store:
-                    #    llvl_account['api'] = llvl_api
 
                     # Set location.
                     llvl_api.set_position(*scan_location)
@@ -2505,18 +2391,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         # Readability.
                         responses = encounter_result['responses']
 
-                        # Check for captcha.
-                        # captcha_url = responses[
-                        #     'CHECK_CHALLENGE']['challenge_url']
-
-                        # Throw warning but finish parsing.
-                        # if len(captcha_url) > 1:
-                            # Flag account.
-                        #     hlvl_account['captcha'] = True
-                        #     log.error('Account %s encountered a captcha.'
-                        #               + ' Account will not be used.',
-                        #               hlvl_account['username'])
-
                         # Check for captcha
                         captcha_url = encounter_result['responses'][
                                 'CHECK_CHALLENGE']['challenge_url']
@@ -2534,34 +2408,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             # response.
                             encounter_level = get_player_level(
                                 encounter_result)
-
-                            # User error?
-                            #if encounter_level < 30:
-                            #    raise Exception('Expected account of level 30'
-                            #                    + ' or higher, but account '
-                            #                    + hlvl_account['username']
-                            #                    + ' is only level '
-                            #                    + encounter_level + '.')
-
-                        # We're done with the encounter. If it's from an
-                        # AccountSet, release account back to the pool.
-                        #if using_accountset:
-                        #    account_sets.release(llvl_account)
-
-                        # Clear the response for memory management.
-                        #encounter_result = clear_dict_response(
-                            #encounter_result)
-                    #else:
-                        # Something happened. Clean up.
-
-                        # We're done with the encounter. If it's from an
-                        # AccountSet, release account back to the pool.
-                        #if using_accountset:
-                        #    account_sets.release(llvl_account)
                 else:
                     log.error('No accounts are available, please'
                               + ' consider adding more. Skipping encounter.')
 
+            # Defaults And Basic Info
             pokemon[p['encounter_id']] = {
                 'encounter_id': b64encode(str(p['encounter_id'])),
                 'spawnpoint_id': p['spawn_point_id'],
@@ -2609,7 +2460,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # Get Pokemon Level Via CP
                 pokemon_level = calc_pokemon_level(pokemon_info)
 
-                # Check For Standard Information
+                # Lov Lv Check For Standard Information
                 if account_not_30:
                     pokemon[p['encounter_id']].update({
                         'height': pokemon_info['height_m'],
@@ -2619,7 +2470,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'catch_prob_3': probs[2],
                     })
 
-                # Check For IV/CP If Account Is 30 Plus
+                # High Lv Check For IV/CP If Account Is 30 Plus
                 if account_is_30:
                     pokemon[p['encounter_id']].update({
                         'individual_attack': individual_attack,
@@ -2633,7 +2484,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'catch_prob_2': probs[1],
                         'catch_prob_3': probs[2],
                         'cp': pokemon_info['cp'],
-                        'pokemon_level': Pokemon_level,
+                        'pokemon_level': pokemon_level,
                     })
 
             # Catch pokemon to check for Ditto if --gain-xp enabled
@@ -2641,13 +2492,21 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             have_balls = inventory.get('balls', 0) > 0
             if args.gain_xp and account_not_30 and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
                 if is_ditto(args, api, p, inventory):
+                    # Scout Ditto Pokemon
+                    if args.pgscout_url:
+                        scout_result = perform_pgscout(p)
+                    # Assign Ditto + Moves, Gender And PreviousID.
                     pokemon[p['encounter_id']].update({
+                        'gender': 3,
+                        'move_1': 242,
+                        'move_2': 133,
+                        'pokemon_id': 132,
                         'previous_id': p['pokemon_data']['pokemon_id']
                     })
-                    pokemon[p['encounter_id']]['pokemon_id'] = 132
                     pokemon_id = 132
+                    #pokemon[p['encounter_id']]['pokemon_id'] = 132
                     # Scout result is useless
-                    scout_result = None
+                    #scout_result = None
 
             # Updating Pokemon data from PGScout result
             if scout_result is not None and scout_result['success']:
@@ -2684,6 +2543,15 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         #'form': scout_result.get('form', None),
                     })
 
+                if pokemon_id == 132:
+                    pokemon[p['encounter_id']].update({
+                        'gender': 3,
+                        'move_1': 242,
+                        'move_2': 133,
+                        'rating_attack': 'A',
+                        'rating_defense': 'A',
+                    })
+
             if args.webhooks:
                 pokemon_id = p['pokemon_data']['pokemon_id']
                 if (pokemon_id in args.webhook_whitelist or
@@ -2704,8 +2572,109 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     })
                     wh_update_queue.put(('pokemon', wh_poke))
 
-    if forts and (config['parse_pokestops'] or config['parse_gyms']):
+    if nearby_pokemon and config['parse_pokemon']:
+        temp_nearby_list = []
 
+        for n in nearby_pokemon:
+            if 'fort_id' in n:
+                temp_nearby_list.append(n)
+
+        nearby_pokemon = temp_nearby_list
+
+        encounter_ids = [b64encode(str(n['encounter_id']))
+                         for n in nearby_pokemon]
+        pokestop_ids = [n['fort_id'] for n in nearby_pokemon]
+        # For all the nearby Pokemon we found check if an active Pokemon is in
+        # the database.
+        query = []
+        if encounter_ids:
+            query = (Pokemon
+                     .select(Pokemon.encounter_id, Pokemon.spawnpoint_id)
+                     .where((Pokemon.disappear_time >= now_date) &
+                            (Pokemon.encounter_id << encounter_ids))
+                     .dicts())
+
+        # Store all encounter_ids and spawnpoint_ids for the Pokemon in query.
+        # All of that is needed to make sure it's unique.
+        encountered_pokemon = []
+        for p in query:
+            encountered_pokemon.append((p['encounter_id']))
+        #encountered_pokemon = [p['encounter_id'] for p in query]
+
+        query = []
+        if pokestop_ids:
+            query = (Pokestop
+                     .select(Pokestop.pokestop_id, Pokestop.latitude,
+                             Pokestop.longitude)
+                     .where((Pokestop.pokestop_id << pokestop_ids))
+                     .dicts())
+
+        matched_pokestops = {}
+        for f in query:
+            matched_pokestops[f['pokestop_id']] = {
+                'pokestop_id': f['pokestop_id'],
+                'latitude': f['latitude'],
+                'longitude': f['longitude']
+            }
+
+        for n in nearby_pokemon:
+            if (b64encode(str(n['encounter_id']))
+                    in encountered_pokemon):
+                continue  # If Pokemon has been found before don't process it.
+
+            elif n['fort_id'] in matched_pokestops and args.nearbypokes:
+                disappear_time = now_date + timedelta(minutes=3)
+                latitude = (matched_pokestops[n['fort_id']]['latitude'] +
+                    random.uniform(-0.00025, 0.00025))
+                longitude = (matched_pokestops[n['fort_id']]['longitude'] +
+                    random.uniform(-0.00025, 0.00025))
+
+                pokemon[n['encounter_id']] = {
+                    'encounter_id': b64encode(str(n['encounter_id'])),
+                    'spawnpoint_id': 'nearby_pokemon',
+                    'pokemon_id': n['pokemon_id'],
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'disappear_time': disappear_time,
+                    'individual_attack': None,
+                    'individual_defense': None,
+                    'individual_stamina': None,
+                    'move_1': None,
+                    'move_2': None,
+                    'height': None,
+                    'weight': None,
+                    'gender': n['pokemon_display']['gender'],
+                    'cp': None,
+                    'pokemon_level': None,
+                    'worker_level': worker_level,
+                    'catch_prob_1': None,
+                    'catch_prob_2': None,
+                    'catch_prob_3': None,
+                    'previous_id' : None,
+                    'form': None,
+                    'rating_attack': None,
+                    'rating_defense': None,
+                }
+
+                if pokemon[n['encounter_id']] == 201:
+                    pokemon[n['encounter_id']]['form'] = n[
+                        'pokemon_display'].get('form', None)
+
+                if args.webhooks:
+                    pokemon_id = n['pokemon_data']['pokemon_id']
+                    if (pokemon_id in args.webhook_whitelist or
+                        (not args.webhook_whitelist and pokemon_id
+                         not in args.webhook_blacklist)):
+                        wh_poke = pokemon[n['encounter_id']].copy()
+                        wh_poke.update({
+                            'disappear_time': calendar.timegm(
+                                disappear_time.timetuple()),
+                            'worker_level': worker_level
+                        })
+                        wh_update_queue.put(('pokemon', wh_poke))
+
+    if forts and (config['parse_pokestops'] or config['parse_gyms']):
+        # Look For Stops
         if config['parse_pokestops']:
             stop_ids = [f['id'] for f in forts if f.get('type') == 1]
             if stop_ids:
@@ -2730,6 +2699,21 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         for f in forts:
             if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops
                 get_details = False
+
+                # Spin Pokestop to gain XP if account is below level 25
+                if args.gain_xp and account_not_30 and pokestop_spinnable(
+                    f, step_location):
+
+                    # Do Spin Stop
+                    if args.spinstop:
+                        cleanup_inventory(api, inventory)
+                        spin_pokestop_update_inventory(api, f, step_location, inventory)
+
+                    # Do Lure Stop
+                    if args.lurestop:
+                        lure_pokestop(args, api, f, step_location, inventory)
+
+                # Is Thier A Lure Active?
                 if 'active_fort_modifier' in f:
                     #log.debug('Lured Pokestop: \n\r{}'.format(
                     #    pprint.PrettyPrinter(indent=4).pformat(f)))
@@ -2739,13 +2723,35 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     active_fort_modifier = f['active_fort_modifier']
                     get_details = True
 
-                    # Lured Pokemon Support ~To Do Add All Info...
+                    # Lured Pokemon Support
                     if args.lured_pokemon:
                         if 'lure_info' in f:
                             lure_info = f.get('lure_info', None)
+
+                            fort_encounter_id = [
+                                b64encode(str(lure_info['encounter_id']))]
+                            if fort_encounter_id:
+                                query = (Pokemon
+                                         .select()
+                                         .where((Pokemon.disappear_time >
+                                                 datetime.utcnow()) &
+                                                (Pokemon.encounter_id <<
+                                                 fort_encounter_id))
+                                         .dicts()
+                                         )
+                                fort_pokemon = [(lure_info['encounter_id']) for p in query]
+
+                            # Don't parse pokemon we've already encountered.
+                            # Avoids IVs getting nulled out on rescanning.
+                            if ((b64encode(str(
+                                    lure_info['encounter_id'])), f['id'])
+                                    in fort_pokemon):
+                                skipped += 1
+                                continue
+
                             if ('encounter_id' and 'active_pokemon_id' and 'lure_expires_timestamp_ms' in lure_info):
+                                #log.warning('=========================== Lure Info: %s.', lure_info)
                                 #log.info('%s - %s - %s - %s', lure_info['active_pokemon_id'], f['latitude'], f['longitude'], lure_info['lure_expires_timestamp_ms'] / 1000.0)
-                                #log.info(encounter_result)
                                 pokemon[lure_info['encounter_id']] = {
                                     'encounter_id': b64encode(str(
                                         lure_info['encounter_id'])),
@@ -2764,7 +2770,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                     'cp': None,
                                     'height': None,
                                     'weight': None,
-                                    'gender': p['pokemon_data']['pokemon_display']['gender'],
+                                    'gender': None,
                                     'form': None,
                                     'catch_prob_1': None,
                                     'catch_prob_2': None,
@@ -2776,76 +2782,95 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                     'rating_defense': None,
                                 }
 
-                                # Check For Unown's Alphabetic Character.
-                                if lure_info['active_pokemon_id'] == 201:
-                                    pokemon[lure_info['encounter_id']]['form'] = p['pokemon_data'][
-                                        'pokemon_display'].get('form', None)
+                                # Encounter Request For Lured Pokemon
+                                l_encounter_result = None
+                                time.sleep(args.encounter_delay)
+                                req = api.create_request()
+                                l_encounter_result = req.disk_encounter(
+                                    encounter_id=lure_info['encounter_id'],
+                                    fort_id=f['id'],
+                                    player_latitude=step_location[0],
+                                    player_longitude=step_location[1])
+                                l_encounter_result = req.check_challenge()
+                                l_encounter_result = req.get_hatched_eggs()
+                                l_encounter_result = req.get_inventory()
+                                l_encounter_result = req.check_awarded_badges()
+                                l_encounter_result = req.download_settings()
+                                l_encounter_result = req.get_buddy_walked()
+                                l_encounter_result = req.call()
 
-                                # Check For Standard Information   (Where Does This GET its Info? lol)
-                                if account_not_30:
-                                    pokemon[lure_info['encounter_id']].update({
-                                        'height': pokemon_info['height_m'],
-                                        'weight': pokemon_info['weight_kg'],
-                                        'catch_prob_1': probs[0],
-                                        'catch_prob_2': probs[1],
-                                        'catch_prob_3': probs[2],
-                                    })
+                                # Check for captcha
+                                captcha_url = l_encounter_result['responses'][
+                                        'CHECK_CHALLENGE']['challenge_url']
 
-                                # Check For IV/CP If Account Is 30 Plus
-                                if account_is_30:
-                                    pokemon[lure_info['encounter_id']].update({
-                                        'individual_attack': individual_attack,
-                                        'individual_defense': individual_defense,
-                                        'individual_stamina': individual_stamina,
-                                        'move_1': pokemon_info['move_1'],
-                                        'move_2': pokemon_info['move_2'],
-                                        'height': pokemon_info['height_m'],
-                                        'weight': pokemon_info['weight_kg'],
-                                        'catch_prob_1': probs[0],
-                                        'catch_prob_2': probs[1],
-                                        'catch_prob_3': probs[2],
-                                        'cp': pokemon_info['cp'],
-                                        'pokemon_level': Pokemon_level,
-                                    })
+                                if len(captcha_url) > 1:
+                                    return {
+                                        'count': 0,
+                                        'bad_scan': True,
+                                        'captcha': True,
+                                        'failed': 'LEncounter'
+                                    }
 
-                                # Lure Scout
-                                #if args.pgscout_url and (pid in args.enc_scout):
-                                #    scout_result = perform_pgscout(p)
+                                l_pokemon_info = None
+                                # Datacheck
+                                if lure_info is not None and l_encounter_result['responses']['DISK_ENCOUNTER']['result'] == 1:
 
-                                # Updating Pokemon data from PGScout result
-                                #if scout_result is not None and scout_result['success']:
-                                #    if scout_result['worker_level'] <= 30:
-                                #        pokemon[lure_info['encounter_id']].update({
-                                #            'height': scout_result['height'],
-                                #            'weight': scout_result['weight'],
-                                            #'gender': scout_result['gender'],
-                                #            'catch_prob_1': scout_result['catch_prob_1'],
-                                #            'catch_prob_2': scout_result['catch_prob_2'],
-                                #            'catch_prob_3': scout_result['catch_prob_3'],
-                                #            'worker_level': scout_result['worker_level'],
-                                            #'form': scout_result.get('form', None),
-                                #        })
+                                    # Extract Pokemon Info
+                                    l_pokemon_info = l_encounter_result['responses'][
+                                        'DISK_ENCOUNTER']['pokemon_data']
 
-                                #    if scout_result['worker_level'] >= 30:
-                                #        pokemon[lure_info['encounter_id']].update({
-                                #            'individual_attack': scout_result['iv_attack'],
-                                #            'individual_defense': scout_result['iv_defense'],
-                                #            'individual_stamina': scout_result['iv_stamina'],
-                                #            'move_1': scout_result['move_1'],
-                                #            'move_2': scout_result['move_2'],
-                                #            'height': scout_result['height'],
-                                #            'weight': scout_result['weight'],
-                                #            'gender': scout_result['gender'],
-                                #            'cp': scout_result['cp'],
-                                #            'pokemon_level': scout_result['pokemon_level'],
-                                #            'catch_prob_1': scout_result['catch_prob_1'],
-                                #            'catch_prob_2': scout_result['catch_prob_2'],
-                                #            'catch_prob_3': scout_result['catch_prob_3'],
-                                #            'rating_attack': scout_result['rating_attack'],
-                                #            'rating_defense': scout_result['rating_defense'],
-                                #            'worker_level': scout_result['worker_level'],
-                                #            'form': scout_result.get('form', None),
-                                #        })
+                                    # Get Prob Chances
+                                    l_probs = l_encounter_result['responses'][
+                                        'DISK_ENCOUNTER']['capture_probability']['capture_probability']
+
+                                    # Get Pokemon Level Via CP
+                                    pokemon_level = calc_pokemon_level(l_pokemon_info)
+
+                                    # Check For Standard Information
+                                    if l_pokemon_info and account_not_30:
+                                        pokemon[lure_info['encounter_id']].update({
+                                            'gender': l_pokemon_info['pokemon_display']['gender'],
+                                            'height': l_pokemon_info['height_m'],
+                                            'weight': l_pokemon_info['weight_kg'],
+                                            'catch_prob_1': l_probs[0],
+                                            'catch_prob_2': l_probs[1],
+                                            'catch_prob_3': l_probs[2],
+                                        })
+
+                                    # Check For IV/CP If Account Is 30 Plus
+                                    if l_pokemon_info and account_is_30:
+                                        pokemon[lure_info['encounter_id']].update({
+                                            'individual_attack': l_pokemon_info['individual_attack'],
+                                            'individual_defense': l_pokemon_info['individual_defense'],
+                                            'individual_stamina': l_pokemon_info['individual_stamina'],
+                                            'move_1': l_pokemon_info['move_1'],
+                                            'move_2': l_pokemon_info['move_2'],
+                                            'height': l_pokemon_info['height_m'],
+                                            'weight': l_pokemon_info['weight_kg'],
+                                            'catch_prob_1': l_probs[0],
+                                            'catch_prob_2': l_probs[1],
+                                            'catch_prob_3': l_probs[2],
+                                            'cp': l_pokemon_info['cp'],
+                                            'pokemon_level': pokemon_level,
+                                        })
+
+                                    # Check For Unown's Alphabetic Character.
+                                    if account_not_30 or account_is_30 and lure_info['active_pokemon_id'] == 201:
+                                        pokemon[lure_info['encounter_id']]['form'] = l_pokemon_info[
+                                            'pokemon_display'].get('form', None)
+
+                            #if args.webhooks and args.webhook_updates_only:
+                            #    wh_poke = pokemon[lure_info['encounter_id']].copy()
+                            #    wh_poke.update({
+                            #        'disappear_time': calendar.timegm(
+                            #            disappear_time.timetuple()),
+                            #        'last_modified_time':
+                            #        p['last_modified_timestamp_ms'],
+                            #        'time_until_hidden_ms':
+                            #        p['time_till_hidden_ms']
+                            #    })
+                            #    wh_update_queue.put(('pokemon', wh_poke))
+
 
                     if args.webhooks and args.webhook_updates_only:
                         wh_update_queue.put(('pokestop', {
@@ -2859,7 +2884,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                 lure_expiration.timetuple()),
                             'active_fort_modifier': active_fort_modifier
                         }))
-
                 else:
                     lure_expiration, active_fort_modifier = None, None
 
@@ -2912,15 +2936,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             #        pprint.PrettyPrinter(indent=4).pformat(
                             #            pokestop_details)))
 
-                # Spin Pokestop to gain XP if account is below level 25
-                if args.gain_xp and account_not_30 and pokestop_spinnable(
-                    f, step_location):
-                    if args.spinstop:
-                        cleanup_inventory(api, inventory)
-                        spin_pokestop_update_inventory(api, f, step_location, inventory)
 
-                    if args.lurestop:
-                        lure_pokestop(args, api, f, step_location, inventory)
 
                 # Send all pokestops to webhooks.
                 if args.webhooks and not args.webhook_updates_only:
@@ -3748,11 +3764,11 @@ def database_migrate(db, old_ver):
                                 CharField(null=True, max_length=1))
         )
 
-    #if old_ver < 21:
-    #    migrate(
-    #        migrator.add_column('scannedlocation', 'username',
-    #                            CharField(max_length=255, null=False,
-    #                            default=" ")),
-    #    )
+    if old_ver < 21:
+        migrate(
+            migrator.add_column('scannedlocation', 'username',
+                                CharField(max_length=255, null=False,
+                                default=" ")),
+        )
     # Always log that we're done.
     log.info('Schema upgrade complete.')

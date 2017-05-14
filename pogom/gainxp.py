@@ -185,7 +185,7 @@ def release(api, cpid):
 
 
 def pokestop_spinnable(fort, step_location):
-    spinning_radius = 0.04
+    spinning_radius = 0.03
     in_range = in_radius((fort['latitude'], fort['longitude']), step_location,
                          spinning_radius)
     now = time.time()
@@ -195,11 +195,8 @@ def pokestop_spinnable(fort, step_location):
 
 def spin_pokestop_update_inventory(api, fort, step_location, inventory):
     time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle
-    spinning_radius = 0.03
-    if in_radius((fort['latitude'], fort['longitude']), step_location,
-                 spinning_radius):
-        log.warning('++++++++++++++++++++++++++++ GAINXP SPINNING POKESTOP')
-        spin_response = spin_pokestop_request(api, fort, step_location)
+    log.warning('++++++++++++++++++++++++++++ GAINXP SPINNING POKESTOP')
+    spin_response = spin_pokestop_request(api, fort, step_location)
 
     time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle
     if not spin_response:
@@ -354,6 +351,12 @@ def lure_pokestop(args, api, fort, step_location, inventory):
                                                      fort_id=fort['id'],
                                                      player_latitude=step_location[0],
                                                      player_longitude=step_location[1])
+                req.check_challenge()
+                req.get_hatched_eggs()
+                req.get_inventory()
+                req.check_awarded_badges()
+                req.download_settings()
+                req.get_buddy_walked()
                 time.sleep(4.20)
                 lure_request = req.call()
                 #log.warning('@@@LURE RESPONSE@@@ %s', lure_request['responses'])

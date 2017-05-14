@@ -673,7 +673,7 @@ function build_nearby_pkm_div(encounterIdLong, spawnpoint_id) {
     return `
           <div id="pkmNearby${encounterIdLong}">
             <img height='15px' style='padding: 1px;' src='static/forts/pstop.png'>
-            <font size="3"><b>Pokestop Tracker Pokemon</font></b>
+            <font size="3"><b>Nearby Pokemon</font></b>
           </div>
           <div>
             <font size="0.5"><b>(Time And GPS Approximation)</font></b>
@@ -687,7 +687,7 @@ function build_nearby_pkm_div(encounterIdLong, spawnpoint_id) {
 function build_lured_pkm_div(encounterIdLong, spawnpoint_id) {
     return `
           <div id="pkmLured${encounterIdLong}">
-            <img height='15px' style='padding: 1px;' src='static/forts/pstop.png'>
+            <img height='15px' style='padding: 1px;' src='static/forts/pstopLured.png'>
             <font size="3"><b>Lured Pokemon</font></b>
           </div>
           `
@@ -750,7 +750,7 @@ function pokemonLabel(item) {
         lure += build_lured_pkm_div(encounterIdLong, spawnpoint_id)
     }
     var details = ''
-    if (gender != null && spawnpoint_id === 'nearby_pokemon' || spawnpoint_id === 'lured_pokemon' && spawnpoint_id != null) {
+    if (gender != null && spawnpoint_id === 'nearby_pokemon' && spawnpoint_id != null) {
         details += build_gender_div(encounterIdLong, gender)
     }
     if (height != null) {
@@ -774,8 +774,11 @@ function pokemonLabel(item) {
     if (worker_level != null) {
         details += build_worker_level_div(encounterIdLong, worker_level)
     }
+    var scoutLink = ''
+    if (cp == null && spawnpoint_id != 'nearby_pokemon' && spawnpoint_id != 'lured_pokemon' ) {
+        scoutLink += `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>`
+    }
 
-    var scoutLink = cp == null ? `<a href='javascript:void(0);' onclick='javascript:scout("${encounterId}");' title='Scout CP'>Scout</a>` : ""
     var contentstring = `
       <center>
         <div>

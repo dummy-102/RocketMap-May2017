@@ -1,7 +1,7 @@
 {
   "1": {
     "name": "Bulbasaur",
-    "rarity": "Uncommon",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Grass",
@@ -16,7 +16,7 @@
   },
   "2": {
     "name": "Ivysaur",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Grass",
@@ -31,7 +31,7 @@
   },
   "3": {
     "name": "Venusaur",
-    "rarity": "Very Rare",
+    "rarity": "Ultra Rare",
     "types": [
       {
         "type": "Grass",
@@ -68,7 +68,7 @@
   },
   "6": {
     "name": "Charizard",
-    "rarity": "Very Rare",
+    "rarity": "Ultra Rare",
     "types": [
       {
         "type": "Fire",
@@ -83,7 +83,7 @@
   },
   "7": {
     "name": "Squirtle",
-    "rarity": "Uncommon",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Water",
@@ -94,7 +94,7 @@
   },
   "8": {
     "name": "Wartortle",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Water",
@@ -105,7 +105,7 @@
   },
   "9": {
     "name": "Blastoise",
-    "rarity": "Very Rare",
+    "rarity": "Ultra Rare",
     "types": [
       {
         "type": "Water",
@@ -688,7 +688,7 @@
   },
   "54": {
     "name": "Psyduck",
-    "rarity": "Rare",
+    "rarity": "Common",
     "types": [
       {
         "type": "Water",
@@ -1100,7 +1100,7 @@
   },
   "86": {
     "name": "Seel",
-    "rarity": "Rare",
+    "rarity": "Common",
     "types": [
       {
         "type": "Water",
@@ -1148,7 +1148,7 @@
   },
   "90": {
     "name": "Shellder",
-    "rarity": "Rare",
+    "rarity": "Common",
     "types": [
       {
         "type": "Water",
@@ -1267,7 +1267,7 @@
   },
   "99": {
     "name": "Kingler",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Water",
@@ -1470,7 +1470,7 @@
   },
   "116": {
     "name": "Horsea",
-    "rarity": "Rare",
+    "rarity": "Common",
     "types": [
       {
         "type": "Water",
@@ -1492,7 +1492,7 @@
   },
   "118": {
     "name": "Goldeen",
-    "rarity": "Rare",
+    "rarity": "Common",
     "types": [
       {
         "type": "Water",
@@ -1503,7 +1503,7 @@
   },
   "119": {
     "name": "Seaking",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Water",
@@ -1570,7 +1570,7 @@
   },
   "124": {
     "name": "Jynx",
-    "rarity": "Rare",
+    "rarity": "Common",
     "types": [
       {
         "type": "Ice",
@@ -1585,7 +1585,7 @@
   },
   "125": {
     "name": "Electabuzz",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Electric",
@@ -1596,7 +1596,7 @@
   },
   "126": {
     "name": "Magmar",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Fire",
@@ -1607,7 +1607,7 @@
   },
   "127": {
     "name": "Pinsir",
-    "rarity": "Uncommon",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Bug",
@@ -1618,7 +1618,7 @@
   },
   "128": {
     "name": "Tauros",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Normal",
@@ -1629,7 +1629,7 @@
   },
   "129": {
     "name": "Magikarp",
-    "rarity": "Uncommon",
+    "rarity": "Common",
     "types": [
       {
         "type": "Water",
@@ -1670,7 +1670,7 @@
   },
   "132": {
     "name": "Ditto",
-    "rarity": "Ultra Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Normal",
@@ -1889,7 +1889,7 @@
   },
   "149": {
     "name": "Dragonite",
-    "rarity": "Very Rare",
+    "rarity": "Ultra Rare",
     "types": [
       {
         "type": "Dragon",
@@ -1926,7 +1926,7 @@
   },
   "152": {
     "name": "Chikorita",
-    "rarity": "Uncommon",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Grass",
@@ -1937,7 +1937,7 @@
   },
   "153": {
     "name": "Bayleef",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Grass",
@@ -1948,7 +1948,7 @@
   },
   "154": {
     "name": "Meganium",
-    "rarity": "Very Rare",
+    "rarity": "Ultra Rare",
     "types": [
       {
         "type": "Grass",
@@ -1959,7 +1959,7 @@
   },
   "155": {
     "name": "Cyndaquil",
-    "rarity": "Uncommon",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Fire",
@@ -1992,7 +1992,7 @@
   },
   "158": {
     "name": "Totodile",
-    "rarity": "Uncommon",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Water",
@@ -2003,7 +2003,7 @@
   },
   "159": {
     "name": "Croconaw",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Water",
@@ -2014,7 +2014,7 @@
   },
   "160": {
     "name": "Feraligatr",
-    "rarity": "Very Rare",
+    "rarity": "Ultra Rare",
     "types": [
       {
         "type": "Water",
@@ -2620,7 +2620,7 @@
   },
   "206": {
     "name": "Dunsparce",
-    "rarity": "Uncommon",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Normal",
@@ -2918,7 +2918,7 @@
   },
   "228": {
     "name": "Houndour",
-    "rarity": "Uncommon",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Dark",
@@ -2933,7 +2933,7 @@
   },
   "229": {
     "name": "Houndoom",
-    "rarity": "Very Rare",
+    "rarity": "Ultra Rare",
     "types": [
       {
         "type": "Dark",
