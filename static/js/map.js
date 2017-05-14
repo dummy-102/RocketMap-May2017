@@ -1916,7 +1916,7 @@ function loadRawData() {
             'scanned': loadScanned,
             'lastslocs': lastslocs,
             'spawnpoints': loadSpawnpoints,
-            'geofenes': loadGeofences,
+            'geofences': loadGeofences,
             'lastspawns': lastspawns,
             'swLat': swLat,
             'swLng': swLng,
