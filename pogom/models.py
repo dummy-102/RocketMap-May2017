@@ -2504,8 +2504,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             if args.gain_xp and account_not_30 and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
                 if is_ditto(args, api, p, inventory):
                     # Scout Ditto Pokemon
-                    if args.pgscout_url:
-                        scout_result = perform_pgscout(p)
+                    #if args.pgscout_url:
+                    #    scout_result = perform_pgscout(p)
                     # Assign Ditto + Moves, Gender And PreviousID.
                     pokemon[p['encounter_id']].update({
                         'gender': 3,
@@ -2518,7 +2518,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     previous_id = p['pokemon_data']['pokemon_id']
                     #pokemon[p['encounter_id']]['pokemon_id'] = 132
                     # Scout result is useless
-                    #scout_result = None
+                    scout_result = None
 
             # Updating Pokemon data from PGScout result
             if scout_result is not None and scout_result['success']:
