@@ -2499,6 +2499,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Catch pokemon to check for Ditto if --gain-xp enabled
             # Original code by voxx!
+            previous_id = None
             have_balls = inventory.get('balls', 0) > 0
             if args.gain_xp and account_not_30 and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
                 if is_ditto(args, api, p, inventory):
@@ -2514,6 +2515,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'previous_id': p['pokemon_data']['pokemon_id']
                     })
                     pokemon_id = 132
+                    previous_id = p['pokemon_data']['pokemon_id']
                     #pokemon[p['encounter_id']]['pokemon_id'] = 132
                     # Scout result is useless
                     #scout_result = None
@@ -2671,7 +2673,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'pokemon_display'].get('form', None)
 
                 if args.webhooks:
-                    pokemon_id = n['pokemon_data']['pokemon_id']
+                    pokemon_id = n['pokemon_id']
                     if (pokemon_id in args.webhook_whitelist or
                         (not args.webhook_whitelist and pokemon_id
                          not in args.webhook_blacklist)):
