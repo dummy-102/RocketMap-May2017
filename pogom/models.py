@@ -3767,8 +3767,7 @@ def database_migrate(db, old_ver):
     if old_ver < 21:
         migrate(
             migrator.add_column('scannedlocation', 'username',
-                                CharField(max_length=255, null=False,
-                                default=" ")),
+                                CharField(max_length=20, null=True)),
         )
     # Always log that we're done.
     log.info('Schema upgrade complete.')

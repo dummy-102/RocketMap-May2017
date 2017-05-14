@@ -1171,8 +1171,7 @@ function spawnpointLabel(item) {
             </div>
             <div>
               <font size="0.5"><b>Updated: ${lastScannedStr}</b></font>
-            </div>
-        </center>`
+            </div>`
     } else {
         str += `
             <div>
