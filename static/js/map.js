@@ -407,8 +407,10 @@ function initSidebar() {
     var searchBox = new google.maps.places.Autocomplete(document.getElementById('next-location'))
     $('#next-location').css('background-color', $('#geoloc-switch').prop('checked') ? '#e0e0e0' : '#ffffff')
 
-    updateSearchStatus()
-    setInterval(updateSearchStatus, 5000)
+    if ($('#search-switch').length) {
+        updateSearchStatus()
+        setInterval(updateSearchStatus, 5000)
+    }
 
     searchBox.addListener('place_changed', function () {
         var place = searchBox.getPlace()
@@ -2512,7 +2514,7 @@ function createUpdateWorker() {
 
             updateWorker.onmessage = function (e) {
                 var data = e.data
-                if (document.hidden && data.name === 'backgroundUpdate' && Date.now() - lastUpdateTime > 2500) {
+                if (document.hidden && data.name === 'backgroundUpdate' && Date.now() - lastUpdateTime > 1000) {
                     updateMap()
                     updateGeoLocation()
                 }

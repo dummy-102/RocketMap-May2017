@@ -396,6 +396,8 @@ def spin_pokestop_request(api, fort, step_location):
 
 
 def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
+    # Set first timestamp to none
+    inventory_timestamp = None #time.time() * 1000
     try:
         # Setup encounter request envelope.
         req = api.create_request()
@@ -406,17 +408,51 @@ def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
             player_longitude=scan_location[1])
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory()
+        if inventory_timestamp:
+            req.get_inventory(last_timestamp_ms=inventory_timestamp)
+        else:
+            req.get_inventory()
         req.check_awarded_badges()
-        req.download_settings()
         req.get_buddy_walked()
         encounter_result = req.call()
+
+        # Update inventory timestamp
+        inventory_timestamp = encounter_result['responses']['GET_INVENTORY'][
+                    'inventory_delta']['new_timestamp_ms']
 
         return encounter_result
     except Exception as e:
         log.error('Exception while encountering Pokémon: %s.', repr(e))
         return False
 
+def l_encounter_pokemon_request(api, encounter_id, fort_id, scan_location):
+    # Set first timestamp to none
+    inventory_timestamp = None #time.time() * 1000
+    try:        # Encounter Request For Lured Pokemon
+        req = api.create_request()
+        req.disk_encounter(
+            encounter_id=encounter_id,
+            fort_id=fort_id,
+            player_latitude=scan_location[0],
+            player_longitude=scan_location[1])
+        req.check_challenge()
+        req.get_hatched_eggs()
+        if inventory_timestamp:
+            req.get_inventory(last_timestamp_ms=inventory_timestamp)
+        else:
+            req.get_inventory()
+        req.check_awarded_badges()
+        req.get_buddy_walked()
+        l_encounter_result = req.call()
+
+        # Update inventory timestamp
+        inventory_timestamp = l_encounter_result['responses']['GET_INVENTORY'][
+                    'inventory_delta']['new_timestamp_ms']
+
+        return l_encounter_result
+    except Exception as e:
+        log.error('Exception while encountering Lure Pokémon: %s.', repr(e))
+        return False
 
 # The AccountSet returns a scheduler that cycles through different
 # sets of accounts (e.g. L30). Each set is defined at runtime, and is

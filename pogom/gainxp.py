@@ -295,17 +295,25 @@ def drop_items(api, inventory, item_id, drop_stats, drop_count=-1):
 
 def drop_items_request(api, item_id, amount, inventory):
     time.sleep(random.uniform(2, 4))
+    inventory_timestamp = None
     try:
         req = api.create_request()
         req.recycle_inventory_item(item_id=item_id,
                                    count=amount)
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory()
+        if inventory_timestamp:
+            req.get_inventory(last_timestamp_ms=inventory_timestamp)
+        else:
+            req.get_inventory()
         req.check_awarded_badges()
-        req.download_settings()
         req.get_buddy_walked()
         response_dict = req.call()
+
+        # Update inventory timestamp
+        inventory_timestamp = response_dict['responses']['GET_INVENTORY'][
+                    'inventory_delta']['new_timestamp_ms']
+
         inventory.update(get_player_inventory(response_dict))
         if ('responses' in response_dict) and ('RECYCLE_INVENTORY_ITEM' in response_dict['responses']):
             drop_details = response_dict['responses']['RECYCLE_INVENTORY_ITEM']
@@ -386,16 +394,23 @@ def lure_pokestop(args, api, fort, step_location, inventory):
 # 2: AWARDED_ALREADY
 def level_up_rewards_request(api, level, username, inventory):
     time.sleep(random.uniform(2, 3))
+    inventory_timestamp = None
     try:
         req = api.create_request()
         req.level_up_rewards(level=level)
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory()
+        if inventory_timestamp:
+            req.get_inventory(last_timestamp_ms=inventory_timestamp)
+        else:
+            req.get_inventory()
         req.check_awarded_badges()
-        req.download_settings()
         req.get_buddy_walked()
         rewards_response = req.call()
+
+        # Update inventory timestamp
+        inventory_timestamp = rewards_response['responses']['GET_INVENTORY'][
+                    'inventory_delta']['new_timestamp_ms']
 
         if ('responses' in rewards_response) and ('LEVEL_UP_REWARDS' in rewards_response['responses']):
             inventory.update(get_player_inventory(rewards_response))

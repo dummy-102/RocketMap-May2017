@@ -40,7 +40,7 @@ from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
 from .account import (tutorial_pokestop_spin, get_player_level, check_login,
-                        setup_api, encounter_pokemon_request)
+                        setup_api, encounter_pokemon_request, l_encounter_pokemon_request)
 
 log = logging.getLogger(__name__)
 
@@ -2672,18 +2672,18 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     pokemon[n['encounter_id']]['form'] = n[
                         'pokemon_display'].get('form', None)
 
-                if args.webhooks:
-                    pokemon_id = n['pokemon_id']
-                    if (pokemon_id in args.webhook_whitelist or
-                        (not args.webhook_whitelist and pokemon_id
-                         not in args.webhook_blacklist)):
-                        wh_poke = pokemon[n['encounter_id']].copy()
-                        wh_poke.update({
-                            'disappear_time': calendar.timegm(
-                                disappear_time.timetuple()),
-                            'worker_level': worker_level
-                        })
-                        wh_update_queue.put(('pokemon', wh_poke))
+                #if args.webhooks:
+                #    pokemon_id = n['pokemon_id']
+                #    if (pokemon_id in args.webhook_whitelist or
+                #        (not args.webhook_whitelist and pokemon_id
+                #         not in args.webhook_blacklist)):
+                #        wh_poke = pokemon[n['encounter_id']].copy()
+                #        wh_poke.update({
+                #            'disappear_time': calendar.timegm(
+                #                disappear_time.timetuple()),
+                #            'worker_level': worker_level
+                #        })
+                #        wh_update_queue.put(('pokemon', wh_poke))
 
     if forts and (config['parse_pokestops'] or config['parse_gyms']):
         # Look For Stops
@@ -2761,7 +2761,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                 skipped += 1
                                 continue
 
-                            if ('encounter_id' and 'active_pokemon_id' and 'lure_expires_timestamp_ms' in lure_info):
+                            if ('encounter_id' and 'active_pokemon_id' and
+                                    'lure_expires_timestamp_ms' in lure_info):
                                 #log.warning('=========================== Lure Info: %s.', lure_info)
                                 #log.info('%s - %s - %s - %s', lure_info['active_pokemon_id'], f['latitude'], f['longitude'], lure_info['lure_expires_timestamp_ms'] / 1000.0)
                                 pokemon[lure_info['encounter_id']] = {
@@ -2794,38 +2795,34 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                     'rating_defense': None,
                                 }
 
-                                # Encounter Request For Lured Pokemon
-                                l_encounter_result = None
                                 time.sleep(args.encounter_delay)
-                                req = api.create_request()
-                                l_encounter_result = req.disk_encounter(
-                                    encounter_id=lure_info['encounter_id'],
-                                    fort_id=f['id'],
-                                    player_latitude=step_location[0],
-                                    player_longitude=step_location[1])
-                                l_encounter_result = req.check_challenge()
-                                l_encounter_result = req.get_hatched_eggs()
-                                l_encounter_result = req.get_inventory()
-                                l_encounter_result = req.check_awarded_badges()
-                                l_encounter_result = req.download_settings()
-                                l_encounter_result = req.get_buddy_walked()
-                                l_encounter_result = req.call()
+                                #scan_location = [step_location[0], step_location[1]]
+                                scan_location = [f['latitude'], f['longitude']]
+                                l_encounter_result = None
+                                # Encounter Lure Pokémon.
+                                l_encounter_result = l_encounter_pokemon_request(
+                                    api,
+                                    lure_info['encounter_id'],
+                                    f['id'],
+                                    scan_location)
 
-                                # Check for captcha
-                                captcha_url = l_encounter_result['responses'][
-                                        'CHECK_CHALLENGE']['challenge_url']
+                                if l_encounter_result:
+                                    # Check for captcha
+                                    captcha_url = l_encounter_result['responses'][
+                                            'CHECK_CHALLENGE']['challenge_url']
 
-                                if len(captcha_url) > 1:
-                                    return {
-                                        'count': 0,
-                                        'bad_scan': True,
-                                        'captcha': True,
-                                        'failed': 'LEncounter'
-                                    }
+                                    if len(captcha_url) > 1:
+                                        return {
+                                            'count': 0,
+                                            'bad_scan': True,
+                                            'captcha': True,
+                                            'failed': 'LEncounter'
+                                        }
 
                                 l_pokemon_info = None
                                 # Datacheck
-                                if lure_info is not None and l_encounter_result['responses']['DISK_ENCOUNTER']['result'] == 1:
+                                if lure_info is not None and l_encounter_result['responses'][
+                                            'DISK_ENCOUNTER']['result'] == 1:
 
                                     # Extract Pokemon Info
                                     l_pokemon_info = l_encounter_result['responses'][
@@ -2833,7 +2830,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                                     # Get Prob Chances
                                     l_probs = l_encounter_result['responses'][
-                                        'DISK_ENCOUNTER']['capture_probability']['capture_probability']
+                                        'DISK_ENCOUNTER']['capture_probability'][
+                                                'capture_probability']
 
                                     # Get Pokemon Level Via CP
                                     pokemon_level = calc_pokemon_level(l_pokemon_info)
