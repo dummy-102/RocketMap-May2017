@@ -973,7 +973,7 @@ def dottedQuadToNum(ip):
 def get_blacklist():
     try:
         url = 'https://blist.devkat.org/blacklist.json'
-        blacklist = requests.get(url).json()
+        blacklist = requests.get(url, timeout=5).json()
         log.debug('Entries in blacklist: %s.', len(blacklist))
         return blacklist
     except (requests.exceptions.RequestException, IndexError, KeyError):
@@ -1055,7 +1055,7 @@ def clear_dict_response(response, keep_inventory=False):
 # Check 2captcha balance
 def captcha_balance(key):
     payload = {'key': key, 'action': 'getbalance'}
-    r = requests.get('https://2captcha.com/res.php', params=payload)
+    r = requests.get('https://2captcha.com/res.php', params=payload, timeout=5)
     balance = float(r.text)
     log.info('2captcha balance is %f$', balance)
     return balance

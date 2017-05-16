@@ -2511,6 +2511,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'gender': 3,
                         'move_1': 242,
                         'move_2': 133,
+                        'rating_attack': 'A',
+                        'rating_defense': 'A',
                         'pokemon_id': 132,
                         'previous_id': p['pokemon_data']['pokemon_id']
                     })
@@ -2579,7 +2581,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'seconds_until_despawn': seconds_until_despawn,
                         'spawn_start': start_end[0],
                         'spawn_end': start_end[1],
-                        'player_level': worker_level,
+                        'worker_level': worker_level,
                         'previous_id': previous_id,
                     })
                     wh_update_queue.put(('pokemon', wh_poke))
