@@ -614,7 +614,7 @@ function build_probs_div(encounterIdLong, prob1, prob2, prob3) {
     prob3 = prob3 * 100
     return `
         <div id="pkmProbs${encounterIdLong}">
-            Pokeball: <b>${prob1.toFixed(1)}%</b> GreatBall: <b>${prob2.toFixed(1)}%</b> UltraBall: <b>${prob3.toFixed(1)}%</b>
+            Poke: <b>${prob1.toFixed(1)}%</b> Great: <b>${prob2.toFixed(1)}%</b> Ultra: <b>${prob3.toFixed(1)}%</b>
         </div>
         `
 }

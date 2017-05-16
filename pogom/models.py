@@ -2568,9 +2568,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             if args.webhooks:
                 pokemon_id = p['pokemon_data']['pokemon_id']
-                if scout_result is not None and scout_result['success']:
-                    if scout_result['worker_level'] >= 30:
-                        worker_level = scout_result['worker_level']
+                #if scout_result is not None and scout_result['success']:
+                    #if scout_result['worker_level'] >= 30:
+                        #worker_level = scout_result['worker_level']
 
                 if (pokemon_id in args.webhook_whitelist or
                     (not args.webhook_whitelist and pokemon_id
@@ -2585,8 +2585,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'seconds_until_despawn': seconds_until_despawn,
                         'spawn_start': start_end[0],
                         'spawn_end': start_end[1],
-                        'worker_level': worker_level,
-                        'previous_id': previous_id,
+                        #'worker_level': worker_level,
+                        #'previous_id': previous_id,
                     })
                     wh_update_queue.put(('pokemon', wh_poke))
 
