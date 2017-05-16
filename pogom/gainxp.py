@@ -325,6 +325,7 @@ def drop_items_request(api, item_id, amount, inventory):
 
 def lure_pokestop(args, api, fort, step_location, inventory):
     if 'active_fort_modifier' not in fort:
+        inventory_timestamp = None
         spinning_radius = 0.03
         totalDisks = inventory['totalDisks']
         log.warning('++++++++++++++++++++++++++++ DETECTING %s LURES', totalDisks)
@@ -361,12 +362,19 @@ def lure_pokestop(args, api, fort, step_location, inventory):
                                                      player_longitude=step_location[1])
                 req.check_challenge()
                 req.get_hatched_eggs()
-                req.get_inventory()
+                if inventory_timestamp:
+                    req.get_inventory(last_timestamp_ms=inventory_timestamp)
+                else:
+                    req.get_inventory()
                 req.check_awarded_badges()
-                req.download_settings()
                 req.get_buddy_walked()
                 time.sleep(4.20)
                 lure_request = req.call()
+
+                # Update inventory timestamp
+                inventory_timestamp = lure_request['responses']['GET_INVENTORY'][
+                            'inventory_delta']['new_timestamp_ms']
+
                 #log.warning('@@@LURE RESPONSE@@@ %s', lure_request['responses'])
                 lure_status = lure_request['responses']['ADD_FORT_MODIFIER']['result']
                 if lure_status is 0:

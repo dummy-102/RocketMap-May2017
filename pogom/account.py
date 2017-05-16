@@ -111,9 +111,9 @@ def get_tutorial_state(api, account):
     log.debug('Checking tutorial state for %s.', account['username'])
     request = api.create_request()
     request.get_player(
-        player_locale={'country': 'US',
+        player_locale={'country': 'CA',
                        'language': 'en',
-                       'timezone': 'America/Denver'})
+                       'timezone': 'America/Toronto'})
 
     response = request.call().get('responses', {})
 
@@ -190,9 +190,9 @@ def complete_tutorial(api, account, tutorial_state):
         request = api.create_request()
         request.get_player(
             player_locale={
-                'country': 'US',
+                'country': 'CA',
                 'language': 'en',
-                'timezone': 'America/Denver'})
+                'timezone': 'America/Toronto'})
         responses = request.call().get('responses', {})
 
         inventory = responses.get('GET_INVENTORY', {}).get(
@@ -219,9 +219,9 @@ def complete_tutorial(api, account, tutorial_state):
         request = api.create_request()
         request.get_player(
             player_locale={
-                'country': 'US',
+                'country': 'CA',
                 'language': 'en',
-                'timezone': 'America/Denver'})
+                'timezone': 'America/Toronto'})
         request.call()
 
     if 7 not in tutorial_state:
@@ -372,6 +372,7 @@ def spin_pokestop(api, fort, step_location):
 
 
 def spin_pokestop_request(api, fort, step_location):
+    inventory_timestamp = None
     try:
         req = api.create_request()
         spin_pokestop_response = req.fort_search(
@@ -382,11 +383,17 @@ def spin_pokestop_request(api, fort, step_location):
             player_longitude=step_location[1])
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory()
+        if inventory_timestamp:
+            req.get_inventory(last_timestamp_ms=inventory_timestamp)
+        else:
+            req.get_inventory()
         req.check_awarded_badges()
-        req.download_settings()
         req.get_buddy_walked()
         spin_pokestop_response = req.call()
+
+        # Update inventory timestamp
+        inventory_timestamp = spin_pokestop_response['responses']['GET_INVENTORY'][
+                    'inventory_delta']['new_timestamp_ms']
 
         return spin_pokestop_response
 
@@ -427,7 +434,7 @@ def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
 
 def l_encounter_pokemon_request(api, encounter_id, fort_id, scan_location):
     # Set first timestamp to none
-    inventory_timestamp = None #time.time() * 1000
+    inventory_timestamp = None
     try:        # Encounter Request For Lured Pokemon
         req = api.create_request()
         req.disk_encounter(

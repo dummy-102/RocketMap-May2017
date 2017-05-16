@@ -1350,7 +1350,6 @@ def map_request(api, position, no_jitter=False):
         req.get_hatched_eggs()
         req.get_inventory()
         req.check_awarded_badges()
-        req.download_settings()
         req.get_buddy_walked()
         response = req.call()
         response = clear_dict_response(response, True)
@@ -1367,6 +1366,7 @@ def map_request(api, position, no_jitter=False):
 
 
 def gym_request(api, position, gym):
+    inventory_timestamp = None
     try:
         log.debug('Getting details for gym @ %f/%f (%fkm away)',
                   gym['latitude'], gym['longitude'],
@@ -1379,11 +1379,16 @@ def gym_request(api, position, gym):
                             gym_longitude=gym['longitude'])
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory()
+        if inventory_timestamp:
+            req.get_inventory(last_timestamp_ms=inventory_timestamp)
+        else:
+            req.get_inventory()
         req.check_awarded_badges()
-        req.download_settings()
         req.get_buddy_walked()
         x = req.call()
+        # Update inventory timestamp
+        inventory_timestamp = x['responses']['GET_INVENTORY'][
+                    'inventory_delta']['new_timestamp_ms']
         x = clear_dict_response(x)
         # Print pretty(x).
         return x
@@ -1464,7 +1469,7 @@ def get_api_version(args):
             proxies=proxies,
             verify=False,
             timeout=10)
-            
+
         return r.text[2:] if (r.status_code == requests.codes.ok and
                               r.text[2:].count('.') == 2) else 0
     except Exception as e:
