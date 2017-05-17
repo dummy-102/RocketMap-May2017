@@ -2932,17 +2932,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                 # Get detailed informations about Pokestops
                 if args.pokestop_info:
-                    query = (PokestopDetails
-                             .select(PokestopDetails.pokestop_id, PokestopDetails.name,
-                                        PokestopDetails.description, PokestopDetails.url,
-                                        PokestopDetails.item_id, PokestopDetails.deployer,
-                                        PokestopDetails.expires, PokestopDetails.last_scanned)
-                             .where((PokestopDetails.pokestop_id << stop_ids))
-                             .dicts())
-                    processed_pokestops = [(fd['pokestop_id'], fd['name'], fd['description'],
-                                            fd['url'], fd['item_id'], fd['deployer'],
-                                            fd['expires'], fd['last_scanned']) for fd in query]
-
                     if not get_details:
                         try:  # No need to get known info
                             PokestopDetails.get(pokestop_id=f['id'])
@@ -2963,12 +2952,25 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
 
 
+
                 # Send all pokestops to webhooks.
                 if args.webhooks and not args.webhook_updates_only:
                     # Explicitly set 'webhook_data', in case we want to change
                     # the information pushed to webhooks.  Similar to above and
                     # previous commits.
                     l_e = None
+                    name = None
+                    description = None
+                    url = None
+                    deployer = None
+
+                    if get_details:
+                        for id in pokestop_details:
+                            name = pokestop_details[id]['name']
+                            description = pokestop_details[id]['description']
+                            url = pokestop_details[id]['url']
+                            deployer = pokestop_details[id]['deployer']
+                            #log.warning('==========================POKESTOP DETAILS %s', deployer)
 
                     if lure_expiration is not None:
                         l_e = calendar.timegm(lure_expiration.timetuple())
@@ -2980,7 +2982,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'longitude': f['longitude'],
                         'last_modified_time': f['last_modified_timestamp_ms'],
                         'lure_expiration': l_e,
-                        'active_fort_modifier': active_fort_modifier
+                        'active_fort_modifier': active_fort_modifier,
+                        'name': name,
+                        'description': description,
+                        'url': url,
+                        'deployer': deployer,
                     }))
 
             # Currently, there are only stops and gyms.

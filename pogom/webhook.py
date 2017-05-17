@@ -184,7 +184,7 @@ def __get_key_fields(whtype):
     key_fields = {
         # lure_expiration is a UTC timestamp so it's good (Y).
         'pokestop': ['enabled', 'latitude',
-                     'longitude', 'lure_expiration', 'active_fort_modifier'],
+                     'longitude', 'lure_expiration', 'active_fort_modifier', 'name', 'description', 'url', 'deployer'],
         'pokemon': ['spawnpoint_id', 'pokemon_id', 'latitude', 'longitude',
                     'disappear_time', 'move_1', 'move_2',
                     'individual_stamina', 'individual_defense',
