@@ -159,7 +159,7 @@ function getStats(spawnpointId) { // eslint-disable-line no-unused-vars
             document.getElementById('stats-spawn-label').innerHTML = 'Spawns'
 
             $.each(data.spawn_history, function (count, id) {
-                if (id.count > 5) {
+                if (id.count >= 3) {
                     $('ul[name=spawnpointnest]').append('<li style="display:block; list-style: none; height: 36px; margin-right: 5px;"><i class="pokemon-sprite n' + id.pokemon_id + '"></i><span style="font-weight: bold;">   Spawned ' + id.count + ' Times</span></li>')
                 } else {
                     $('ul[name=spawnpointrest]').append('<li style="display:block; list-style: none; height: 36px; margin-right: 5px;"><i class="pokemon-sprite n' + id.pokemon_id + '"></i><span style="font-weight: bold;">   Spawned ' + id.count + ' Times</span></li>')
@@ -189,13 +189,13 @@ function spHistory(data) { // eslint-disable-line no-unused-vars
                 $.each(data.spawn_history, function (count, id) {
                     var pokename = id.pokemon_name
                     var pokeid = id.pokemon_id
-                    if (id.count >= 4 && spID != 'nearby_pokemon' && spID != 'lured_pokemon') {
+                    if (id.count >= 3 && spID != 'nearby_pokemon' && spID != 'lured_pokemon') {
                         var spawndiv = $('div[id=nestlist]')
                         var tipcount = id.count
                         if (spawndiv.children('ul[id=ul' + id.pokemon_id + ']').length === 0) {
                             pointcountlist.push(id.pokemon_id)
                             var spcount = pointcountlist.filter(function (value) { return value === id.pokemon_id }).length
-                            $('div[id=nestlist]').prepend('<div class="stats-label-container"><center><h4 style="margin-bottom: 0em;background-Color: #439a43;" title="Click to expand" id="label' + id.pokemon_id + 'expand"> <i class="pokemon-sprite n' + id.pokemon_id + '"></i><span id=' + id.pokemon_id + 'count> Spawned Frequently At ' + spcount + ' Location</span></h4><h6 style="margin-bottom: 0em;background-Color: #44bf44;" id="label' + id.pokemon_id + 'show"><span>Click Here To Show Where On Map</span></h6></center></div><ul class="statsHolder " id="ul' + id.pokemon_id + '" style="display:none; margin: auto; max-width: 240px; list-style: none"></ul>') &
+                            $('div[id=nestlist]').prepend('<div class="stats-label-container"><center><h4 style="margin-bottom: 0em;background-Color: #86c186;" title="Click To Expand" id="label' + id.pokemon_id + 'expand"> <i class="pokemon-sprite n' + id.pokemon_id + '"></i><span id=' + id.pokemon_id + 'count> Spawned Frequently At ' + spcount + ' Location</span></h4><h6 style="margin-bottom: 0em;background-Color: #a9e6a9;" id="label' + id.pokemon_id + 'show"><span>Click Here To Show Where On Map</span></h6><h6 style="display:none; margin-bottom: 0em;background-Color: #ffa4a4;" id="label' + id.pokemon_id + 'hide"><span>Hide Markers On Map</span></h6></center></div><ul class="statsHolder " id="ul' + id.pokemon_id + '" style="display:none; margin: auto; max-width: 240px; list-style: none"></ul>') &
                                 $('ul[id=ul' + id.pokemon_id + ']').append('<li style="display:block; list-style: none; height: 36px; margin-bottom: 5px;"><span style="color:black;font-weight: bold;font-size:15px;"> ' + id.count + ' Times at  <i class="fa fa-paw" /> ' + spID + '</span></li>')
                             $('#label' + id.pokemon_id + 'expand').on('click', function () { $('#ul' + id.pokemon_id).toggle() })
                         } else if (spID != 'nearby_pokemon' && spID != 'lured_pokemon') {
@@ -205,7 +205,9 @@ function spHistory(data) { // eslint-disable-line no-unused-vars
                             $('span[id=' + id.pokemon_id + 'count]').empty()
                             $('span[id=' + id.pokemon_id + 'count]').append('Spawned frequently at ' + spcount2 + ' locations')
                         }
-                        $('#label' + id.pokemon_id + 'show').on('click', function () { addnestmarker(latlng, spID, pokename, pokeid, tipcount, spLAT, spLONG) })
+                        var markerWrapper = $('#label' + id.pokemon_id + 'hide')
+                        $('#label' + id.pokemon_id + 'show').on('click', function () { addNestMarker(latlng, spID, pokename, pokeid, tipcount, spLAT, spLONG); markerWrapper.show() })
+                        $('#label' + id.pokemon_id + 'hide').on('click', function () { removeNestMarker(spID); markerWrapper.hide() })
                     }
                 })
             },
