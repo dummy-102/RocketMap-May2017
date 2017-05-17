@@ -88,7 +88,7 @@
             </div>
             <div id="pokemon-wrapper" style="display:none">
               <div class="form-control switch-container" id="pokemon-opacity-wrapper">
-                <h3>Pokémon opacity</h3>
+                <h3>Pokémon IV Opacity</h3>
                 <div class="onoffswitch">
                   <input id="pokemon-opacity-switch" type="checkbox" name="pokemon-opacity-switch" class="onoffswitch-checkbox" checked>
                   <label class="onoffswitch-label" for="pokemon-opacity-switch">
@@ -342,8 +342,6 @@
             </div>
               {% endif %}
           </div>
-
-
             {% if show.pokemons %}
           <h3>Notification Settings</h3>
           <div>
@@ -391,7 +389,39 @@
                   </label>
                 </div>
               </div>
-             </div>
+            </div>
+            <div class="form-control switch-container">
+              <h3>Notify of Medal-Pokémon</h3>
+              <div class="onoffswitch">
+                <input id="medal-switch" type="checkbox" name="medal-switch" class="onoffswitch-checkbox" checked>
+                <label class="onoffswitch-label" for="medal-switch">
+                <span class="switch-label" data-on="On" data-off="Off"></span>
+                <span class="switch-handle"></span>
+                </label>
+              </div>
+            </div>
+            <div id="medal-wrapper" style="display:none">
+              <div class="form-control switch-container" id="medal-rattata-wrapper">
+                <h3>Tiny Rattata</h3>
+                <div class="onoffswitch">
+                  <input id="medal-rattata-switch" type="checkbox" name="medal-rattata-switch" class="onoffswitch-checkbox" checked>
+                  <label class="onoffswitch-label" for="medal-rattata-switch">
+                  <span class="switch-label" data-on="On" data-off="Off"></span>
+                  <span class="switch-handle"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="form-control switch-container" id="medal-magikarp-wrapper">
+                <h3>Big Magikarp</h3>
+                <div class="onoffswitch">
+                  <input id="medal-magikarp-switch" type="checkbox" name="medal-magikarp-switch" class="onoffswitch-checkbox" checked>
+                  <label class="onoffswitch-label" for="medal-magikarp-switch">
+                  <span class="switch-label" data-on="On" data-off="Off"></span>
+                  <span class="switch-handle"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
             {% endif %}
           <h3>Style Settings</h3>

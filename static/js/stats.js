@@ -157,7 +157,6 @@ function getStats(spawnpointId) { // eslint-disable-line no-unused-vars
             document.getElementById('spawn-ldg-label').innerHTML = '<i class="fa fa-paw" />  ID:' + spawnpointId + ' History'
             document.getElementById('stats-nest-label').innerHTML = 'Nesting or Frequent'
             document.getElementById('stats-spawn-label').innerHTML = 'Spawns'
-
             $.each(data.spawn_history, function (count, id) {
                 if (id.count >= 3) {
                     $('ul[name=spawnpointnest]').append('<li style="display:block; list-style: none; height: 36px; margin-right: 5px;"><i class="pokemon-sprite n' + id.pokemon_id + '"></i><span style="font-weight: bold;">   Spawned ' + id.count + ' Times</span></li>')

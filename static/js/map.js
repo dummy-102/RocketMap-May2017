@@ -407,6 +407,10 @@ function initSidebar() {
     $('#geofences-switch').prop('checked', Store.get('showGeofences'))
     $('#pokemoncries').toggle(Store.get('playSound'))
     $('#cries-switch').prop('checked', Store.get('playCries'))
+    $('#medal-wrapper').toggle(Store.get('showMedal'))
+    $('#medal-switch').prop('checked', Store.get('showMedal'))
+    $('#medal-rattata-switch').prop('checked', Store.get('showMedalRattata'))
+    $('#medal-magikarp-switch').prop('checked', Store.get('showMedalMagikarp'))
     var searchBox = new google.maps.places.Autocomplete(document.getElementById('next-location'))
     $('#next-location').css('background-color', $('#geoloc-switch').prop('checked') ? '#e0e0e0' : '#ffffff')
 
@@ -1356,6 +1360,30 @@ function getPokemonLevel(cpMultiplier) {
     return pokemonLevel
 }
 
+function sizeRatio(height, weight, baseHeight, baseWeight) {
+    var heightRatio = height / baseHeight
+    var weightRatio = weight / baseWeight
+
+    return heightRatio + weightRatio
+}
+
+function isMedalPokemon(item) {
+    if (item['height'] == null && item['weight'] == null) {
+        return false
+    }
+
+    var baseHeight = (item['pokemon_id'] === 19) ? 0.30 : 0.90
+    var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
+    var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
+
+    if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && ratio < 1.5) ||
+            (Store.get('showMedalMagikarp')) && item['pokemon_id'] === 129 && ratio > 2.5) {
+        return true
+    }
+
+    return false
+}
+
 function lpad(str, len, padstr) {
     return Array(Math.max(len - String(str).length + 1, 0)).join(padstr) + str
 }
@@ -1481,7 +1509,6 @@ function customizePokemonMarker(marker, item, skipNotification) {
         }
     }
 
-
     var minOpacity = Store.get('minPokemonOpacityPercentage') / 100.0
     if (item['individual_attack'] != null && item['individual_defense'] != null && item['individual_stamina'] != null) {
         var perfection = getIv(item['individual_attack'], item['individual_defense'], item['individual_stamina'])
@@ -1500,7 +1527,25 @@ function customizePokemonMarker(marker, item, skipNotification) {
         }
     } else if (Store.get('showPokemonOpacity')) {
         var otime = (item['disappear_time'] - Date.now())  / 1000 / 30 / 1
-        marker.setOpacity(otime)  // Default opacity if toggle enabled
+        marker.setOpacity(minOpacity)  // Default opacity if toggle enabled
+    }
+
+    if (Store.get('showMedal')) {
+        if (isMedalPokemon(item)) {
+            if (!skipNotification) {
+                if (item['pokemon_id'] == 19) {
+                  playPokemonSound(item['pokemon_id'])
+                  sendNotification('Tiny ' + item['pokemon_name'] + '!', 'Click To Load Map', 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
+                }
+                if (item['pokemon_id'] == 129) {
+                  playPokemonSound(item['pokemon_id'])
+                  sendNotification('Big ' + item['pokemon_name'] + '!', 'Click To Load Map', 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
+                }
+            }
+            if (marker.animationDisabled !== true) {
+                marker.setAnimation(google.maps.Animation.BOUNCE)
+            }
+        }
     }
 
     addListeners(marker)
@@ -3196,6 +3241,23 @@ $(function () {
 
     $('#cries-switch').change(function () {
         Store.set('playCries', this.checked)
+    })
+
+    $('#medal-switch').change(function () {
+        var wrapper = $('#medal-wrapper')
+        wrapper.toggle(this.checked)
+        Store.set('showMedal', this.checked)
+        updateMap()
+    })
+
+    $('#medal-rattata-switch').change(function () {
+        Store.set('showMedalRattata', this.checked)
+        updateMap()
+    })
+
+    $('#medal-magikarp-switch').change(function () {
+        Store.set('showMedalMagikarp', this.checked)
+        updateMap()
     })
 
     $('#geoloc-switch').change(function () {

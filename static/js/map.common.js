@@ -1025,6 +1025,18 @@ var StoreOptions = {
     'obsoletion1': {
         default: 120,
         type: StoreTypes.Number
+    },
+    'showMedal': {
+        default: false,
+        type: StoreTypes.Boolean
+    },
+    'showMedalRattata': {
+        default: true,
+        type: StoreTypes.Boolean
+    },
+    'showMedalMagikarp': {
+        default: true,
+        type: StoreTypes.Boolean
     }
 }
 
