@@ -253,8 +253,8 @@ def tutorial_pokestop_spin(api, player_level, forts, step_location, account):
             account['username'], player_level)
         with open('accounts_healthy.csv', 'a') as accounts_healthy_file:
             account_line = '{},{},{}\n'.format(account['auth_service'],
-                                                 account['username'],
-                                                 account['password'])
+                                               account['username'],
+                                               account['password'])
             accounts_healthy_file.write(account_line)
     else:  # Account needs to spin a Pokestop for level 2.
         log.debug(
