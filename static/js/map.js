@@ -403,6 +403,7 @@ function initSidebar() {
     $('#ranges-switch').prop('checked', Store.get('showRanges'))
     $('#sound-switch').prop('checked', Store.get('playSound'))
     $('#geofences-switch').prop('checked', Store.get('showGeofences'))
+    $('#pokemoncries').toggle(Store.get('playSound'))
     $('#cries-switch').prop('checked', Store.get('playCries'))
     var searchBox = new google.maps.places.Autocomplete(document.getElementById('next-location'))
     $('#next-location').css('background-color', $('#geoloc-switch').prop('checked') ? '#e0e0e0' : '#ffffff')
@@ -726,6 +727,7 @@ function pokemonLabel(item) {
     var form = item['form']
     var cp = item['cp']
     var pokemon_level = item['pokemon_level']
+    var cpMultiplier = item['cp_multiplier']
     var prob1 = item['catch_prob_1']
     var prob2 = item['catch_prob_2']
     var prob3 = item['catch_prob_3']
@@ -1333,6 +1335,18 @@ function getIv(atk, def, stm) {
     return false
 }
 
+function getPokemonLevel(cpMultiplier) {
+    if (cpMultiplier < 0.734) {
+        var pokemonLevel = (58.35178527 * cpMultiplier * cpMultiplier -
+                         2.838007664 * cpMultiplier + 0.8539209906)
+    } else {
+        pokemonLevel = 171.0112688 * cpMultiplier - 95.20425243
+    }
+    pokemonLevel = (Math.round(pokemonLevel) * 2) / 2
+
+    return pokemonLevel
+}
+
 function lpad(str, len, padstr) {
     return Array(Math.max(len - String(str).length + 1, 0)).join(padstr) + str
 }
@@ -1415,7 +1429,25 @@ function getNotifyText(item) {
     }
 }
 
+function playPokemonSound(pokemonID) {
+    if (!Store.get('playSound')) {
+        return
+    }
+    if (!Store.get('playCries')) {
+        audio.play()
+    } else {
+        var audioCry = new Audio('static/sounds/cries/' + pokemonID + '.ogg')
+        audioCry.play().catch(function (err) {
+            if (err) {
+                console.log('Sound for Pokémon ' + pokemonID + ' is missing, using generic sound instead.')
+                audio.play()
+            }
+        })
+    }
+}
+
 function customizePokemonMarker(marker, item, skipNotification) {
+    var notifyText = getNotifyText(item)
     marker.addListener('click', function () {
         this.setAnimation(null)
         this.animationDisabled = true
@@ -1432,18 +1464,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
 
     if (notifiedPokemon.indexOf(item['pokemon_id']) > -1 || notifiedRarity.indexOf(item['pokemon_rarity']) > -1) {
         if (!skipNotification) {
-            if (Store.get('playSound') && !Store.get('playCries')) {
-                audio.play()
-            } else if (Store.get('playSound') && Store.get('playCries')) {
-                var audiocry = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.ogg')
-                audiocry.play().catch(function (err) {
-                    if (err) {
-                        console.log('sound for this pokemon is missing, using ding instead')
-                        var audio = new Audio('static/sounds/pokewho.mp3')
-                        audio.play()
-                    }
-                })
-            }
+            playPokemonSound(item['pokemon_id'])
             sendNotification(getNotifyText(item).fav_title, getNotifyText(item).fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
         }
         if (marker.animationDisabled !== true) {
@@ -1461,17 +1482,7 @@ function customizePokemonMarker(marker, item, skipNotification) {
         }
         if (notifiedMinPerfection > 0 && perfection >= notifiedMinPerfection) {
             if (!skipNotification) {
-                if (Store.get('playSound') && !Store.get('playCries')) {
-                    audio.play()
-                } else if (Store.get('playSound') && Store.get('playCries')) {
-                    var audiocryiv = new Audio('static/sounds/cries/' + item['pokemon_id'] + '.ogg')
-                    audiocryiv.play().catch(function (err) {
-                        if (err) {
-                            console.log('sound for this pokemon is missing, using ding instead')
-                            audio.play()
-                        }
-                    })
-                }
+                playPokemonSound(item['pokemon_id'])
                 sendNotification(getNotifyText(item).fav_title, getNotifyText(item).fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
             }
             if (marker.animationDisabled !== true) {
@@ -3159,6 +3170,19 @@ $(function () {
 
     $('#sound-switch').change(function () {
         Store.set('playSound', this.checked)
+        var options = {
+            'duration': 500
+        }
+        var criesWrapper = $('#pokemoncries')
+        if (this.checked) {
+            criesWrapper.show(options)
+        } else {
+            criesWrapper.hide(options)
+        }
+    })
+
+    $('#cries-switch').change(function () {
+        Store.set('playCries', this.checked)
     })
 
     $('#cries-switch').change(function () {

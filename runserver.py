@@ -22,14 +22,12 @@ from pogom import config
 from pogom.app import Pogom
 from pogom.utils import get_args, now, extract_sprites
 from pogom.altitude import get_gmaps_altitude
-
 from pogom.search import search_overseer_thread
 from pogom.models import (init_database, create_tables, drop_tables,
                           Pokemon, db_updater, clean_db_loop,
-                          SpawnPoint)
+                          SpawnPoint, verify_table_encoding, verify_database_schema)
 from pogom.geofence import Geofences
 from pogom.webhook import wh_updater
-
 from pogom.proxy import check_proxies, proxies_refresher
 
 # Currently supported pgoapi.
@@ -148,8 +146,9 @@ def main():
 
     # Let's not forget to run Grunt / Only needed when running with webserver.
     if not args.no_server:
+        root_path = os.path.dirname(__file__)
         if not os.path.exists(
-                os.path.join(os.path.dirname(__file__), 'static/dist')):
+                os.path.join(root_path, 'static/dist')):
             log.critical(
                 'Missing front-end assets (static/dist) -- please run ' +
                 '"npm install && npm run build" before starting the server.')
@@ -157,10 +156,9 @@ def main():
 
         # You need custom image files now.
         if not os.path.isfile(
-                os.path.join(os.path.dirname(__file__),
-                             'static/icons-shuffle-sprite128x.png')):
+                os.path.join(root_path, 'static/icons-shuffle-sprite128x.png')):
             log.info('Sprite files not present, extracting bundled ones...')
-            extract_sprites()
+            extract_sprites(root_path)
             log.info('Done!')
 
     # These are very noisy, let's shush them up a bit.
@@ -251,7 +249,14 @@ def main():
             drop_tables(db)
         elif os.path.isfile(args.db):
             os.remove(args.db)
+
+    verify_database_schema(db)
+
     create_tables(db)
+
+    # fixing encoding on present and future tables
+    verify_table_encoding(db)
+
     if args.clear_db:
         log.info("Drop and recreate is complete. Now remove -cd and restart.")
         sys.exit()
@@ -303,6 +308,9 @@ def main():
                    args=(args, wh_updates_queue, wh_key_cache))
         t.daemon = True
         t.start()
+
+    config['ROOT_PATH'] = app.root_path
+    config['GMAPS_KEY'] = args.gmaps_key
 
     if not args.only_server:
 
@@ -356,9 +364,6 @@ def main():
     app.set_search_control(pause_bit)
     app.set_heartbeat_control(heartbeat)
     app.set_location_queue(new_location_queue)
-
-    config['ROOT_PATH'] = app.root_path
-    config['GMAPS_KEY'] = args.gmaps_key
 
     if args.no_server:
         # This loop allows for ctrl-c interupts to work since flask won't be

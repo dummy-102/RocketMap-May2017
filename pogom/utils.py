@@ -242,16 +242,12 @@ def get_args():
                                     'webhooks. Specified as Pokemon ID.'))
     webhook_list.add_argument('-wwhtf', '--webhook-whitelist-file',
                               default='', help='File containing a list of '
-                                               'Pokemon to send to '
-                                               'webhooks. Pokemon are '
-                                               ' specified by their name, '
-                                               ' one on each line.')
+                                               'Pokemon IDs to be sent to '
+                                               'webhooks.')
     webhook_list.add_argument('-wblkf', '--webhook-blacklist-file',
                               default='', help='File containing a list of '
-                                               'Pokemon NOT to send to'
-                                               'webhooks. Pokemon are '
-                                               ' specified by their name, '
-                                               ' one on each line.')
+                                               'Pokemon IDs NOT to be sent to'
+                                               'webhooks.')
     parser.add_argument('-ld', '--login-delay',
                         help='Time delay between each login attempt.',
                         type=float, default=6)
@@ -788,31 +784,17 @@ def get_args():
 
         if args.webhook_whitelist_file:
             with open(args.webhook_whitelist_file) as f:
-                args.webhook_whitelist = [get_pokemon_id(name) for name in
-                                          f.read().splitlines()]
+                args.webhook_whitelist = frozenset(
+                    [int(p_id.strip()) for p_id in f])
         elif args.webhook_blacklist_file:
             with open(args.webhook_blacklist_file) as f:
-                args.webhook_blacklist = [get_pokemon_id(name) for name in
-                                          f.read().splitlines()]
+                args.webhook_blacklist = frozenset(
+                    [int(p_id.strip()) for p_id in f])
         else:
-            args.webhook_blacklist = [int(i) for i in
-                                      args.webhook_blacklist]
-            args.webhook_whitelist = [int(i) for i in
-                                      args.webhook_whitelist]
-
-        if args.webhook_whitelist_file:
-            with open(args.webhook_whitelist_file) as f:
-                args.webhook_whitelist = [get_pokemon_id(name) for name in
-                                          f.read().splitlines()]
-        elif args.webhook_blacklist_file:
-            with open(args.webhook_blacklist_file) as f:
-                args.webhook_blacklist = [get_pokemon_id(name) for name in
-                                          f.read().splitlines()]
-        else:
-            args.webhook_blacklist = [int(i) for i in
-                                      args.webhook_blacklist]
-            args.webhook_whitelist = [int(i) for i in
-                                      args.webhook_whitelist]
+            args.webhook_blacklist = frozenset(
+                [int(i) for i in args.webhook_blacklist])
+            args.webhook_whitelist = frozenset(
+                [int(i) for i in args.webhook_whitelist])
 
         # Decide which scanning mode to use.
         if args.spawnpoint_scanning:
@@ -1028,10 +1010,16 @@ def generate_device_info():
     return device_info
 
 
-def extract_sprites():
-    log.debug("Extracting sprites...")
-    zip = zipfile.ZipFile('static01.zip', 'r')
-    zip.extractall('static')
+def extract_sprites(root_path):
+    zip_path = os.path.join(
+           root_path,
+           'static01.zip')
+    extract_path = os.path.join(
+           root_path,
+           'static')
+    log.debug('Extracting sprites from "%s" to "%s"', zip_path, extract_path)
+    zip = zipfile.ZipFile(zip_path, 'r')
+    zip.extractall(extract_path)
     zip.close()
 
 
@@ -1051,6 +1039,15 @@ def clear_dict_response(response, keep_inventory=False):
     if 'GET_BUDDY_WALKED' in response['responses']:
         del response['responses']['GET_BUDDY_WALKED']
     return response
+
+def calc_pokemon_level(pokemon_info):
+    cpm = pokemon_info["cp_multiplier"]
+    if cpm < 0.734:
+        pokemon_level = 58.35178527 * cpm * cpm - 2.838007664 * cpm + 0.8539209906
+    else:
+        pokemon_level = 171.0112688 * cpm - 95.20425243
+    pokemon_level = (round(pokemon_level) * 2) / 2.0
+    return pokemon_level
 
 # Check 2captcha balance
 def captcha_balance(key):
