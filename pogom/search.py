@@ -50,7 +50,8 @@ from .fakePogoApi import FakePogoApi
 from .utils import now, generate_device_info, clear_dict_response, captcha_balance
 from .transform import get_new_coords, jitter_location
 from .account import (setup_api, check_login, get_tutorial_state,
-                      complete_tutorial, get_player_inventory, AccountSet, get_player_stats)
+                      complete_tutorial, get_player_inventory, AccountSet,
+                      get_player_stats)
 from pogom.gainxp import level_up_rewards_request
 from .captcha import captcha_overseer_thread, handle_captcha
 import schedulers

@@ -76,9 +76,11 @@ def catch(api, encounter_id, spawn_point_id, inventory):
     while rv['attempts'] < 3:
         time.sleep(random.uniform(2, 3))
         try:
-            # Randomize throwing parameters
-            random_throw = 1.5 + 0.40 * random.random()
-            random_spin = 0.8 + 0.2 * random.random()
+            # Randomize throwing parameters. Some stuff to read:
+            # https://pokemongo.gamepress.gg/catch-mechanics
+            # https://www.reddit.com/r/pokemongodev/comments/4vlnwj/pokemon_go_catch_mechanicsformula_discussion/
+            normalized_reticle_size = 1.1 + 0.70 * random.random()
+            spin_modifier = 0.4 + 0.4 * random.random()
 
             # Determine best ball - we know for sure that we have at least one
             ball = ITEM_ULTRA_BALL if inventory.get(ITEM_ULTRA_BALL, 0) > 0 else (
@@ -88,10 +90,10 @@ def catch(api, encounter_id, spawn_point_id, inventory):
             req.catch_pokemon(
                 encounter_id=encounter_id,
                 pokeball=ball,
-                normalized_reticle_size=random_throw,
+                normalized_reticle_size=normalized_reticle_size,
                 spawn_point_id=spawn_point_id,
                 hit_pokemon=1,
-                spin_modifier=random_spin,
+                spin_modifier=spin_modifier,
                 normalized_hit_position=1.0)
             req.check_challenge()
             req.get_hatched_eggs()
