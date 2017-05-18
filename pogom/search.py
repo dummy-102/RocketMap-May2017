@@ -49,9 +49,9 @@ from .models import (parse_map, GymDetails, parse_gyms,
 from .fakePogoApi import FakePogoApi
 from .utils import now, generate_device_info, clear_dict_response, captcha_balance
 from .transform import get_new_coords, jitter_location
-from .account import (setup_api, check_login, get_tutorial_state,
+from .account import (setup_api, check_login,
                       complete_tutorial, get_player_inventory, AccountSet,
-                      get_player_stats)
+                      get_player_stats, get_player_state)
 from pogom.gainxp import level_up_rewards_request
 from .captcha import captcha_overseer_thread, handle_captcha
 import schedulers
@@ -323,11 +323,11 @@ def print_account_stats(rows, thread_status, account_queue,
         userlen = max(userlen, len(acc.get('username', '')))
 
     # Print table header.
-    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:5} | {:>8} | {:10} | {:6}' \
+    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:5} | {:>8} | {:10} | {:6}' \
                                    ' | {:8} | {:12} | {:5} | {:>10}'
-    rows.append(row_tmpl.format('Status', 'User', 'Level', 'XP',
-                                     'Encounters', 'Throws',
-                                     'Captures', 'Inventory', 'Spins', 'Walked'))
+    rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Level', 'XP','Encounters',
+                                'Throws', 'Captures', 'Inventory', 'Spins',
+                                'Walked'))
 
     # Pagination.
     start_line, end_line, total_pages = calc_pagination(len(accounts), 6,
@@ -356,9 +356,12 @@ def print_account_stats(rows, thread_status, account_queue,
         if inv:
             inv_str = '{}B/{}T/{}L'.format(inv.get('balls', 0), inv.get('total', 0), inv.get('totalDisks', 0))
 
+        warning = account.get('warn')
+        warning = '' if warning is None else ('Yes' if warning else 'No')
         rows.append(row_tmpl.format(
             status,
             account.get('username', ''),
+            warning,
             account.get('level', ''),
             account.get('experience', ''),
             account.get('pokemons_encountered', ''),
@@ -1073,9 +1076,14 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                 if first_login:
                     first_login = False
 
+                    # Get warning/banned flags and tutorial state.
+                    account.update(get_player_state(api))
+
                     # Check tutorial completion.
                     if args.complete_tutorial:
-                        tutorial_state = get_tutorial_state(api, account)
+                        log.debug('Checking tutorial state for %s.',
+                                  account['username'])
+                        tutorial_state = account['tutorial_state']
 
                         if not all(x in tutorial_state
                                    for x in (0, 1, 3, 4, 7)):

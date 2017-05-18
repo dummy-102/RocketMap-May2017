@@ -105,10 +105,8 @@ def check_login(args, account, api, position, proxy_url):
     time.sleep(20)
 
 
-# Check if all important tutorial steps have been completed.
-# API argument needs to be a logged in API instance.
-def get_tutorial_state(api, account):
-    log.debug('Checking tutorial state for %s.', account['username'])
+# Returns warning/banned flags and tutorial state.
+def get_player_state(api):
     request = api.create_request()
     request.get_player(
         player_locale={'country': 'CA',
@@ -118,10 +116,12 @@ def get_tutorial_state(api, account):
     response = request.call().get('responses', {})
 
     get_player = response.get('GET_PLAYER', {})
-    tutorial_state = get_player.get(
-        'player_data', {}).get('tutorial_state', [])
     time.sleep(random.uniform(2, 4))
-    return tutorial_state
+    return {
+        'tutorial_state': get_player.get('player_data', {}).get('tutorial_state', []),
+        'warn': get_player.get('warn', False),
+        'banned': get_player.get('banned', False)
+    }
 
 
 # Complete minimal tutorial steps.
