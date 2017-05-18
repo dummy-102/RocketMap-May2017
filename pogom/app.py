@@ -273,6 +273,7 @@ class Pogom(Flask):
         return render_template('map.html',
                                lat=map_lat,
                                lng=map_lng,
+                               showAllZoomLevel=args.show_all_zoom_level,
                                gmaps_key=config['GMAPS_KEY'],
                                lang=config['LOCALE'],
                                show=visibility_flags
