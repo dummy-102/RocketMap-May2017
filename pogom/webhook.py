@@ -193,7 +193,8 @@ def __get_key_fields(whtype):
                     'form', 'previous_id'],
         'gym': ['team_id', 'guard_pokemon_id',
                 'gym_points', 'enabled', 'latitude', 'longitude'],
-        'gym_details': ['latitude', 'longitude', 'team', 'pokemon']
+        'gym_details': ['latitude', 'longitude', 'team', 'pokemon', 'guard_pokemon_id',
+                        'gym_points', 'name', 'description', 'url']
     }
 
     return key_fields.get(whtype, [])

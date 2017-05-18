@@ -3189,6 +3189,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
         if args.webhooks:
             webhook_data = {
                 'id': b64encode(str(gym_id)),
+                'guard_pokemon_id': gym_state['fort_data'].get('guard_pokemon_id', 0),
+                'gym_points': gym_state['fort_data'].get('gym_points', 0),
                 'latitude': gym_state['fort_data']['latitude'],
                 'longitude': gym_state['fort_data']['longitude'],
                 'team': gym_state['fort_data'].get('owned_by_team', 0),
