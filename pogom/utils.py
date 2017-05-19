@@ -232,22 +232,10 @@ def get_args():
                              default='', help='File containing a list of '
                              'Pokemon to ignore.')
     webhook_list = parser.add_mutually_exclusive_group()
-    webhook_list.add_argument('-wwht', '--webhook-whitelist',
-                              action='append', default=[],
-                              help=('List of Pokemon to send to '
-                                    'webhooks. Specified as Pokemon ID.'))
-    webhook_list.add_argument('-wblk', '--webhook-blacklist',
-                              action='append', default=[],
-                              help=('List of Pokemon NOT to send to '
-                                    'webhooks. Specified as Pokemon ID.'))
     webhook_list.add_argument('-wwhtf', '--webhook-whitelist-file',
                               default='', help='File containing a list of '
-                                               'Pokemon IDs to be sent to '
-                                               'webhooks.')
-    webhook_list.add_argument('-wblkf', '--webhook-blacklist-file',
-                              default='', help='File containing a list of '
-                                               'Pokemon IDs NOT to be sent to'
-                                               'webhooks.')
+                                               'Pokemon IDs or names to be '
+                                               'sent to webhooks.')
     parser.add_argument('-ld', '--login-delay',
                         help='Time delay between each login attempt.',
                         type=float, default=6)
@@ -782,19 +770,10 @@ def get_args():
                   "--accountcsv to add accounts.")
             sys.exit(1)
 
+        # Prepare webhook whitelist - empty list means no restrictions
+        args.webhook_whitelist = []
         if args.webhook_whitelist_file:
-            with open(args.webhook_whitelist_file) as f:
-                args.webhook_whitelist = frozenset(
-                    [int(p_id.strip()) for p_id in f])
-        elif args.webhook_blacklist_file:
-            with open(args.webhook_blacklist_file) as f:
-                args.webhook_blacklist = frozenset(
-                    [int(p_id.strip()) for p_id in f])
-        else:
-            args.webhook_blacklist = frozenset(
-                [int(i) for i in args.webhook_blacklist])
-            args.webhook_whitelist = frozenset(
-                [int(i) for i in args.webhook_whitelist])
+            args.webhook_whitelist = read_pokemon_ids_from_file(f)
 
         # Decide which scanning mode to use.
         if args.spawnpoint_scanning:
