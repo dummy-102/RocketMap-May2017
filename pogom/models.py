@@ -2727,7 +2727,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 get_details = False
 
                 # Spin Pokestop to gain XP if account is below level 25
-                if args.gain_xp and account_not_30 and pokestop_spinnable(
+                if account_not_30 and pokestop_spinnable(
                     f, step_location):
 
                     # Do Spin Stop
@@ -2949,9 +2949,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             #    'Parsed pokestop details: \n\r{}'.format(
                             #        pprint.PrettyPrinter(indent=4).pformat(
                             #            pokestop_details)))
-
-
-
 
                 # Send all pokestops to webhooks.
                 if args.webhooks and not args.webhook_updates_only:
