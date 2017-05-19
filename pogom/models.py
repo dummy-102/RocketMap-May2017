@@ -123,7 +123,7 @@ class Pokemon(BaseModel):
     # We are base64 encoding the ids delivered by the api
     # because they are too big for sqlite to handle.
     encounter_id = Utf8mb4CharField(primary_key=True, max_length=50)
-    spawnpoint_id = Utf8mb4CharField(index=True)
+    spawnpoint_id = Utf8mb4CharField(index=True, max_length=16)
     pokemon_id = SmallIntegerField(index=True)
     latitude = DoubleField()
     longitude = DoubleField()
@@ -1745,8 +1745,8 @@ class Versions(flaskDb.Model):
 
 
 class GymMember(BaseModel):
-    gym_id = Utf8mb4CharField(index=True)
-    pokemon_uid = Utf8mb4CharField(index=True)
+    gym_id = Utf8mb4CharField(index=True, max_length=50)
+    pokemon_uid = Utf8mb4CharField(index=True, max_length=50)
     last_scanned = DateTimeField(default=datetime.utcnow, index=True)
 
     class Meta:
@@ -1812,6 +1812,7 @@ class Account(BaseModel):
     walked = DoubleField(null=True)
     awarded_to_level = SmallIntegerField(default=1)
     num_balls = SmallIntegerField(null=True)
+    warn = BooleanField(null=True)
 
     def update(self, acc):
         self.level = acc.get('level')
@@ -1822,6 +1823,7 @@ class Account(BaseModel):
         self.spins = acc.get('poke_stop_visits')
         self.walked = acc.get('km_walked')
         self.num_balls = acc.get('inventory', {}).get('balls')
+        self.warn = acc.get('warn')
         self.last_modified = datetime.utcnow()
 
     def db_format(self):
@@ -1836,6 +1838,7 @@ class Account(BaseModel):
             'walked': self.walked,
             'awarded_to_level': self.awarded_to_level,
             'num_balls': self.num_balls,
+            'warn': self.warn,
             'last_modified': datetime.utcnow()
         }
 
@@ -3840,6 +3843,15 @@ def database_migrate(db, old_ver):
             migrator.add_column('pokemon', 'cp_multiplier',
                                 FloatField(null=True))
         )
+
+        if args.db_type == 'mysql':
+            db.execute_sql('ALTER TABLE `gymmember` '
+                       'MODIFY COLUMN `gym_id` VARCHAR(50) NOT NULL,'
+                       'MODIFY COLUMN `pokemon_uid` VARCHAR(50) NOT NULL')
+            db.execute_sql('ALTER TABLE `gympokemon` '
+                       'MODIFY COLUMN `trainer_name` VARCHAR(191) NOT NULL')
+            db.execute_sql('ALTER TABLE `pokemon` '
+                       'MODIFY COLUMN `spawnpoint_id` VARCHAR(16) NOT NULL')
 
     # Always log that we're done.
     log.info('Schema upgrade complete.')
