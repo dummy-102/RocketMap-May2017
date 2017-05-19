@@ -347,7 +347,7 @@ def main():
                 file.write(json.dumps(spawns))
                 log.info('Finished exporting spawn points')
 
-        fake_pokemon_mode = True
+        fake_pokemon_mode = False
         if fake_pokemon_mode:
             log.info('** Starting a fake search **')
             search_thread = Thread(target=fake_search_thread,
