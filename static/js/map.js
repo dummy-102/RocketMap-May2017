@@ -84,8 +84,10 @@ var unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
   <atk> - attack as number
   <def> - defense as number
   <sta> - stamnia as number
+  <cp>  - cp as number
+  <lvl> - level as number
 */
-var notifyIvTitle = '<pkm> <prc>% (<atk>/<def>/<sta>)'
+var notifyIvTitle = '<pkm> <prc>% (<atk>/<def>/<sta>) CP:<cp> Lv:<lvl>'
 var notifyNoIvTitle = '<pkm>'
 
 /*
@@ -1424,9 +1426,10 @@ function getTimeUntil(time) {
 
 function getNotifyText(item) {
     var iv = getIv(item['individual_attack'], item['individual_defense'], item['individual_stamina'])
-    var find = ['<prc>', '<pkm>', '<atk>', '<def>', '<sta>']
+    var find = ['<prc>', '<pkm>', '<atk>', '<def>', '<sta>', '<cp>', '<lvl>']
     var replace = [((iv) ? iv.toFixed(1) : ''), item['pokemon_name'], item['individual_attack'],
-        item['individual_defense'], item['individual_stamina']]
+        item['individual_defense'], item['individual_stamina'],
+        item['cp'], getPokemonLevel(item['cp_multiplier'])]
     var ntitle = repArray(((iv) ? notifyIvTitle : notifyNoIvTitle), find, replace)
     var dist = (new Date(item['disappear_time'])).toLocaleString([], {
         hour: '2-digit', minute: '2-digit',

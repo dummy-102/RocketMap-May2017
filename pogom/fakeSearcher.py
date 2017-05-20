@@ -17,7 +17,7 @@ def add_fake_pokemon(db_updates_queue, fake_pokemon_objects):
     pokemons = {}
     for obj in fake_pokemon_objects:
         error = False
-        for key in ['pokemon_id', 'latitude', 'longitude', 'disappear_time']:
+        for key in ['pokemon_id', 'latitude', 'longitude', 'disappear_time', 'form']:
             if key not in obj.keys():
                 print('fake_pokemon missing "' + key + '"')
                 error = True
@@ -25,7 +25,7 @@ def add_fake_pokemon(db_updates_queue, fake_pokemon_objects):
             continue
 
         fakeid = random.getrandbits(64)
-        fakeidstr = str(fakeid).decode('UTF-8')
+        #fakeidstr = str(fakeid).decode('UTF-8')
 
         time_left_in_seconds = (obj['disappear_time']
                                 - now_date).total_seconds()
@@ -40,7 +40,7 @@ def add_fake_pokemon(db_updates_queue, fake_pokemon_objects):
 
         pokemon = {
             'encounter_id': b64encode(str(fakeid)),
-            'spawnpoint_id': fakeidstr,
+            'spawnpoint_id': 'test_pokemon',
             'pokemon_id': None,
             'latitude': None,
             'longitude': None,
@@ -55,6 +55,15 @@ def add_fake_pokemon(db_updates_queue, fake_pokemon_objects):
             'weight': None,
             'gender': None,
             'form': None,
+            'cp_multiplier': None,
+            'pokemon_level': None,
+            'catch_prob_1': None,
+            'catch_prob_2': None,
+            'catch_prob_3': None,
+            'previous_id' :None,
+            'rating_attack': None,
+            'rating_defense': None,
+            'worker_level': None,
             }
 
         for key, value in obj.items():

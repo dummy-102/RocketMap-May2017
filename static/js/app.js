@@ -268,11 +268,13 @@
         $spawn2Close.tabIndex = 0
         $spawn2.appendChild($spawn2Close)
     }
-    $gymSidebarClose = document.createElement('a')
-    $gymSidebarClose.href = '#'
-    $gymSidebarClose.className = 'close'
-    $gymSidebarClose.tabIndex = 0
-    $gymSidebar.appendChild($gymSidebarClose)
+    if ($gymSidebar) {
+      $gymSidebarClose = document.createElement('a')
+      $gymSidebarClose.href = '#'
+      $gymSidebarClose.className = 'close'
+      $gymSidebarClose.tabIndex = 0
+      $gymSidebar.appendChild($gymSidebarClose)
+    }
 
     // Event: Hide on ESC.
     window.addEventListener('keydown', function (event) {
