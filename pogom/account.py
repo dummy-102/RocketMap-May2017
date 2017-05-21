@@ -98,8 +98,22 @@ def check_login(args, account, api, position, proxy_url):
             account['username'], num_tries)
         raise TooManyLoginAttempts('Exceeded login attempts.')
 
-    log.debug('Login for account %s successful.', account['username'])
-    time.sleep(20)
+    time.sleep(random.uniform(2, 4))
+
+    # Performed always as first request directly after logging in.
+    try:
+        request = api.create_request()
+        request.get_player(
+            player_locale={
+                'country': 'US',
+                'language': 'en',
+                'timezone': 'America/Denver'})
+        request.call()
+        log.debug('Login for account %s successful.', account['username'])
+        time.sleep(random.uniform(10, 20))
+    except Exception as e:
+        log.debug('Login for account %s failed. Exception in first call: %s',
+                  account['username'], repr(e))
 
 
 # Check if all important tutorial steps have been completed.
