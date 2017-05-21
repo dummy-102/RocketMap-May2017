@@ -1229,9 +1229,13 @@ function spawnpointLabel(item) {
 
         str +=
             `<div>
-                <font size="1"><b><a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a></font></b>&nbsp;&nbsp;<font size="1"><b><a href="javascript:getStats('${item['id']}')">Spawn history</a></font></b>
-              </div>
-            </center>`
+              <font size="1"><b><a href='javascript:void(0);' onclick='javascript:openMapDirections(${item['latitude']},${item['longitude']});' title='View in Maps'>Get directions</a></font></b>&nbsp;&nbsp;<font size="1"><b><a href="javascript:getStats('${item['id']}')">24H Spawn History</a></font></b>
+            </div>
+            </div>
+              <font size="1"><b><a href="javascript:showSpawnDetails('${item['id']}')">All Spawn History</a>&nbsp;&nbsp;<font size="1"><b><a href="javascript:getStats2('${item['id']}')">All Spawn History Icons</a></a></font>
+              <ul class="statsHolder " name="${item['id']}" style="max-width: 240px; list-style: none"></ul>
+            </div>
+          </center>`
     return str
 }
 
@@ -2634,6 +2638,69 @@ function createUpdateWorker() {
     }
 }
 
+function showSpawnDetails (id) { // eslint-disable-line no-unused-vars
+  $('#showstats-switch').prop('checked', Store.get('showStats'))
+  var sidebar = document.querySelector('#spawn-details')
+
+  sidebar.classList.add('visible')
+  if (!Store.get('showStats')) {
+    sidebar.style.width = '15em'
+  }
+  var data = $.ajax({
+    url: 'spawn_data',
+    type: 'GET',
+    data: {
+      'id': id
+    },
+    dataType: 'json',
+    cache: false
+  })
+
+  data.done(function (result) {
+    var spawnHistoryTable = $('#spawnHistory_table').DataTable()
+
+    document.getElementById('spawn-ldg-label').innerHTML = ''
+    document.getElementById('spawn-hist-label').innerHTML = 'All Spawn History'
+    if (result.pokemon.length) {
+      var spawnHistory = []
+
+      $.each(result.pokemon, function (i, pokemon) {
+        var attack = pokemon.individual_attack ? pokemon.individual_attack : 0
+        var defense = pokemon.individual_defense ? pokemon.individual_defense : 0
+        var stamina = pokemon.individual_stamina ? pokemon.individual_stamina : 0
+        var move1Name = pokemon.move_1_name ? pokemon.move_1_name : ''
+        var move2Name = pokemon.move_2_name ? pokemon.move_2_name : ''
+        var spawnTime = new Date(pokemon.disappear_time - (15 * 60000))
+
+        var perfectPercent = Math.round((attack + defense + stamina) * 100 / 45)
+
+        spawnHistory.push(
+          [
+            '<img height="50px" src="static/sprites/' + pokemon.pokemon_id + '.png" />',
+            spawnTime.getTime(),
+            `${spawnTime.toLocaleDateString()} ${spawnTime.toLocaleTimeString()}`,
+            perfectPercent,
+            attack,
+            defense,
+            stamina,
+            move1Name,
+            move2Name
+          ]
+        )
+      })
+      $('#spawnHistory_table').dataTable().show()
+      spawnHistoryTable
+        .clear()
+        .rows.add(spawnHistory)
+        .draw()
+    } else {
+      spawnHistoryTable
+        .clear()
+        .draw()
+    }
+  })
+}
+
 function showGymDetails(id) { // eslint-disable-line no-unused-vars
     var sidebar = document.querySelector('#gym-details')
     var sidebarClose
@@ -3346,6 +3413,19 @@ $(function () {
         Store.set('scanHere', this.checked)
     })
 
+    $('#showstats-switch').change(function () {
+      Store.set('showStats', this.checked)
+      var statTable = $('#spawnHistory_table').DataTable()
+      var sidebar = document.querySelector('#spawn-details')
+      statTable.column(3).visible(this.checked)
+      statTable.column(4).visible(this.checked)
+      statTable.column(5).visible(this.checked)
+      statTable.column(6).visible(this.checked)
+      statTable.column(7).visible(this.checked)
+      statTable.column(8).visible(this.checked)
+      sidebar.style.width = this.checked ? '' : '15em'
+    })
+
     if ($('#nav-accordion').length) {
         $('#nav-accordion').accordion({
             active: 0,
@@ -3373,4 +3453,25 @@ $(function () {
             null
         ]
     }).order([1, 'asc'])
+
+    $('#spawnHistory_table').DataTable({
+      paging: false,
+      searching: false,
+      info: false,
+      errMode: 'throw',
+      'language': {
+        'emptyTable': ''
+      },
+      'columns': [
+        { 'width': '30px', 'orderable': false },
+        { 'visible': false },
+        { 'orderData': 1 },
+        { 'visible': Store.get('showStats') },
+        { 'visible': Store.get('showStats') },
+        { 'visible': Store.get('showStats') },
+        { 'visible': Store.get('showStats') },
+        { 'visible': Store.get('showStats') },
+        { 'visible': Store.get('showStats') }
+      ]
+    }).order([1, 'desc'])
 })

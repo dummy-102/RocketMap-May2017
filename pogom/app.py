@@ -68,6 +68,8 @@ class Pogom(Flask):
         self.route("/submit_token", methods=['POST'])(self.submit_token)
         self.route("/get_stats", methods=['GET'])(self.get_account_stats)
         self.route("/spawn_history", methods=['GET'])(self.spawn_history)
+        self.route("/spawn_history2", methods=['GET'])(self.spawn_history2)
+        self.route("/spawn_data", methods=['GET'])(self.get_spawndata)
         self.route("/pointhistory", methods=['GET'])(self.pointhistory)
         self.route("/robots.txt", methods=['GET'])(self.render_robots_txt)
         self.route("/geofency_wh", methods=['POST'])(self.post_geofency_wh)
@@ -142,6 +144,13 @@ class Pogom(Flask):
 
         return jsonify(d)
 
+    def spawn_history2(self):
+        d = {}
+        spawnpoint_id = request.args.get('spawnpoint_id')
+        d['spawn_history2'] = Pokemon.get_spawn_history2(spawnpoint_id)
+
+        return jsonify(d)
+
     def pointhistory(self):
         d = {}
         swLat = request.args.get('swLat')
@@ -151,6 +160,12 @@ class Pogom(Flask):
         d['points'] = Pokemon.get_pointhistory(swLat, swLng, neLat, neLng)
 
         return jsonify(d)
+
+    def get_spawndata(self):
+        id = request.args.get('id')
+        spawn = Pokemon.get_spawnpoint_history(id)
+
+        return jsonify(spawn)
 
     def get_bookmarklet(self):
         args = get_args()

@@ -404,6 +404,37 @@ class Pokemon(BaseModel):
 
         return filtered
 
+    @staticmethod
+    def get_spawnpoint_history(id):
+        result = {}
+        result['pokemon'] = []
+        pokemon = (Pokemon
+                   .select(Pokemon.pokemon_id,
+                           Pokemon.disappear_time,
+                           Pokemon.individual_attack,
+                           Pokemon.individual_defense,
+                           Pokemon.individual_stamina,
+                           Pokemon.move_1,
+                           Pokemon.move_2)
+                   .where(Pokemon.spawnpoint_id == id)
+                   .order_by(Pokemon.disappear_time.desc())
+                   .dicts())
+        for p in pokemon:
+            p['pokemon_name'] = get_pokemon_name(p['pokemon_id'])
+
+            if p['move_1'] is not None:
+                p['move_1_name'] = get_move_name(p['move_1'])
+                p['move_1_damage'] = get_move_damage(p['move_1'])
+                p['move_1_energy'] = get_move_energy(p['move_1'])
+                p['move_1_type'] = get_move_type(p['move_1'])
+            if p['move_2'] is not None:
+                p['move_2_name'] = get_move_name(p['move_2'])
+                p['move_2_damage'] = get_move_damage(p['move_2'])
+                p['move_2_energy'] = get_move_energy(p['move_2'])
+                p['move_2_type'] = get_move_type(p['move_2'])
+            result['pokemon'].append(p)
+        return result
+
     @classmethod
     def get_spawn_history(cls, spawnpoint_id):
         lastday = datetime.utcnow() - timedelta(hours=24)
@@ -424,6 +455,17 @@ class Pokemon(BaseModel):
             spawn_history.append(p)
 
         return spawn_history
+
+    @classmethod
+    def get_spawn_history2(cls, spawnpoint_id):
+        query = (Pokemon
+                 .select(fn.Count(Pokemon.pokemon_id).alias('count'), Pokemon.pokemon_id)
+                 .where((Pokemon.spawnpoint_id == spawnpoint_id))
+                 .group_by(Pokemon.pokemon_id)
+                 .order_by(-SQL('count'))
+                 .dicts())
+
+        return list(query)
 
     @classmethod
     def get_pointhistory(cls, swLat, swLng, neLat, neLng):

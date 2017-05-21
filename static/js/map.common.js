@@ -1047,6 +1047,10 @@ var StoreOptions = {
     'showMedalMagikarp': {
         default: true,
         type: StoreTypes.Boolean
+    },
+    'showStats': {
+      default: true,
+      type: StoreTypes.Boolean
     }
 }
 

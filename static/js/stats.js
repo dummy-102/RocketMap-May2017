@@ -156,7 +156,7 @@ function getStats(spawnpointId) { // eslint-disable-line no-unused-vars
         success: function (data) {
             document.getElementById('spawn-ldg-label').innerHTML = '<i class="fa fa-paw" />  ID:' + spawnpointId + ' History'
             document.getElementById('stats-nest-label').innerHTML = 'Nesting or Frequent'
-            document.getElementById('stats-spawn-label').innerHTML = 'Spawns'
+            document.getElementById('stats-spawn-label').innerHTML = '24 Hour Spawns'
             $.each(data.spawn_history, function (count, id) {
                 if (id.count >= 3) {
                     $('ul[name=spawnpointnest]').append('<li style="display:block; list-style: none; height: 36px; margin-right: 5px;"><i class="pokemon-sprite n' + id.pokemon_id + '"></i><span style="font-weight: bold;">   Spawned ' + id.count + ' Times</span></li>')
@@ -170,6 +170,23 @@ function getStats(spawnpointId) { // eslint-disable-line no-unused-vars
             console.log('Error loading stats: ' + error)
         }
     })
+}
+
+function getStats2(spawnpointId) { // eslint-disable-line no-unused-vars
+  $('ul[name=' + spawnpointId + ']').empty()
+  $.ajax({
+    url: 'spawn_history2?spawnpoint_id=' + spawnpointId,
+    dataType: 'json',
+    async: true,
+    success: function (data) {
+      $.each(data.spawn_history2, function (count, id) {
+        $('ul[name=' + spawnpointId + ']').append('<li style="float: left; list-style: none; height: 36px; margin-right: 5px;"><i class="pokemon-sprite n' + id.pokemon_id + '"></i><span style="font-weight: bold;">' + id.count + '</span></li>')
+      })
+  },
+    error: function (jqXHR, status, error) {
+      console.log('Error loading stats: ' + error)
+    }
+  })
 }
 
 function spHistory(data) { // eslint-disable-line no-unused-vars

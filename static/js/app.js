@@ -121,6 +121,9 @@
     var $gymSidebar = document.querySelector('#gym-details')
     var $gymSidebarClose
 
+    // Spawnpoint History Sidebar
+    var $spawnpointSidebar = document.querySelector('#spawn-details')
+
     // Event: Prevent clicks/taps inside the nav from bubbling.
     addEventsListener($nav, 'click touchend', function (event) {
         event.stopPropagation()
@@ -151,6 +154,12 @@
             event.stopPropagation()
         })
     }
+    if ($spawnpointSidebar) {
+      // Event: Prevent clicks/taps inside the spawnpoint sidebar from bubbling.
+      addEventsListener($spawnpointSidebar, 'click touchend', function (event) {
+        event.stopPropagation()
+      })
+    }
     // Event: Hide nav on body click/tap.
     addEventsListener($body, 'click touchend', function (event) {
         // on ios safari, when navToggle is clicked,
@@ -177,6 +186,9 @@
         }
         if ($spawn2) {
             $spawn2.classList.remove('visible')
+        }
+        if ($spawnpointSidebar) {
+          $spawnpointSidebar.classList.remove('visible')
         }
     })
     // Toggle.
