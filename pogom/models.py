@@ -1125,6 +1125,8 @@ class WorkerStatus(BaseModel):
     no_items = IntegerField()
     skip = IntegerField()
     captcha = IntegerField()
+    empty_spawnpoint = IntegerField()
+    warn = IntegerField()
     last_modified = DateTimeField(index=True)
     message = Utf8mb4CharField(max_length=191)
     last_scan_date = DateTimeField(index=True)
@@ -1141,6 +1143,8 @@ class WorkerStatus(BaseModel):
                 'no_items': status['noitems'],
                 'skip': status['skip'],
                 'captcha': status['captcha'],
+                'empty_spawnpoint': status['empty_spawnpoint'],
+                'warn': status['warn'],
                 'last_modified': datetime.utcnow(),
                 'message': status['message'],
                 'last_scan_date': status.get('last_scan_date',
@@ -2290,7 +2294,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             if clock_between(endpoints[0], now_secs, endpoints[1]):
                 sp['missed_count'] += 1
                 spawn_points[sp['id']] = sp
-                account['empty_spawnpoint'] += 1
+                status['empty_spawnpoint'] += 1
                 log.warning('%s kind spawnpoint %s has no Pokemon %d times'
                             ' in a row.',
                             sp['kind'], sp['id'], sp['missed_count'])

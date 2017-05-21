@@ -466,6 +466,8 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
             'noitems': 0,
             'skip': 0,
             'captcha': 0,
+            'empty_spawnpoint': 0,
+            'warn': 0,
             'username': '',
             'proxy_display': proxy_display,
             'proxy_url': proxy_url,
@@ -793,6 +795,8 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
             status['noitems'] = 0
             status['skip'] = 0
             status['captcha'] = 0
+            status['empty_spawnpoint'] = 0
+            status['warn'] = 0
 
             stagger_thread(args)
 
@@ -932,7 +936,9 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                 status['message'] = 'Logging in...'
                 check_login(args, account, api, step_location,
                             status['proxy_url'])
-
+                if account['warn']:
+                    status['warn'] = 1
+                    
                 # Only run this when it's the account's first login, after
                 # check_login().
                 if first_login:
