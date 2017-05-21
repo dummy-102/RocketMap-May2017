@@ -108,7 +108,14 @@ def check_login(args, account, api, position, proxy_url):
                 'country': 'US',
                 'language': 'en',
                 'timezone': 'America/Denver'})
-        request.call()
+        response = request.call()
+        warn = response['responses']['GET_PLAYER'].get('warn', None)
+        if warn:
+            with open('accounts_warned.txt', 'a') as warn_file:
+                        warn_file.write('Account: {}\n'.format(account) +
+                                        'API response: {}\n'.format(response) +
+                                        '\n\n')
+
         log.debug('Login for account %s successful.', account['username'])
         time.sleep(random.uniform(10, 20))
     except Exception as e:
