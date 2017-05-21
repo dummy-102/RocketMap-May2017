@@ -934,11 +934,10 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
 
                 # Ok, let's get started -- check our login status.
                 status['message'] = 'Logging in...'
-                check_login(args, account, api, step_location,
-                            status['proxy_url'])
-                if account['warn']:
-                    status['warn'] = 1
-                    
+                status['warn'] += check_login(args, account, api,
+                                              step_location,
+                                              status['proxy_url'])
+
                 # Only run this when it's the account's first login, after
                 # check_login().
                 if first_login:

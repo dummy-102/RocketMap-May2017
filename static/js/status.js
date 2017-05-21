@@ -105,7 +105,7 @@ function processWorker(i, worker) {
     $('#skip_' + hash).html(worker['skip'])
     $('#captchas_' + hash).html(worker['captcha'])
     $('#empty_spawnpoint_' + hash).html(worker['empty_spawnpoint'])
-    $('#warn_' + hash).html(worker['warn_'])
+    $('#warn_' + hash).html(worker['warn'])
     $('#lastmod_' + hash).html(lastModified)
     $('#message_' + hash).html(worker['message'])
 }
