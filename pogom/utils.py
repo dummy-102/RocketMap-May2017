@@ -624,9 +624,12 @@ def get_args():
         # Make the accounts list.
         args.accounts = []
         for i, username in enumerate(args.username):
-            args.accounts.append({'username': username,
-                                  'password': args.password[i],
-                                  'auth_service': args.auth_service[i]})
+            args.accounts.append({
+                'username': username,
+                'password': args.password[i],
+                'auth_service': args.auth_service[i],
+                'last_timestamp_ms': now()
+            })
 
         # Prepare the L30 accounts for the account sets.
         args.accounts_L30 = []
@@ -656,7 +659,8 @@ def get_args():
                         'auth_service': service,
                         'username': username,
                         'password': password,
-                        'captcha': False
+                        'captcha': False,
+                        'last_timestamp_ms': now()
                     }
 
                     args.accounts_L30.append(hlvl_account)
@@ -954,3 +958,11 @@ def calc_pokemon_level(cp_multiplier):
         pokemon_level = 171.0112688 * cp_multiplier - 95.20425243
     pokemon_level = int((round(pokemon_level) * 2) / 2)
     return pokemon_level
+
+
+def get_new_api_timestamp(api_response):
+    return (api_response
+            ['responses']
+            ['GET_INVENTORY']
+            ['inventory_delta']
+            .get('new_timestamp_ms', now()))

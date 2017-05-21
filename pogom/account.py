@@ -11,7 +11,8 @@ from pgoapi import PGoApi
 from pgoapi.exceptions import AuthException
 
 from .fakePogoApi import FakePogoApi
-from .utils import in_radius, generate_device_info, equi_rect_distance
+from .utils import (in_radius, generate_device_info, equi_rect_distance,
+                    get_new_api_timestamp)
 from .proxy import get_new_proxy
 
 log = logging.getLogger(__name__)
@@ -344,7 +345,8 @@ def spin_pokestop_request(api, fort, step_location):
         return False
 
 
-def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
+def encounter_pokemon_request(api, account, encounter_id, spawnpoint_id,
+                              scan_location):
     try:
         # Setup encounter request envelope.
         req = api.create_request()
@@ -355,13 +357,14 @@ def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
             player_longitude=scan_location[1])
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory()
+        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
         req.check_awarded_badges()
-        req.download_settings()
         req.get_buddy_walked()
-        encounter_result = req.call()
+        response = req.call()
 
-        return encounter_result
+        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        return response
+
     except Exception as e:
         log.error('Exception while encountering Pokémon: %s.', repr(e))
         return False
