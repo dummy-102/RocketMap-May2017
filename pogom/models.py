@@ -2290,6 +2290,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             if clock_between(endpoints[0], now_secs, endpoints[1]):
                 sp['missed_count'] += 1
                 spawn_points[sp['id']] = sp
+                account['empty_spawnpoint'] += 1
                 log.warning('%s kind spawnpoint %s has no Pokemon %d times'
                             ' in a row.',
                             sp['kind'], sp['id'], sp['missed_count'])
