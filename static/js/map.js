@@ -754,9 +754,22 @@ function pokemonLabel(item) {
     var spawnpoint_id = item['spawnpoint_id']
     var encounterIdLong = atob(encounterId)
 
+    var baseHeight = (item['pokemon_id'] === 19) ? 0.30 : 0.90
+    var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
+    var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
+
     $.each(types, function (index, type) {
         typesDisplay += getTypeSpan(type)
     })
+
+    var rat = ''
+    if (item['pokemon_id'] === 19 && ratio < 1.5) {
+      rat += 'Tiny'
+    }
+    var karp = ''
+    if (item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13) {
+      karp += 'Big'
+    }
     var ditto = ''
     if (id === 132 && previous_id != null) {
         ditto += build_previous_id_div(encounterIdLong, previous_id)
@@ -809,7 +822,7 @@ function pokemonLabel(item) {
               ${lure}
             </div>
             <div>
-              <font size="3"><b>${ditto} ${name}</b></font>`
+              <font size="3"><b>${ditto} ${rat} ${karp} ${name}</b></font>`
             if (id === 201 && form !== null && form > 0) {
               contentstring += ` <font size="3"><b>[${unownForm[item['form']]}]</font></b>
             </div>`
@@ -1388,6 +1401,22 @@ function isMedalPokemon(item) {
 
     if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && ratio < 1.5) ||
             (Store.get('showMedalMagikarp')) && item['pokemon_id'] === 129 && ratio > 2.5) {
+        return true
+    }
+
+    return false
+}
+
+function isMedalPokemonMap(item) {
+    if (item['height'] == null && item['weight'] == null) {
+        return false
+    }
+
+    var baseHeight = (item['pokemon_id'] === 19) ? 0.30 : 0.90
+    var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
+    var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
+
+    if ((item['pokemon_id'] === 19 && ratio < 1.5) || (item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13)) {
         return true
     }
 

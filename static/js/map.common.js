@@ -798,6 +798,16 @@ var pokemonSprites = {
     name: 'High-Res'
 }
 
+var pokemonSpritesMedal = {
+    columns: 16,
+    iconWidth: 128,
+    iconHeight: 128,
+    spriteWidth: 2048,
+    spriteHeight: 5888,
+    filename: 'static/icons-shuffle-sprite128x-medal.png',
+    name: 'High-Res'
+}
+
 //
 // LocalStorage helpers
 //
@@ -1103,6 +1113,7 @@ function setupPokemonMarker(item, map, isBounceDisabled) {
     var iconSize = 2 + (map.getZoom() - 3) * (map.getZoom() - 3) * 0.2 + Store.get('iconSizeModifier')
     var pokemonIndex = item['pokemon_id'] - 1
     var sprite = pokemonSprites
+    sprite = isMedalPokemonMap(item) ? pokemonSpritesMedal : sprite
     var icon = getGoogleSprite(pokemonIndex, sprite, iconSize)
     var hideTimersAtZoomLevel = Store.get('hideTimersAtZoomLevel')
     var showTimers = Store.get('showTimers')
