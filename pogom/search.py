@@ -48,7 +48,7 @@ from pgoapi.hash_server import (HashServer, BadHashRequestException,
 from .models import (parse_map, GymDetails, parse_gyms,
                      MainWorker, WorkerStatus, Account, HashKeys)
 from .fakePogoApi import FakePogoApi
-from .utils import now, generate_device_info, clear_dict_response, captcha_balance
+from .utils import now, generate_device_info, clear_dict_response, get_new_api_timestamp, captcha_balance
 from .transform import get_new_coords, jitter_location
 from .account import (setup_api, check_login,
                       complete_tutorial, get_player_inventory, AccountSet,
@@ -200,13 +200,13 @@ def status_printer(threadStatus, search_items_queue_array, db_updates_queue,
 
             # How pretty.
             status = '{:10} | {:5} | {:' + str(userlen) + '} | {:' + str(
-                proxylen) + '} | {:7} | {:6} | {:5} | {:7} | {:8} | {:10}'
+                proxylen) + '} | {:7} | {:6} | {:5} | {:7} | {:8} | {:6} | {:4} | {:10}'
 
             # Print the worker status.
             status_text.append(status.format('Worker ID', 'Start', 'User',
                                              'Proxy', 'Success', 'Failed',
                                              'Empty', 'Skipped', 'Captchas',
-                                             'Message'))
+                                             'ESpawn', 'Warn', 'Message'))
             for item in sorted(threadStatus):
                 if(threadStatus[item]['type'] == 'Worker'):
                     current_line += 1
@@ -229,6 +229,8 @@ def status_printer(threadStatus, search_items_queue_array, db_updates_queue,
                         threadStatus[item]['noitems'],
                         threadStatus[item]['skip'],
                         threadStatus[item]['captcha'],
+                        threadStatus[item]['empty_spawnpoint'],
+                        threadStatus[item]['warn'],
                         threadStatus[item]['message']))
 
         elif display_type[0] == 'account_stats':
@@ -604,6 +606,8 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
             'noitems': 0,
             'skip': 0,
             'captcha': 0,
+            'empty_spawnpoint': 0,
+            'warn': 0,
             'username': '',
             'proxy_display': proxy_display,
             'proxy_url': proxy_url,
@@ -939,6 +943,8 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
             status['noitems'] = 0
             status['skip'] = 0
             status['captcha'] = 0
+            status['empty_spawnpoint'] = 0
+            status['warn'] = 0
 
             stagger_thread(args)
 
@@ -1076,9 +1082,11 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
 
                 # Ok, let's get started -- check our login status.
                 status['message'] = 'Logging in...'
-                check_login(args, account, api, step_location,
-                            status['proxy_url'])
+                status['warn'] += check_login(args, account, api,
+                                              step_location,
+                                              status['proxy_url'])
 
+                account['warn'] = status['warn']
                 # Only run this when it's the account's first login, after
                 # check_login().
                 if first_login:
@@ -1109,7 +1117,8 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
 
                 # Make the actual request.
                 scan_date = datetime.utcnow()
-                response_dict = map_request(api, step_location, args.no_jitter)
+                response_dict = map_request(api, account,
+                                            step_location, args.no_jitter)
                 status['last_scan_date'] = datetime.utcnow()
 
                 # Record the time and the place that the worker made the
@@ -1145,7 +1154,8 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                         # Make another request for the same location
                         # since the previous one was captcha'd.
                         scan_date = datetime.utcnow()
-                        response_dict = map_request(api, step_location,
+                        response_dict = map_request(api, account,
+                                                    step_location,
                                                     args.no_jitter)
                     elif captcha is not None:
                         account_queue.task_done()
@@ -1249,7 +1259,8 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                                     current_gym, len(gyms_to_update),
                                     step_location[0], step_location[1])
                             time.sleep(random.random() + 2)
-                            response = gym_request(api, step_location, gym)
+                            response = gym_request(api, account, step_location,
+                                                   gym)
 
                             # Make sure the gym was in range. (Sometimes the
                             # API gets cranky about gyms that are ALMOST 1km
@@ -1353,7 +1364,7 @@ def upsertKeys(keys, key_scheduler, db_updates_queue):
     db_updates_queue.put((HashKeys, hashkeys))
 
 
-def map_request(api, position, no_jitter=False):
+def map_request(api, account, position, no_jitter=False):
     # Create scan_location to send to the api based off of position, because
     # tuples aren't mutable.
     if no_jitter:
@@ -1375,10 +1386,12 @@ def map_request(api, position, no_jitter=False):
                             cell_id=cell_ids)
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory()
+        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
         req.check_awarded_badges()
         req.get_buddy_walked()
         response = req.call()
+
+        account['last_timestamp_ms'] = get_new_api_timestamp(response)
         response = clear_dict_response(response, True)
         return response
 
@@ -1392,7 +1405,7 @@ def map_request(api, position, no_jitter=False):
         return False
 
 
-def gym_request(api, position, gym):
+def gym_request(api, account, position, gym):
     inventory_timestamp = None
     try:
         log.debug('Getting details for gym @ %f/%f (%fkm away)',
@@ -1406,19 +1419,14 @@ def gym_request(api, position, gym):
                             gym_longitude=gym['longitude'])
         req.check_challenge()
         req.get_hatched_eggs()
-        if inventory_timestamp:
-            req.get_inventory(last_timestamp_ms=inventory_timestamp)
-        else:
-            req.get_inventory()
+        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
         req.check_awarded_badges()
         req.get_buddy_walked()
-        x = req.call()
-        # Update inventory timestamp
-        inventory_timestamp = x['responses']['GET_INVENTORY'][
-                    'inventory_delta']['new_timestamp_ms']
-        x = clear_dict_response(x)
-        # Print pretty(x).
-        return x
+        response = req.call()
+
+        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        response = clear_dict_response(response)
+        return response
 
     except Exception as e:
         log.warning('Exception while downloading gym details: %s', repr(e))

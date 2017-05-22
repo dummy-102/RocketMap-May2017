@@ -195,10 +195,10 @@ def pokestop_spinnable(fort, step_location):
     return in_range and not needs_cooldown
 
 
-def spin_pokestop_update_inventory(api, fort, step_location, inventory):
+def spin_pokestop_update_inventory(api, account, fort, step_location, inventory):
     time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle
     log.warning('++++++++++++++++++++++++++++ GAINXP SPINNING POKESTOP')
-    spin_response = spin_pokestop_request(api, fort, step_location)
+    spin_response = spin_pokestop_request(api, account, fort, step_location)
 
     time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle
     if not spin_response:
@@ -251,17 +251,17 @@ def cleanup_inventory(api, inventory):
     drop_stats = {}
     # Just need to make room for more items
     if inventory['total'] >= 100:
-        drop_items(api, inventory, ITEM_POTION, drop_stats, 10)
-        drop_items(api, inventory, ITEM_SUPER_POTION, drop_stats, 10)
-        drop_items(api, inventory, ITEM_HYPER_POTION, drop_stats, 10)
-        drop_items(api, inventory, ITEM_MAX_POTION, drop_stats, 10)
-        drop_items(api, inventory, ITEM_REVIVE, drop_stats, 10)
-        drop_items(api, inventory, ITEM_MAX_REVIVE, drop_stats, 10)
-        drop_items(api, inventory, ITEM_BLUK_BERRY, drop_stats, 10)
-        drop_items(api, inventory, ITEM_NANAB_BERRY, drop_stats, 10)
-        drop_items(api, inventory, ITEM_WEPAR_BERRY, drop_stats, 10)
-        drop_items(api, inventory, ITEM_PINAP_BERRY, drop_stats, 10)
-        drop_items(api, inventory, ITEM_RAZZ_BERRY, drop_stats, 10)
+        drop_items(api, inventory, ITEM_POTION, drop_stats)
+        drop_items(api, inventory, ITEM_SUPER_POTION, drop_stats)
+        drop_items(api, inventory, ITEM_HYPER_POTION, drop_stats)
+        drop_items(api, inventory, ITEM_MAX_POTION, drop_stats)
+        drop_items(api, inventory, ITEM_REVIVE, drop_stats)
+        drop_items(api, inventory, ITEM_MAX_REVIVE, drop_stats)
+        drop_items(api, inventory, ITEM_BLUK_BERRY, drop_stats)
+        drop_items(api, inventory, ITEM_NANAB_BERRY, drop_stats)
+        drop_items(api, inventory, ITEM_WEPAR_BERRY, drop_stats)
+        drop_items(api, inventory, ITEM_PINAP_BERRY, drop_stats)
+        drop_items(api, inventory, ITEM_RAZZ_BERRY, drop_stats)
 
         # Throw away balls if necessary
         if inventory['total'] >= 350:

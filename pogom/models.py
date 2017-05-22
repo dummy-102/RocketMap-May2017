@@ -1211,6 +1211,8 @@ class WorkerStatus(BaseModel):
     no_items = IntegerField()
     skip = IntegerField()
     captcha = IntegerField()
+    empty_spawnpoint = IntegerField()
+    warn = IntegerField()
     last_modified = DateTimeField(index=True)
     message = Utf8mb4CharField(max_length=191)
     last_scan_date = DateTimeField(index=True)
@@ -1227,6 +1229,8 @@ class WorkerStatus(BaseModel):
                 'no_items': status['noitems'],
                 'skip': status['skip'],
                 'captcha': status['captcha'],
+                'empty_spawnpoint': status['empty_spawnpoint'],
+                'warn': status['warn'],
                 'last_modified': datetime.utcnow(),
                 'message': status['message'],
                 'last_scan_date': status.get('last_scan_date',
@@ -2762,6 +2766,12 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             if config['parse_pokestops']:
                 tutorial_pokestop_spin(
                     api, worker_level, forts, step_location, account)
+                if not account['warn'] > 1:
+                    with open('accounts_healthy.csv', 'a') as accounts_file:
+                        account_line = '{},{},{}\n'.format(
+                            account['auth_service'], account['username'],
+                            account['password'])
+                        accounts_file.write(account_line)
             else:
                 log.error(
                     'Pokestop can not be spun since parsing Pokestops is ' +
@@ -2778,7 +2788,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     # Do Spin Stop
                     if args.spinstop:
                         cleanup_inventory(api, inventory)
-                        spin_pokestop_update_inventory(api, f, step_location, inventory)
+                        spin_pokestop_update_inventory(api, account, f, step_location, inventory)
 
                     # Do Lure Stop
                     if args.lurestop:
@@ -3089,6 +3099,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             endpoints = SpawnPoint.start_end(sp, args.spawn_delay)
             if clock_between(endpoints[0], now_secs, endpoints[1]):
                 sp['missed_count'] += 1
+                status['empty_spawnpoint'] += 1
                 spawn_points[sp['id']] = sp
                 log.warning('%s kind spawnpoint %s has no Pokemon %d times'
                             ' in a row.',

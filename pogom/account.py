@@ -16,7 +16,7 @@ from pgoapi.exceptions import AuthException
 from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
 from .fakePogoApi import FakePogoApi
-from .utils import in_radius, generate_device_info, equi_rect_distance
+from .utils import in_radius, generate_device_info, equi_rect_distance, get_new_api_timestamp
 from .proxy import get_new_proxy
 
 log = logging.getLogger(__name__)
@@ -60,6 +60,7 @@ def setup_api(args, status):
 
 # Use API to check the login status, and retry the login if possible.
 def check_login(args, account, api, position, proxy_url):
+    warn = 0
     # Logged in? Enough time left? Cool!
     if api._auth_provider and api._auth_provider._ticket_expire:
         remaining_time = api._auth_provider._ticket_expire / 1000 - time.time()
@@ -67,7 +68,7 @@ def check_login(args, account, api, position, proxy_url):
             log.debug(
                 'Credentials remain valid for another %f seconds.',
                 remaining_time)
-            return
+            return warn
 
     # Try to login. Repeat a few times, but don't get stuck here.
     num_tries = 0
@@ -101,9 +102,33 @@ def check_login(args, account, api, position, proxy_url):
             account['username'], num_tries)
         raise TooManyLoginAttempts('Exceeded login attempts.')
 
-    log.debug('Login for account %s successful.', account['username'])
-    time.sleep(20)
+    time.sleep(random.uniform(2, 4))
 
+    # Performed always as first request directly after logging in.
+    try:
+        request = api.create_request()
+        request.get_player(
+            player_locale={
+                'country': 'US',
+                'language': 'en',
+                'timezone': 'America/Denver'})
+        response = request.call()
+        warn = response['responses']['GET_PLAYER'].get('warn', 0)
+        if warn:
+            warn = 1
+            #with open('accounts_warned.txt', 'a') as warn_file:
+            #            warn_file.write('Account: {}\n'.format(account) +
+            #                            'API response: {}\n'.format(response) +
+            #                            '\n\n')
+
+        log.debug('Login for account %s successful.', account['username'])
+        time.sleep(random.uniform(10, 20))
+
+    except Exception as e:
+        log.debug('Login for account %s failed. Exception in first call: %s',
+                  account['username'], repr(e))
+
+    return warn
 
 # Returns warning/banned flags and tutorial state.
 def get_player_state(api):
@@ -334,14 +359,14 @@ def get_player_inventory(map_dict):
     return inventory
 
 
-def spin_pokestop(api, fort, step_location):
+def spin_pokestop(api, account, fort, step_location):
     spinning_radius = 0.04
     if in_radius((fort['latitude'], fort['longitude']), step_location,
                  spinning_radius):
         log.debug('Attempt to spin Pokestop (ID %s)', fort['id'])
         log.warning('++++++++++++++++++++++++++++ TUTORIAL SPINNING POKESTOP')
         time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle
-        spin_response = spin_pokestop_request(api, fort, step_location)
+        spin_response = spin_pokestop_request(api, account, fort, step_location)
         time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle
 
         # Check for reCaptcha
@@ -371,8 +396,7 @@ def spin_pokestop(api, fort, step_location):
     return False
 
 
-def spin_pokestop_request(api, fort, step_location):
-    inventory_timestamp = None
+def spin_pokestop_request(api, account, fort, step_location):
     try:
         req = api.create_request()
         spin_pokestop_response = req.fort_search(
@@ -383,17 +407,10 @@ def spin_pokestop_request(api, fort, step_location):
             player_longitude=step_location[1])
         req.check_challenge()
         req.get_hatched_eggs()
-        if inventory_timestamp:
-            req.get_inventory(last_timestamp_ms=inventory_timestamp)
-        else:
-            req.get_inventory()
+        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
         req.check_awarded_badges()
         req.get_buddy_walked()
         spin_pokestop_response = req.call()
-
-        # Update inventory timestamp
-        inventory_timestamp = spin_pokestop_response['responses']['GET_INVENTORY'][
-                    'inventory_delta']['new_timestamp_ms']
 
         return spin_pokestop_response
 
