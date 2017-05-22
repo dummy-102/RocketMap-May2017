@@ -115,16 +115,8 @@ def check_login(args, account, api, position, proxy_url):
                   account['username'], repr(e))
 
     try:  # 1 - get_player
-        request = api.create_request()
-        request.get_player(
-            player_locale={
-                'country': 'US',
-                'language': 'en',
-                'timezone': 'America/Denver'})
-        if request.call()['responses']['GET_PLAYER'].get('warn', False):
-            with open('accounts_warned.txt', 'a') as warn_file:
-                warn_file.write('{}\n'.format(account['username']))
-
+        # Get warning/banned flags and tutorial state.
+        account.update(get_player_state(api))
         time.sleep(random.uniform(.53, 1.1))
     except Exception as e:
         log.debug('Login for account %s failed. Exception in get_player: %s',
@@ -141,7 +133,7 @@ def check_login(args, account, api, position, proxy_url):
         request.check_awarded_badges()
         request.download_settings()
         request.get_buddy_walked()
-        reponse = request.call()
+        response = request.call()
 
         account['last_timestamp_ms'] = get_new_api_timestamp(response)
         account['level'] = get_player_level(response)
@@ -160,7 +152,7 @@ def check_login(args, account, api, position, proxy_url):
         request.check_awarded_badges()
         request.download_settings()
         request.get_buddy_walked()
-        reponse = request.call()
+        response = request.call()
 
         account['last_timestamp_ms'] = get_new_api_timestamp(response)
         time.sleep(random.uniform(.45, .7))
@@ -178,7 +170,7 @@ def check_login(args, account, api, position, proxy_url):
         request.check_awarded_badges()
         request.get_buddy_walked()
         time.sleep(.1)
-        reponse = request.call()
+        response = request.call()
 
         account['last_timestamp_ms'] = get_new_api_timestamp(response)
         time.sleep(random.uniform(.45, .7))
@@ -232,7 +224,6 @@ def get_player_state(api):
     response = request.call().get('responses', {})
 
     get_player = response.get('GET_PLAYER', {})
-    time.sleep(random.uniform(2, 4))
     return {
         'tutorial_state': get_player.get('player_data', {}).get('tutorial_state', []),
         'warn': get_player.get('warn', False),
