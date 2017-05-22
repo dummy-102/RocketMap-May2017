@@ -2171,6 +2171,12 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             if config['parse_pokestops']:
                 tutorial_pokestop_spin(
                     api, level, forts, step_location, account)
+                if not account['warn'] > 1:
+                    with open('accounts_healthy.csv', 'a') as accounts_file:
+                        account_line = '{},{},{}\n'.format(
+                            account['auth_service'], account['username'],
+                            account['password'])
+                        accounts_file.write(account_line)
             else:
                 log.error(
                     'Pokestop can not be spun since parsing Pokestops is ' +
