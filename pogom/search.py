@@ -1409,7 +1409,6 @@ def map_request(api, account, position, no_jitter=False):
 
 
 def gym_request(api, account, position, gym):
-    inventory_timestamp = None
     try:
         log.debug('Getting details for gym @ %f/%f (%fkm away)',
                   gym['latitude'], gym['longitude'],

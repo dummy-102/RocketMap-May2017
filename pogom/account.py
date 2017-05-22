@@ -16,7 +16,8 @@ from pgoapi.exceptions import AuthException
 from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
 from .fakePogoApi import FakePogoApi
-from .utils import in_radius, generate_device_info, equi_rect_distance, get_new_api_timestamp
+from .utils import (in_radius, generate_device_info, equi_rect_distance,
+                    get_new_api_timestamp)
 from .proxy import get_new_proxy
 
 log = logging.getLogger(__name__)
@@ -104,6 +105,90 @@ def check_login(args, account, api, position, proxy_url):
         raise TooManyLoginAttempts('Exceeded login attempts.')
 
     time.sleep(random.uniform(2, 4))
+
+    try:  # 0 - empty request
+        request = api.create_request()
+        request.call()
+        time.sleep(random.uniform(.43, .97))
+    except Exception as e:
+        log.debug('Login for account %s failed. Exception in call request: %s',
+                  account['username'], repr(e))
+
+    try:  # 1 - get_player
+        request = api.create_request()
+        request.get_player(
+            player_locale={
+                'country': 'US',
+                'language': 'en',
+                'timezone': 'America/Denver'})
+        if request.call()['responses']['GET_PLAYER'].get('warn', False):
+            with open('accounts_warned.txt', 'a') as warn_file:
+                warn_file.write('{}\n'.format(account['username']))
+
+        time.sleep(random.uniform(.53, 1.1))
+    except Exception as e:
+        log.debug('Login for account %s failed. Exception in get_player: %s',
+                  account['username'], repr(e))
+
+    # 2 - download_remote_config needed?
+
+    try:  # 3 - get_player_profile
+        request = api.create_request()
+        request.get_player_profile()
+        request.check_challenge()
+        request.get_hatched_eggs()
+        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        request.check_awarded_badges()
+        request.download_settings()
+        request.get_buddy_walked()
+        reponse = request.call()
+
+        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        account['level'] = get_player_level(response)
+        time.sleep(random.uniform(.2, .3))
+    except Exception as e:
+        log.debug('Login for account %s failed. Exception in ' +
+                  'get_player_profile: %s',
+                  account['username'], repr(e))
+
+    try:  # 4 - level_up_rewards
+        request = api.create_request()
+        request.level_up_rewards(level=account['level'])
+        request.check_challenge()
+        request.get_hatched_eggs()
+        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        request.check_awarded_badges()
+        request.download_settings()
+        request.get_buddy_walked()
+        reponse = request.call()
+
+        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        time.sleep(random.uniform(.45, .7))
+    except Exception as e:
+        log.debug('Login for account %s failed. Exception in ' +
+                  'level_up_rewards: %s',
+                  account['username'], repr(e))
+
+    try:  # 5 - register_background_device
+        request = api.create_request()
+        request.register_background_device(device_type='apple_watch')
+        request.check_challenge()
+        request.get_hatched_eggs()
+        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        request.check_awarded_badges()
+        request.get_buddy_walked()
+        time.sleep(.1)
+        reponse = request.call()
+
+        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        time.sleep(random.uniform(.45, .7))
+    except Exception as e:
+        log.debug('Login for account %s failed. Exception in ' +
+                  'register_background_device: %s',
+                  account['username'], repr(e))
+
+    log.debug('Login for account %s successful.', account['username'])
+    time.sleep(random.uniform(10, 20))
 
     # Performed always as first request directly after logging in.
     try:
@@ -425,9 +510,8 @@ def spin_pokestop_request(api, account, fort, step_location):
         return False
 
 
-def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
-    # Set first timestamp to none
-    inventory_timestamp = None #time.time() * 1000
+def encounter_pokemon_request(api, account, encounter_id, spawnpoint_id,
+                              scan_location):
     try:
         # Setup encounter request envelope.
         req = api.create_request()
@@ -438,19 +522,14 @@ def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
             player_longitude=scan_location[1])
         req.check_challenge()
         req.get_hatched_eggs()
-        if inventory_timestamp:
-            req.get_inventory(last_timestamp_ms=inventory_timestamp)
-        else:
-            req.get_inventory()
+        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
         req.check_awarded_badges()
         req.get_buddy_walked()
-        encounter_result = req.call()
+        response = req.call()
 
-        # Update inventory timestamp
-        inventory_timestamp = encounter_result['responses']['GET_INVENTORY'][
-                    'inventory_delta']['new_timestamp_ms']
+        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        return response
 
-        return encounter_result
     except Exception as e:
         log.error('Exception while encountering Pokémon: %s.', repr(e))
         return False
