@@ -28,6 +28,7 @@ import copy
 import requests
 import schedulers
 import terminalsize
+import timeit
 
 from datetime import datetime
 from threading import Thread, Lock
@@ -44,7 +45,7 @@ from pgoapi.hash_server import (HashServer, BadHashRequestException,
                                 HashingOfflineException)
 from .models import (parse_map, GymDetails, parse_gyms, MainWorker,
                      WorkerStatus, HashKeys)
-from .utils import now, clear_dict_response
+from .utils import now, clear_dict_response, get_new_api_timestamp
 from .transform import get_new_coords, jitter_location
 from .account import (setup_api, check_login, get_tutorial_state,
                       complete_tutorial, AccountSet)
@@ -352,6 +353,8 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
     key_scheduler = None
     api_version = '0.63.1'
     api_check_time = 0
+    hashkeys_last_upsert = timeit.default_timer()
+    hashkeys_upsert_min_delay = 5.0
 
     '''
     Create a queue of accounts for workers to pull from. When a worker has
@@ -491,6 +494,11 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
 
     # The real work starts here but will halt on pause_bit.set().
     while True:
+        if (args.hash_key is not None and
+                (hashkeys_last_upsert + hashkeys_upsert_min_delay)
+                <= timeit.default_timer()):
+            upsertKeys(args.hash_key, key_scheduler, db_updates_queue)
+            hashkeys_last_upsert = timeit.default_timer()
 
         odt_triggered = (args.on_demand_timeout > 0 and
                          (now() - args.on_demand_timeout) > heartb[0])
@@ -502,6 +510,11 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
         while pause_bit.is_set():
             for i in range(0, len(scheduler_array)):
                 scheduler_array[i].scanning_paused()
+            # API Watchdog - Continue to check API version.
+            if not args.no_version_check and not odt_triggered:
+                api_check_time = check_forced_version(args, api_version,
+                                                      api_check_time,
+                                                      pause_bit)
             time.sleep(1)
 
         # If a new location has been passed to us, get the most recent one.
@@ -575,10 +588,9 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
                              scheduler_array[0])
 
         # API Watchdog - Check if Niantic forces a new API.
-        if not args.no_version_check:
+        if not args.no_version_check and not odt_triggered:
             api_check_time = check_forced_version(args, api_version,
-                                                  api_check_time, pause_bit,
-                                                  odt_triggered)
+                                                  api_check_time, pause_bit)
 
         # Now we just give a little pause here.
         time.sleep(1)
@@ -946,7 +958,8 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
 
                 # Make the actual request.
                 scan_date = datetime.utcnow()
-                response_dict = map_request(api, step_location, args.no_jitter)
+                response_dict = map_request(api, account,
+                                            step_location, args.no_jitter)
                 status['last_scan_date'] = datetime.utcnow()
 
                 # Record the time and the place that the worker made the
@@ -975,7 +988,8 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                         # Make another request for the same location
                         # since the previous one was captcha'd.
                         scan_date = datetime.utcnow()
-                        response_dict = map_request(api, step_location,
+                        response_dict = map_request(api, account,
+                                                    step_location,
                                                     args.no_jitter)
                     elif captcha is not None:
                         account_queue.task_done()
@@ -1066,7 +1080,8 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                                     current_gym, len(gyms_to_update),
                                     step_location[0], step_location[1])
                             time.sleep(random.random() + 2)
-                            response = gym_request(api, step_location, gym)
+                            response = gym_request(api, account, step_location,
+                                                   gym)
 
                             # Make sure the gym was in range. (Sometimes the
                             # API gets cranky about gyms that are ALMOST 1km
@@ -1129,15 +1144,6 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                               key_instance['remaining'],
                               key_instance['maximum'])
 
-                    # Prepare hashing keys to be sent to the db. But only
-                    # sent latest updates of the 'peak' value per key.
-                    hashkeys = {}
-                    hashkeys[key] = key_instance
-                    hashkeys[key]['key'] = key
-                    hashkeys[key]['peak'] = max(key_instance['peak'],
-                                                HashKeys.getStoredPeak(key))
-                    dbq.put((HashKeys, hashkeys))
-
                 # Delay the desired amount after "scan" completion.
                 delay = scheduler.delay(status['last_scan_date'])
 
@@ -1165,7 +1171,20 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
             time.sleep(args.scan_delay)
 
 
-def map_request(api, position, no_jitter=False):
+def upsertKeys(keys, key_scheduler, db_updates_queue):
+    # Prepare hashing keys to be sent to the db. But only
+    # sent latest updates of the 'peak' value per key.
+    hashkeys = {}
+    for key in keys:
+        key_instance = key_scheduler.keys[key]
+        hashkeys[key] = key_instance
+        hashkeys[key]['key'] = key
+        hashkeys[key]['peak'] = max(key_instance['peak'],
+                                    HashKeys.getStoredPeak(key))
+    db_updates_queue.put((HashKeys, hashkeys))
+
+
+def map_request(api, account, position, no_jitter=False):
     # Create scan_location to send to the api based off of position, because
     # tuples aren't mutable.
     if no_jitter:
@@ -1187,11 +1206,12 @@ def map_request(api, position, no_jitter=False):
                             cell_id=cell_ids)
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory()
+        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
         req.check_awarded_badges()
-        req.download_settings()
         req.get_buddy_walked()
         response = req.call()
+
+        account['last_timestamp_ms'] = get_new_api_timestamp(response)
         response = clear_dict_response(response, True)
         return response
 
@@ -1205,7 +1225,7 @@ def map_request(api, position, no_jitter=False):
         return False
 
 
-def gym_request(api, position, gym):
+def gym_request(api, account, position, gym):
     try:
         log.debug('Getting details for gym @ %f/%f (%fkm away)',
                   gym['latitude'], gym['longitude'],
@@ -1218,14 +1238,14 @@ def gym_request(api, position, gym):
                             gym_longitude=gym['longitude'])
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory()
+        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
         req.check_awarded_badges()
-        req.download_settings()
         req.get_buddy_walked()
-        x = req.call()
-        x = clear_dict_response(x)
-        # Print pretty(x).
-        return x
+        response = req.call()
+
+        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        response = clear_dict_response(response)
+        return response
 
     except Exception as e:
         log.warning('Exception while downloading gym details: %s', repr(e))
@@ -1262,9 +1282,9 @@ def stat_delta(current_status, last_status, stat_name):
     return current_status.get(stat_name, 0) - last_status.get(stat_name, 0)
 
 
-def check_forced_version(args, api_version, api_check_time, pause_bit,
-                         odt_triggered):
+def check_forced_version(args, api_version, api_check_time, pause_bit):
     if int(time.time()) > api_check_time:
+        log.debug("Checking forced API version.")
         api_check_time = int(time.time()) + args.version_check_interval
         forced_api = get_api_version(args)
 
@@ -1289,9 +1309,9 @@ def check_forced_version(args, api_version, api_check_time, pause_bit,
             else:
                 # API check was successful and
                 # installed API version is newer or equal forced API.
-                # Continue scanning if on_demand_timout isn't triggered.
-                if not odt_triggered:
-                    pause_bit.clear()
+                # Continue scanning.
+                log.debug("API check was successful. Continue scanning.")
+                pause_bit.clear()
 
         except ValueError as e:
             # Unknown version format. Pause scanning as well.
