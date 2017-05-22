@@ -937,6 +937,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                 status['warn'] += check_login(args, account, api,
                                               step_location,
                                               status['proxy_url'])
+                account['warn'] = status['warn']
 
                 # Only run this when it's the account's first login, after
                 # check_login().
