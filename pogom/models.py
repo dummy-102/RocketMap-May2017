@@ -1213,6 +1213,7 @@ class WorkerStatus(BaseModel):
     captcha = IntegerField()
     empty_spawnpoint = IntegerField()
     warn = IntegerField()
+    ban = IntegerField()
     last_modified = DateTimeField(index=True)
     message = Utf8mb4CharField(max_length=191)
     last_scan_date = DateTimeField(index=True)
@@ -1231,6 +1232,7 @@ class WorkerStatus(BaseModel):
                 'captcha': status['captcha'],
                 'empty_spawnpoint': status['empty_spawnpoint'],
                 'warn': status['warn'],
+                'ban': status['ban'],
                 'last_modified': datetime.utcnow(),
                 'message': status['message'],
                 'last_scan_date': status.get('last_scan_date',

@@ -199,14 +199,14 @@ def status_printer(threadStatus, search_items_queue_array, db_updates_queue,
                             str(threadStatus[item]['proxy_display'])))
 
             # How pretty.
-            status = '{:10} | {:5} | {:' + str(userlen) + '} | {:' + str(
-                proxylen) + '} | {:7} | {:6} | {:5} | {:7} | {:8} | {:6} | {:4} | {:10}'
+            status = ('{:10} | {:5} | {:' + str(userlen) + '} | {:' + str(
+                proxylen) + '} | {:7} | {:6} | {:5} | {:7} | {:8} | {:6} | {:4} | {:3} | {:10}')
 
             # Print the worker status.
             status_text.append(status.format('Worker ID', 'Start', 'User',
                                              'Proxy', 'Success', 'Failed',
                                              'Empty', 'Skipped', 'Captchas',
-                                             'ESpawn', 'Warn', 'Message'))
+                                             'ESpawn', 'Warn', 'Ban', 'Message'))
             for item in sorted(threadStatus):
                 if(threadStatus[item]['type'] == 'Worker'):
                     current_line += 1
@@ -231,6 +231,7 @@ def status_printer(threadStatus, search_items_queue_array, db_updates_queue,
                         threadStatus[item]['captcha'],
                         threadStatus[item]['empty_spawnpoint'],
                         threadStatus[item]['warn'],
+                        threadStatus[item]['ban'],
                         threadStatus[item]['message']))
 
         elif display_type[0] == 'account_stats':
@@ -608,6 +609,7 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
             'captcha': 0,
             'empty_spawnpoint': 0,
             'warn': 0,
+            'ban': 0,
             'username': '',
             'proxy_display': proxy_display,
             'proxy_url': proxy_url,
@@ -945,6 +947,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
             status['captcha'] = 0
             status['empty_spawnpoint'] = 0
             status['warn'] = 0
+            status['ban'] = 0
 
             stagger_thread(args)
 
@@ -1082,11 +1085,11 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
 
                 # Ok, let's get started -- check our login status.
                 status['message'] = 'Logging in...'
-                status['warn'] += check_login(args, account, api,
-                                              step_location,
-                                              status['proxy_url'])
+                login_result = check_login(
+                     args, account, api, step_location, status['proxy_url'])
 
-                account['warn'] = status['warn']
+                status['warn'] += login_result[0]
+                status['ban']  += login_result[1]
                 # Only run this when it's the account's first login, after
                 # check_login().
                 if first_login:

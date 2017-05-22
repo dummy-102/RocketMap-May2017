@@ -61,6 +61,7 @@ def setup_api(args, status):
 # Use API to check the login status, and retry the login if possible.
 def check_login(args, account, api, position, proxy_url):
     warn = 0
+    ban = 0
     # Logged in? Enough time left? Cool!
     if api._auth_provider and api._auth_provider._ticket_expire:
         remaining_time = api._auth_provider._ticket_expire / 1000 - time.time()
@@ -68,7 +69,7 @@ def check_login(args, account, api, position, proxy_url):
             log.debug(
                 'Credentials remain valid for another %f seconds.',
                 remaining_time)
-            return warn
+            return (warn, ban)
 
     # Try to login. Repeat a few times, but don't get stuck here.
     num_tries = 0
@@ -113,6 +114,7 @@ def check_login(args, account, api, position, proxy_url):
                 'language': 'en',
                 'timezone': 'America/Denver'})
         response = request.call()
+        # Warning Response
         warn = response['responses']['GET_PLAYER'].get('warn', 0)
         if warn:
             warn = 1
@@ -120,6 +122,10 @@ def check_login(args, account, api, position, proxy_url):
             #            warn_file.write('Account: {}\n'.format(account) +
             #                            'API response: {}\n'.format(response) +
             #                            '\n\n')
+        # Ban Response
+        ban = response['responses']['GET_PLAYER'].get('banned', 0)
+        if ban:
+            ban = 1
 
         log.debug('Login for account %s successful.', account['username'])
         time.sleep(random.uniform(10, 20))
@@ -128,7 +134,7 @@ def check_login(args, account, api, position, proxy_url):
         log.debug('Login for account %s failed. Exception in first call: %s',
                   account['username'], repr(e))
 
-    return warn
+    return (warn, ban)
 
 # Returns warning/banned flags and tutorial state.
 def get_player_state(api):
