@@ -1095,9 +1095,6 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                 if first_login:
                     first_login = False
 
-                    # Get warning/banned flags and tutorial state.
-                    account.update(get_player_state(api))
-
                     # Check tutorial completion.
                     if args.complete_tutorial:
                         log.debug('Checking tutorial state for %s.',
@@ -1139,12 +1136,8 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                     time.sleep(scheduler.delay(status['last_scan_date']))
                     continue
 
-                # Update player account stats.
-                account.update(get_player_stats(response_dict))
-
                 # Extract player inventory
-                inventory = get_player_inventory(response_dict)
-                account['inventory'] = inventory
+                inventory = account['inventory']
 
                 # Got the response, check for captcha, parse it out, then send
                 # todo's to db/wh queues.
@@ -1395,6 +1388,13 @@ def map_request(api, account, position, no_jitter=False):
         response = req.call()
 
         account['last_timestamp_ms'] = get_new_api_timestamp(response)
+
+        # Update player account stats.
+        account.update(get_player_stats(response))
+
+        # Extract player inventory
+        account['inventory'] = get_player_inventory(response)
+
         response = clear_dict_response(response, True)
         return response
 
