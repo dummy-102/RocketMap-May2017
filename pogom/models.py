@@ -39,7 +39,7 @@ from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
                     get_move_type, calc_pokemon_level, clear_dict_response)
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
-from .account import (tutorial_pokestop_spin, get_player_level, check_login,
+from .account import (tutorial_pokestop_spin, check_login,
                         setup_api, encounter_pokemon_request, l_encounter_pokemon_request)
 
 log = logging.getLogger(__name__)
@@ -1860,6 +1860,7 @@ class Account(BaseModel):
     walked = DoubleField(null=True)
     awarded_to_level = SmallIntegerField(default=1)
     num_balls = SmallIntegerField(null=True)
+    lures = SmallIntegerField(null=True)
     warn = BooleanField(null=True)
 
     def update(self, acc):
@@ -1871,6 +1872,7 @@ class Account(BaseModel):
         self.spins = acc.get('poke_stop_visits')
         self.walked = acc.get('km_walked')
         self.num_balls = acc.get('inventory', {}).get('balls')
+        self.lures = acc.get('inventory', {}).get('totalDisks')
         self.warn = acc.get('warn')
         self.last_modified = datetime.utcnow()
 
@@ -1886,6 +1888,7 @@ class Account(BaseModel):
             'walked': self.walked,
             'awarded_to_level': self.awarded_to_level,
             'num_balls': self.num_balls,
+            'lures': self.lures,
             'warn': self.warn,
             'last_modified': datetime.utcnow()
         }
@@ -2097,13 +2100,14 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
     account_is_30 = account.get('level', 0) >= 30
     account_not_30 = account.get('level', 0) <= 30
+    # Access to account inventory
     inventory = account['inventory']
 
     # Consolidate the individual lists in each cell into two lists of Pokemon
     # and a list of forts.
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     # Get the level for the pokestop spin, and to send to webhook.
-    worker_level = get_player_level(map_dict)
+    worker_level = account.get('level', 1)
     # Use separate level indicator for our L30 encounters.
     encounter_level = worker_level
 
@@ -2382,8 +2386,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         else:
                             # Update level indicator before we clear the
                             # response.
-                            encounter_level = get_player_level(
-                                encounter_result)
+                            encounter_level = hlvl_account['level']
 
                             # User error?
                             #if encounter_level < 30:
@@ -2469,8 +2472,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         else:
                             # Update level indicator before we clear the
                             # response.
-                            encounter_level = get_player_level(
-                                encounter_result)
+                            encounter_level = llvl_account['level']
                 else:
                     log.error('No accounts are available, please'
                               + ' consider adding more. Skipping encounter.')
@@ -2557,7 +2559,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             previous_id = None
             have_balls = inventory.get('balls', 0) > 0
             if args.gain_xp and account_not_30 and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
-                if is_ditto(args, account, api, p, inventory):
+                if is_ditto(args, account, api, p):
                     # Scout Ditto Pokemon
                     #if args.pgscout_url:
                     #    scout_result = perform_pgscout(p)
@@ -2791,12 +2793,12 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                     # Do Spin Stop
                     if args.spinstop:
-                        cleanup_inventory(api, inventory)
-                        spin_pokestop_update_inventory(api, account, f, step_location, inventory)
+                        cleanup_inventory(api, account)
+                        spin_pokestop_update_inventory(api, account, f, step_location)
 
                     # Do Lure Stop
                     if args.lurestop:
-                        lure_pokestop(args, api, f, step_location, inventory)
+                        lure_pokestop(args, account, api, f, step_location)
 
                 # Is Thier A Lure Active?
                 if 'active_fort_modifier' in f:
@@ -2876,6 +2878,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                                 # Encounter Lure Pokémon.
                                 l_encounter_result = l_encounter_pokemon_request(
                                     api,
+                                    account,
                                     lure_info['encounter_id'],
                                     f['id'],
                                     scan_location)
@@ -3025,7 +3028,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             name = pokestop_details[id]['name']
                             description = pokestop_details[id]['description']
                             url = pokestop_details[id]['url']
-                            deployer = pokestop_details[id]['deployer']
+                            if pokestop_details[id]['deployer']:
+                                deployer = pokestop_details[id]['deployer']
                             #log.warning('==========================POKESTOP DETAILS %s', deployer)
 
                     if lure_expiration is not None:

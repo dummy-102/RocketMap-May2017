@@ -52,7 +52,8 @@ from .utils import now, generate_device_info, clear_dict_response, get_new_api_t
 from .transform import get_new_coords, jitter_location
 from .account import (setup_api, check_login,
                       complete_tutorial, get_player_inventory, AccountSet,
-                      get_player_stats, get_player_state)
+                      get_player_stats, get_player_state,
+                      add_get_inventory_request, update_account_from_response)
 from pogom.gainxp import level_up_rewards_request
 from .captcha import captcha_overseer_thread, handle_captcha
 import schedulers
@@ -1136,9 +1137,6 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                     time.sleep(scheduler.delay(status['last_scan_date']))
                     continue
 
-                # Extract player inventory
-                inventory = account['inventory']
-
                 # Got the response, check for captcha, parse it out, then send
                 # todo's to db/wh queues.
                 try:
@@ -1195,8 +1193,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                 if acc_stats.awarded_to_level < account['level']:
                     log.info("Checking level up rewards for level {}.".format(
                         account['level']))
-                    lvlup_award_result = level_up_rewards_request(api, account[
-                        'level'], account['username'], inventory)
+                    lvlup_award_result = level_up_rewards_request(api, account)
                     if lvlup_award_result in (1, 2):
                         log.info("Got level up rewards! Yay!")
                         acc_stats.awarded_to_level = account['level']
@@ -1382,18 +1379,12 @@ def map_request(api, account, position, no_jitter=False):
                             cell_id=cell_ids)
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        add_get_inventory_request(req, account)
         req.check_awarded_badges()
         req.get_buddy_walked()
         response = req.call()
 
-        account['last_timestamp_ms'] = get_new_api_timestamp(response)
-
-        # Update player account stats.
-        account.update(get_player_stats(response))
-
-        # Extract player inventory
-        account['inventory'] = get_player_inventory(response)
+        update_account_from_response(account, response)
 
         response = clear_dict_response(response, True)
         return response
@@ -1421,12 +1412,13 @@ def gym_request(api, account, position, gym):
                             gym_longitude=gym['longitude'])
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        add_get_inventory_request(req, account)
         req.check_awarded_badges()
         req.get_buddy_walked()
         response = req.call()
 
-        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        update_account_from_response(account, response)
+
         response = clear_dict_response(response)
         return response
 

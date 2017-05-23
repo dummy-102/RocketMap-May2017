@@ -129,14 +129,13 @@ def check_login(args, account, api, position, proxy_url):
         request.get_player_profile()
         request.check_challenge()
         request.get_hatched_eggs()
-        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        add_get_inventory_request(request, account)
         request.check_awarded_badges()
         request.download_settings()
         request.get_buddy_walked()
         response = request.call()
 
-        account['last_timestamp_ms'] = get_new_api_timestamp(response)
-        account['level'] = get_player_level(response)
+        update_account_from_response(account, response)
         time.sleep(random.uniform(.2, .3))
     except Exception as e:
         log.debug('Login for account %s failed. Exception in ' +
@@ -148,13 +147,13 @@ def check_login(args, account, api, position, proxy_url):
         request.level_up_rewards(level=account['level'])
         request.check_challenge()
         request.get_hatched_eggs()
-        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        add_get_inventory_request(request, account)
         request.check_awarded_badges()
         request.download_settings()
         request.get_buddy_walked()
         response = request.call()
 
-        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        update_account_from_response(account, response)
         time.sleep(random.uniform(.45, .7))
     except Exception as e:
         log.debug('Login for account %s failed. Exception in ' +
@@ -166,13 +165,13 @@ def check_login(args, account, api, position, proxy_url):
         request.register_background_device(device_type='apple_watch')
         request.check_challenge()
         request.get_hatched_eggs()
-        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        add_get_inventory_request(request, account)
         request.check_awarded_badges()
         request.get_buddy_walked()
         time.sleep(.1)
         response = request.call()
 
-        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        update_account_from_response(account, response)
         time.sleep(random.uniform(.45, .7))
     except Exception as e:
         log.debug('Login for account %s failed. Exception in ' +
@@ -378,22 +377,6 @@ def tutorial_pokestop_spin(api, player_level, forts, step_location, account):
     return False
 
 
-def get_player_level(map_dict):
-    inventory_items = map_dict['responses'].get(
-        'GET_INVENTORY', {}).get(
-        'inventory_delta', {}).get(
-        'inventory_items', [])
-    player_stats = [item['inventory_item_data']['player_stats']
-                    for item in inventory_items
-                    if 'player_stats' in item.get(
-                    'inventory_item_data', {})]
-    if len(player_stats) > 0:
-        player_level = player_stats[0].get('level', 1)
-        return player_level
-
-    return 0
-
-
 def get_player_stats(response_dict):
     inventory_items = response_dict.get('responses', {})\
         .get('GET_INVENTORY', {}).get('inventory_delta', {})\
@@ -420,24 +403,16 @@ def get_player_inventory(map_dict):
         ITEM_POKEMON_STORAGE_UPGRADE,
         ITEM_ITEM_STORAGE_UPGRADE
     )
-    total_items = 0
     for item in inventory_items:
         iid = item.get('inventory_item_data', {})
         if 'item' in iid and iid['item']['item_id'] not in no_item_ids:
             item_id = iid['item']['item_id']
             count = iid['item'].get('count', 0)
             inventory[item_id] = count
-            total_items += count
         elif 'egg_incubators' in iid and 'egg_incubator' in iid['egg_incubators']:
             for incubator in iid['egg_incubators']['egg_incubator']:
                 item_id = incubator['item_id']
                 inventory[item_id] = inventory.get(item_id, 0) + 1
-                total_items += 1
-    inventory['balls'] = inventory.get(ITEM_POKE_BALL, 0) + inventory.get(
-        ITEM_GREAT_BALL, 0) + inventory.get(ITEM_ULTRA_BALL,
-        0) + inventory.get(ITEM_MASTER_BALL, 0)
-    inventory['totalDisks'] = inventory.get(ITEM_TROY_DISK, 0)
-    inventory['total'] = total_items
     return inventory
 
 
@@ -481,7 +456,7 @@ def spin_pokestop(api, account, fort, step_location):
 def spin_pokestop_request(api, account, fort, step_location):
     try:
         req = api.create_request()
-        spin_pokestop_response = req.fort_search(
+        req.fort_search(
             fort_id=fort['id'],
             fort_latitude=fort['latitude'],
             fort_longitude=fort['longitude'],
@@ -489,10 +464,12 @@ def spin_pokestop_request(api, account, fort, step_location):
             player_longitude=step_location[1])
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        add_get_inventory_request(req, account)
         req.check_awarded_badges()
         req.get_buddy_walked()
         spin_pokestop_response = req.call()
+
+        update_account_from_response(account, spin_pokestop_response)
 
         return spin_pokestop_response
 
@@ -513,22 +490,21 @@ def encounter_pokemon_request(api, account, encounter_id, spawnpoint_id,
             player_longitude=scan_location[1])
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        add_get_inventory_request(req, account)
         req.check_awarded_badges()
         req.get_buddy_walked()
         response = req.call()
 
-        account['last_timestamp_ms'] = get_new_api_timestamp(response)
+        update_account_from_response(account, response)
         return response
 
     except Exception as e:
         log.error('Exception while encountering Pokémon: %s.', repr(e))
         return False
 
-def l_encounter_pokemon_request(api, encounter_id, fort_id, scan_location):
-    # Set first timestamp to none
-    inventory_timestamp = None
-    try:        # Encounter Request For Lured Pokemon
+def l_encounter_pokemon_request(api, account, encounter_id, fort_id, scan_location):
+    # Encounter Request For Lured Pokemon
+    try:
         req = api.create_request()
         req.disk_encounter(
             encounter_id=encounter_id,
@@ -537,22 +513,66 @@ def l_encounter_pokemon_request(api, encounter_id, fort_id, scan_location):
             player_longitude=scan_location[1])
         req.check_challenge()
         req.get_hatched_eggs()
-        if inventory_timestamp:
-            req.get_inventory(last_timestamp_ms=inventory_timestamp)
-        else:
-            req.get_inventory()
+        add_get_inventory_request(req, account)
         req.check_awarded_badges()
         req.get_buddy_walked()
-        l_encounter_result = req.call()
+        response = req.call()
 
-        # Update inventory timestamp
-        inventory_timestamp = l_encounter_result['responses']['GET_INVENTORY'][
-                    'inventory_delta']['new_timestamp_ms']
-
-        return l_encounter_result
+        update_account_from_response(account, response)
+        return response
     except Exception as e:
         log.error('Exception while encountering Lure Pokémon: %s.', repr(e))
         return False
+
+def update_inventory_totals(inventory):
+    ball_ids = [
+        ITEM_POKE_BALL,
+        ITEM_GREAT_BALL,
+        ITEM_ULTRA_BALL,
+        ITEM_MASTER_BALL
+    ]
+    lure_ids = [
+        ITEM_TROY_DISK
+    ]
+    balls = 0
+    total_items = 0
+    totalDisks = 0
+    for item_id in inventory:
+        if item_id in ['total', 'balls', 'totalDisks']:
+            continue
+        if item_id in ball_ids:
+            balls += inventory[item_id]
+        if item_id in lure_ids:
+            totalDisks += inventory[item_id]
+        total_items += inventory[item_id]
+    inventory['totalDisks'] = totalDisks    # inventory.get(ITEM_TROY_DISK, 0)
+    inventory['balls'] = balls
+    inventory['total'] = total_items
+
+
+def update_account_from_response(account, response):
+    # Set an (empty) inventory if necessary
+    if not 'inventory' in account or account['inventory'] is None:
+        account['inventory'] = {}
+
+    # Update inventory (balls, items)
+    inventory_update = get_player_inventory(response)
+    account['inventory'].update(inventory_update)
+    update_inventory_totals(account['inventory'])
+
+    # Update stats (level, xp, encounters, captures, km walked, etc.)
+    account.update(get_player_stats(response))
+
+    # Update last timestamp for inventory requests
+    account['last_timestamp_ms'] = get_new_api_timestamp(response)
+
+
+def add_get_inventory_request(request, account):
+    if account.get('last_timestamp_ms'):
+        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+    else:
+        request.get_inventory()
+
 
 # The AccountSet returns a scheduler that cycles through different
 # sets of accounts (e.g. L30). Each set is defined at runtime, and is
