@@ -368,7 +368,7 @@ def tutorial_pokestop_spin(api, player_level, forts, step_location, account):
             account['username'])
         for fort in forts:
             if fort.get('type') == 1:
-                if spin_pokestop(api, fort, step_location):
+                if spin_pokestop(api, account, fort, step_location):
                     log.debug(
                         'Account %s successfully spun a Pokestop ' +
                         'after completed tutorial.',
