@@ -691,7 +691,7 @@ function build_previous_id_div(encounterIdLong, previous_id) {
 function build_nearby_pkm_div(encounterIdLong, spawnpoint_id) {
     return `
           <div id="pkmNearby${encounterIdLong}">
-            <img height='15px' style='padding: 1px;' src='static/forts/pstop.png'>
+            <img height='15px' style='padding: 1px;' src='static/forts/Pstop.png'>
             <font size="3"><b>Nearby Pokemon</font></b>
           </div>
           <div>
@@ -706,7 +706,7 @@ function build_nearby_pkm_div(encounterIdLong, spawnpoint_id) {
 function build_lured_pkm_div(encounterIdLong, spawnpoint_id) {
     return `
           <div id="pkmLured${encounterIdLong}">
-            <img height='15px' style='padding: 1px;' src='static/forts/pstopLured.png'>
+            <img height='15px' style='padding: 1px;' src='static/forts/PstopLured.png'>
             <font size="3"><b>Lured Pokemon</font></b>
           </div>
           `
@@ -1404,7 +1404,7 @@ function isMedalPokemon(item) {
     var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
 
     if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && ratio < 1.5) ||
-            (Store.get('showMedalMagikarp')) && item['pokemon_id'] === 129 && ratio > 2.5) {
+            (Store.get('showMedalMagikarp')) && item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13) {
         return true
     }
 
