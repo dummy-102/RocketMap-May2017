@@ -525,6 +525,14 @@ def get_args():
                         ' IV/CP scanning.')
     parser.add_argument('-pgsu', '--pgscout-url', default=None,
                         help='URL to query PGScout for Pokemon IV/CP.')
+    parser.add_argument('-rst', '--rareless-scans-threshold',
+                        help=('Mark an account as blind/shadowbanned after '
+                              'this many scans without finding any rare '
+                              'Pokemon.'),
+                        type=int, default=10)
+    parser.add_argument('-rb', '--rotate-blind',
+                        help='Rotate out blinded accounts.',
+                        action='store_true', default=False)
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
@@ -725,7 +733,8 @@ def get_args():
                 'username': username,
                 'password': args.password[i],
                 'auth_service': args.auth_service[i],
-                'last_timestamp_ms': None
+                'last_timestamp_ms': None,
+                'scans_without_rares': None
             })
 
         # Prepare the L30 accounts for the account sets.

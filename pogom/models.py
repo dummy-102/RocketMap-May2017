@@ -1862,6 +1862,7 @@ class Account(BaseModel):
     num_balls = SmallIntegerField(null=True)
     lures = SmallIntegerField(null=True)
     warn = BooleanField(null=True)
+    blind = BooleanField(null=True)
 
     def update(self, acc):
         self.level = acc.get('level')
@@ -1874,6 +1875,7 @@ class Account(BaseModel):
         self.num_balls = acc.get('inventory', {}).get('balls')
         self.lures = acc.get('inventory', {}).get('totalDisks')
         self.warn = acc.get('warn')
+        self.blind = (acc.get('scans_without_rares') or 0) >= args.rareless_scans_threshold
         self.last_modified = datetime.utcnow()
 
     def db_format(self):
@@ -1890,6 +1892,7 @@ class Account(BaseModel):
             'num_balls': self.num_balls,
             'lures': self.lures,
             'warn': self.warn,
+            'blind': self.blind,
             'last_modified': datetime.utcnow()
         }
 

@@ -15,6 +15,7 @@ from pgoapi import PGoApi
 from pgoapi.exceptions import AuthException
 from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
+from pogom.shadow import sees_shadowed_pokemon
 from .fakePogoApi import FakePogoApi
 from .utils import (in_radius, generate_device_info, equi_rect_distance,
                     get_new_api_timestamp)
@@ -562,6 +563,14 @@ def update_account_from_response(account, response):
 
     # Update stats (level, xp, encounters, captures, km walked, etc.)
     account.update(get_player_stats(response))
+
+    # Check if rare/shadowed Pokemon are found
+    if 'GET_MAP_OBJECTS' in response.get('responses', {}):
+        if sees_shadowed_pokemon(response):
+            account['scans_without_rares'] = 0
+        else:
+            account['scans_without_rares'] = (account.get(
+                'scans_without_rares') or 0) + 1
 
     # Update last timestamp for inventory requests
     account['last_timestamp_ms'] = get_new_api_timestamp(response)
