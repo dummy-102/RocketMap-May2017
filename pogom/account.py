@@ -187,9 +187,9 @@ def check_login(args, account, api, position, proxy_url):
         request = api.create_request()
         request.get_player(
             player_locale={
-                'country': 'US',
+                'country': 'CA',
                 'language': 'en',
-                'timezone': 'America/Denver'})
+                'timezone': 'America/Toronto'})
         response = request.call()
         # Warning Response
         warn = response['responses']['GET_PLAYER'].get('warn', 0)
