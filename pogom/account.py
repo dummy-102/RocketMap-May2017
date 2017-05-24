@@ -161,24 +161,6 @@ def check_login(args, account, api, position, proxy_url):
                   'level_up_rewards: %s',
                   account['username'], repr(e))
 
-    try:  # 5 - register_background_device
-        request = api.create_request()
-        request.register_background_device(device_type='apple_watch')
-        request.check_challenge()
-        request.get_hatched_eggs()
-        add_get_inventory_request(request, account)
-        request.check_awarded_badges()
-        request.get_buddy_walked()
-        time.sleep(.1)
-        response = request.call()
-
-        update_account_from_response(account, response)
-        time.sleep(random.uniform(.45, .7))
-    except Exception as e:
-        log.debug('Login for account %s failed. Exception in ' +
-                  'register_background_device: %s',
-                  account['username'], repr(e))
-
     log.debug('Login for account %s successful.', account['username'])
     time.sleep(random.uniform(10, 20))
 
