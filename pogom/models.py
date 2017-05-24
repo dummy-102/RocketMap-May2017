@@ -2444,6 +2444,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     # Encounter Pokémon.
                     encounter_result = encounter_pokemon_request(
                         llvl_api,
+                        llvl_account,
                         p['encounter_id'],
                         p['spawn_point_id'],
                         scan_location)
@@ -2556,7 +2557,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             previous_id = None
             have_balls = inventory.get('balls', 0) > 0
             if args.gain_xp and account_not_30 and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
-                if is_ditto(args, api, p, inventory):
+                if is_ditto(args, account, api, p, inventory):
                     # Scout Ditto Pokemon
                     #if args.pgscout_url:
                     #    scout_result = perform_pgscout(p)

@@ -36,7 +36,7 @@ ITEM_NAMES = {
 }
 
 
-def is_ditto(args, api, p, inventory):
+def is_ditto(args, account, api, p, inventory):
     pokemon_id = p['pokemon_data']['pokemon_id']
     pokemon_name = get_pokemon_name(pokemon_id)
     captured_pokemon_name = pokemon_name
@@ -44,7 +44,7 @@ def is_ditto(args, api, p, inventory):
 
     # Encounter Pokemon.
     time.sleep(args.encounter_delay)
-    encounter_pokemon_request(api, p['encounter_id'], p['spawn_point_id'],
+    encounter_pokemon_request(api, account, p['encounter_id'], p['spawn_point_id'],
                               [p['latitude'], p['longitude']])
 
     # Now try to catch it.
