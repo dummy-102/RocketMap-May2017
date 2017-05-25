@@ -116,7 +116,8 @@ def check_login(args, account, api, position, proxy_url):
 
     try:  # 1 - get_player
         # Get warning/banned flags and tutorial state.
-        account.update(get_player_state(api))
+        account.update(get_player_state(api, args))
+        #log.warning('+++++++++++++++++++++++++%s', get_player_state(api, args))
         time.sleep(random.uniform(.53, 1.1))
     except Exception as e:
         log.debug('Login for account %s failed. Exception in get_player: %s',
@@ -214,15 +215,12 @@ def check_login(args, account, api, position, proxy_url):
     return (warn, ban)
 
 # Returns warning/banned flags and tutorial state.
-def get_player_state(api):
+def get_player_state(api, args):
     request = api.create_request()
     request.get_player(
-        player_locale={'country': 'CA',
-                       'language': 'en',
-                       'timezone': 'America/Toronto'})
-
+        player_locale=args.player_locale)
     response = request.call().get('responses', {})
-
+    #log.warning('++++++++++++++++++++++++++++++++ %s', args.player_locale)
     get_player = response.get('GET_PLAYER', {})
     return {
         'tutorial_state': get_player.get('player_data', {}).get('tutorial_state', []),
@@ -230,11 +228,10 @@ def get_player_state(api):
         'banned': get_player.get('banned', False)
     }
 
-
 # Complete minimal tutorial steps.
 # API argument needs to be a logged in API instance.
 # TODO: Check if game client bundles these requests, or does them separately.
-def complete_tutorial(api, account, tutorial_state):
+def complete_tutorial(args, api, account, tutorial_state):
     if 0 not in tutorial_state:
         time.sleep(random.uniform(1, 5))
         request = api.create_request()
@@ -296,10 +293,7 @@ def complete_tutorial(api, account, tutorial_state):
         time.sleep(random.uniform(0.5, 0.6))
         request = api.create_request()
         request.get_player(
-            player_locale={
-                'country': 'CA',
-                'language': 'en',
-                'timezone': 'America/Toronto'})
+            player_locale=args.player_locale)
         responses = request.call().get('responses', {})
 
         inventory = responses.get('GET_INVENTORY', {}).get(
@@ -325,10 +319,7 @@ def complete_tutorial(api, account, tutorial_state):
         time.sleep(0.1)
         request = api.create_request()
         request.get_player(
-            player_locale={
-                'country': 'CA',
-                'language': 'en',
-                'timezone': 'America/Toronto'})
+            player_locale=args.player_locale)
         request.call()
 
     if 7 not in tutorial_state:
