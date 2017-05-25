@@ -329,7 +329,7 @@ def print_account_stats(rows, thread_status, account_queue,
         userlen = max(userlen, len(acc.get('username', '')))
 
     # Print table header.
-    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:5} | {:3} | {:>8} | {:10} | {:6}' \
+    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:5} | {:5} | {:>8} | {:10} | {:6}' \
                                    ' | {:8} | {:12} | {:5} | {:>10}'
     rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Blind', 'Level', 'XP','Encounters',
                                 'Throws', 'Captures', 'Inventory', 'Spins',
